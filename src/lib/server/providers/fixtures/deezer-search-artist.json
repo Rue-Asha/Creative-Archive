@@ -1,0 +1,32 @@
+{
+	"data": [
+		{
+			"id": 1350335,
+			"name": "Frank Ocean",
+			"link": "https://www.deezer.com/artist/1350335",
+			"picture_xl": "https://cdn-images.dzcdn.net/images/artist/882155c08dc31d6464d6d580083c968c/1000x1000-000000-80-0-0.jpg",
+			"nb_album": 14,
+			"nb_fan": 4500000,
+			"type": "artist"
+		},
+		{
+			"id": 7000001,
+			"name": "Nova",
+			"link": "https://www.deezer.com/artist/7000001",
+			"picture_xl": "https://cdn-images.dzcdn.net/images/artist/1a2b3c4d5e6f708192a3b4c5d6e7f809/1000x1000-000000-80-0-0.jpg",
+			"nb_album": 3,
+			"nb_fan": 1200,
+			"type": "artist"
+		},
+		{
+			"id": 7000002,
+			"name": "Nova",
+			"link": "https://www.deezer.com/artist/7000002",
+			"picture_xl": "https://cdn-images.dzcdn.net/images/artist/9f8e7d6c5b4a39281706f5e4d3c2b1a0/1000x1000-000000-80-0-0.jpg",
+			"nb_album": 1,
+			"nb_fan": 80,
+			"type": "artist"
+		}
+	],
+	"total": 3
+}

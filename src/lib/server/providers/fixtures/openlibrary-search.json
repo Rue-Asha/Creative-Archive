@@ -1,0 +1,20 @@
+{
+	"numFound": 124,
+	"start": 0,
+	"numFoundExact": true,
+	"docs": [
+		{
+			"key": "/works/OL2625457W",
+			"title": "Norwegian Wood",
+			"author_name": ["村上春樹"],
+			"first_publish_year": 1987,
+			"cover_i": 12345
+		},
+		{
+			"key": "/works/OL29357149W",
+			"title": "Norwegian Wood",
+			"author_name": ["村上春樹"],
+			"first_publish_year": 2007
+		}
+	]
+}

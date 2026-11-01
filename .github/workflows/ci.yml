@@ -1,0 +1,24 @@
+name: ci
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+# A newer push to a PR replaces its running check; push runs feed releases and always finish.
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  ci:
+    uses: ./.github/workflows/gate.yml
+    with:
+      runner: ${{ github.event_name == 'push' && '["ubuntu-24.04"]' || '["self-hosted","homelab-check"]' }}
+
+  security-baseline:
+    uses: Rue-Asha/ci/.github/workflows/security-baseline.yml@7b49f3dcf37c61aea3722e68917bc06db507f386 # v1.1.0

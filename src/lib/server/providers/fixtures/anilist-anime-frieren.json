@@ -1,0 +1,23 @@
+{
+	"data": {
+		"Page": {
+			"media": [
+				{
+					"id": 154587,
+					"title": {
+						"romaji": "Sousou no Frieren",
+						"english": "Frieren: Beyond Journey's End",
+						"native": "葬送のフリーレン"
+					},
+					"seasonYear": 2023,
+					"startDate": { "year": 2023 },
+					"episodes": 28,
+					"chapters": null,
+					"volumes": null,
+					"status": "FINISHED",
+					"coverImage": { "extraLarge": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx154587-gHSraOSa0nBG.jpg" }
+				}
+			]
+		}
+	}
+}
