@@ -1,0 +1,30 @@
+{
+	"data": {
+		"Page": {
+			"media": [
+				{
+					"id": 30656,
+					"title": { "romaji": "Vagabond", "english": "Vagabond", "native": "バガボンド" },
+					"seasonYear": null,
+					"startDate": { "year": 1998 },
+					"episodes": null,
+					"chapters": null,
+					"volumes": null,
+					"status": "RELEASING",
+					"coverImage": { "extraLarge": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx30656-9mW113O7rDnA.png" }
+				},
+				{
+					"id": 125401,
+					"title": { "romaji": "Sensai Vagabond", "english": null, "native": "戦災バガボン" },
+					"seasonYear": null,
+					"startDate": { "year": 2020 },
+					"episodes": null,
+					"chapters": 1,
+					"volumes": null,
+					"status": "FINISHED",
+					"coverImage": { "extraLarge": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx125401-lm1YSwXLZxFS.png" }
+				}
+			]
+		}
+	}
+}

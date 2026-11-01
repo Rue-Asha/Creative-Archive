@@ -1,0 +1,26 @@
+track: feature
+triage: 'feature — new SvelteKit app from scratch: private archive for music, animanga, books and fashion with autofill, tags, collections, domain themes and rich motion. Appetite: large, several sessions (~7–9 waves), one change.'
+base: main
+gate0: 2026-10-31
+gate1: 2026-10-31
+gate2: 2026-11-01
+learnings:
+  - 'rg -h in ripgrep 15.2 prints help, not no-filename → use rg --no-filename (planner friction, build-creative-archive)'
+  - 'Contract-unit stubs that throw "not implemented" make every later red run fail on the throw, not on an assertion → stubs return a typed empty default so red is an assertion failure (U9 friction, build-creative-archive)'
+  - 'Briefs naming a scratchpad subdir → tell the agent to mkdir -p it (U9 friction)'
+  - 'Mockup photo download via Openverse → name a second source and accept that it may be down (Openverse 504s ~15 min, thumb proxy 500 on 6/10, stocksnap 403); ask Rue for own photos per domain at explore when the vibe depends on them (U4 got 4/11 real photos, fashion had none)'
+  - 'Design units picking fonts → avoid Cormorant/Fraunces/Instrument-style serifs (Rue: "the classical Anthropic font which newer models always use"), offer 3 distinct pairings to pick from; ask about dark-first and the glass material at explore (Rue rejected the light palette and asked for iOS-like matte liquid glass at 4.7) (gate correction, build-creative-archive)'
+  - 'Bare `playwright test` in a fresh worktree fails with "Cannot find module build" → builders run `npm run build` once (or proof) before targeted e2e runs (U10 friction)'
+  - 'A throwaway `node build` server left on the unit port blocks the next Playwright start → check `ss -ltn | rg :<port>` and kill that pid before e2e (U10 friction)'
+  - 'Component tests ban raw colours (motion.test.ts) and there is no error colour token → the design unit defines an error/danger token up front (U13 went red on a hex error colour, fell back to ink)'
+  - 'Parallel UI units without a shared error token chose two different error colours (U11 tomato mix, U13 ink) → the contract unit names the error style; a scenario split across units (Entry pages mark their domain, U10 note said U11/U12) names exactly one owner in the brief'
+  - 'Builder committed 12.4 before reading the exit line of its background proof:full, which was red (motion.test.ts bans clip-path transitions) → briefs say: read the ok/FAIL line before git commit; `timeout 118 tail --pid=<pid> -f /dev/null` is a clean bounded wait (U12 friction)'
+  - 'Each e2e file declaring the same `window.__anims` global clashes in svelte-check → name per-file globals (U12 friction)'
+  - 'A task whose scenarios are already satisfied by merged units (14.5 morph via U10/U12) cannot be watched failing → the brief asks for a mutation check (break the mechanism, see each scenario go red, revert) instead of fail-first; name the file that actually owns the mechanism (morph.ts, not EntryCard) (U14 resume, build-creative-archive)'
+  - 'Background proof:full wrapped as `( ... ) &` returns at once and pgrep -f "proof:full" matches several pids → briefs say: start it with the Bash tool''s run_in_background (or capture `$!` right after `&`) and wait on that pid only (U16 friction, build-creative-archive)'
+  - 'progress.test.ts "Reaching the total offers Mark as watched" (desktop) went red once in U17''s proof:full with no related change and passed on rerun → flaky; Verify runs it with --repeat-each before Gate 2 (U17 friction, build-creative-archive)'
+  - 'Verifier ran repeat-each flaky checks after proof:full, and Playwright cleared test-results/ (shots gone, had to regenerate) → verify.md: run targeted repeat-each checks before proof:full, or regenerate shots last (verifier friction, build-creative-archive)'
+  - 'A design pick made at a checkpoint (font pairing a, sans display, data-font as third world attribute) was written into design.md but not into the delta spec; the fresh reviewer flagged it as spec mismatch at Verify → when the orchestrator records a gate/checkpoint pick in design.md, the same commit updates every requirement and scenario it contradicts (reviewer r1, build-creative-archive)'
+  - 'Optimistic detail controls queue their POSTs; e2e that reload right after a click lost the write and flaked (progress, rating, status, journey) → the contract unit ships an e2e helper that awaits pending action responses (countSaves) and the planner names it in every scenario that reloads after a write (fixer r1, build-creative-archive)'
+  - 'Editing e2e files while proof:full runs lets Playwright workers pick up half-edited files → fixers and builders never edit tests during a running proof (fixer r1 friction)'
+  - 'Fixer r1 fixed the save-queue poisoning in entries/[id]/+page.svelte only; reviewer r2 found the same unguarded queue.then in EntryCard and AddToCollection → a fixer brief for a pattern bug says: rg for every copy of the pattern and fix or list each (reviewer r2, build-creative-archive)'

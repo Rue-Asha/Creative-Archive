@@ -1,0 +1,17 @@
+{
+	"id": 344137457,
+	"title": "Blonde",
+	"link": "https://www.deezer.com/album/344137457",
+	"cover_xl": "https://cdn-images.dzcdn.net/images/cover/aa7e6de00b0810f5051aa60b489f58d8/1000x1000-000000-80-0-0.jpg",
+	"genre_id": 132,
+	"nb_tracks": 17,
+	"release_date": "2016-08-20",
+	"record_type": "album",
+	"artist": {
+		"id": 1350335,
+		"name": "Frank Ocean",
+		"picture_xl": "https://cdn-images.dzcdn.net/images/artist/882155c08dc31d6464d6d580083c968c/1000x1000-000000-80-0-0.jpg",
+		"type": "artist"
+	},
+	"type": "album"
+}

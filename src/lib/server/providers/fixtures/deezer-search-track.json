@@ -1,0 +1,29 @@
+{
+	"data": [
+		{
+			"id": 717273842,
+			"readable": true,
+			"title": "Nikes",
+			"title_short": "Nikes",
+			"isrc": "QZ5C81600001",
+			"link": "https://www.deezer.com/track/717273842",
+			"duration": 314,
+			"explicit_lyrics": true,
+			"artist": {
+				"id": 1350335,
+				"name": "Frank Ocean",
+				"link": "https://www.deezer.com/artist/1350335",
+				"picture_xl": "https://cdn-images.dzcdn.net/images/artist/882155c08dc31d6464d6d580083c968c/1000x1000-000000-80-0-0.jpg",
+				"type": "artist"
+			},
+			"album": {
+				"id": 104660202,
+				"title": "Blonde",
+				"cover_xl": "https://cdn-images.dzcdn.net/images/cover/f798a866107715dd6dc1049e498ce21f/1000x1000-000000-80-0-0.jpg",
+				"type": "album"
+			},
+			"type": "track"
+		}
+	],
+	"total": 1
+}

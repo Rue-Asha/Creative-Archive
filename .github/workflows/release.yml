@@ -1,0 +1,105 @@
+name: release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+jobs:
+  check-tag:
+    name: check-tag
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      actions: read
+    outputs:
+      ci-run-id: ${{ steps.ci.outputs.run-id }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Tag matches package.json version
+        run: |
+          version=$(jq -r .version package.json)
+          if [ "v$version" != "$GITHUB_REF_NAME" ]; then
+            echo "::error::tag $GITHUB_REF_NAME does not match package.json version $version"
+            exit 1
+          fi
+
+      # The push to main already ran the full gate on this commit and uploaded
+      # its tarball; publish that one instead of building and testing it again.
+      # A tag pushed right after the merge can arrive before that run is listed.
+      - name: ci passed on the tagged commit
+        id: ci
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          for _ in $(seq 12); do
+            run_id=$(gh run list --repo "$GITHUB_REPOSITORY" --workflow ci.yml --event push --commit "$GITHUB_SHA" --json databaseId --jq '.[0].databaseId')
+            [ -n "$run_id" ] && break
+            sleep 10
+          done
+          if [ -z "$run_id" ]; then
+            echo "::error::no ci push run on main for $GITHUB_SHA"
+            exit 1
+          fi
+          if ! gh run watch "$run_id" --repo "$GITHUB_REPOSITORY" --exit-status --interval 30 > /dev/null; then
+            echo "::error::ci run $run_id for $GITHUB_SHA did not pass"
+            exit 1
+          fi
+          expired=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$run_id/artifacts" --jq '.artifacts[] | select(.name == "release-tarball") | .expired')
+          if [ "$expired" != "false" ]; then
+            echo "::error::release-tarball of ci run $run_id is missing or expired; rerun that run (gh run rerun $run_id) and push the tag again"
+            exit 1
+          fi
+          echo "run-id=$run_id" >> "$GITHUB_OUTPUT"
+
+  publish:
+    name: publish
+    needs: check-tag
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+      actions: read
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: release-tarball
+          path: dist
+          run-id: ${{ needs.check-tag.outputs.ci-run-id }}
+          github-token: ${{ github.token }}
+
+      - name: Verify checksum
+        working-directory: dist
+        run: sha256sum -c ./*.sha256
+
+      - uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: dist/*.tgz
+
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" dist/*.tgz dist/*.tgz.sha256 --repo "$GITHUB_REPOSITORY" --verify-tag --generate-notes
+
+  # The host_vars file arrives with the creative-archive-deploy change in Homelab-Managment;
+  # until then this job fails after publish, which is accepted.
+  bump:
+    name: bump
+    needs: publish
+    permissions:
+      contents: read
+    uses: Rue-Asha/ci/.github/workflows/bump-pin.yml@7b49f3dcf37c61aea3722e68917bc06db507f386 # v1.1.0
+    with:
+      app: creative-archive
+      host_vars_path: ansible/inventory/host_vars/creative-archive01/vars.yml
+      variable: creative_archive_version
+      tag: ${{ github.ref_name }}
+    secrets:
+      app_id: ${{ secrets.HOMELAB_BUMP_APP_ID }}
+      app_private_key: ${{ secrets.HOMELAB_BUMP_APP_KEY }}

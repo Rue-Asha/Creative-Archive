@@ -1,0 +1,64 @@
+name: gate
+
+# The check and release gate, called by ci.yml. `runner` is a JSON label list:
+# PR checks run on the homelab check host, but a push to main runs on a
+# GitHub-hosted runner, because release.yml publishes the tarball that run uploads.
+on:
+  workflow_call:
+    inputs:
+      runner:
+        description: JSON list of runs-on labels
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  ci:
+    name: ci
+    runs-on: ${{ fromJSON(inputs.runner) }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # No npm cache: this job also feeds a release, and a poisoned cache would ship.
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          # Keep in step with Homelab-Managment ansible/roles/nodejs/defaults/main.yml (nodejs_version).
+          node-version: 22
+
+      - run: npm ci
+
+      - run: npx playwright install chromium
+
+      - run: npm run check
+
+      # package is the only build; the unit tests run after it because package.test.ts copies build/.
+      - run: npm run package
+
+      - run: npm run test:unit
+
+      - name: Verify checksum
+        working-directory: dist
+        run: sha256sum -c ./*.sha256
+
+      - name: Unpack tarball
+        run: |
+          mkdir "$RUNNER_TEMP/artifact"
+          tar -xzf dist/*.tgz -C "$RUNNER_TEMP/artifact"
+          echo "E2E_APP_DIR=$(echo "$RUNNER_TEMP"/artifact/creative-archive-*)" >> "$GITHUB_ENV"
+
+      - name: e2e against the unpacked tarball
+        run: |
+          echo "E2E_APP_DIR=$E2E_APP_DIR"
+          npm run test:e2e
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: release-tarball
+          path: |
+            dist/*.tgz
+            dist/*.tgz.sha256
+          if-no-files-found: error
