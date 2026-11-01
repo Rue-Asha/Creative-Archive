@@ -64,16 +64,31 @@ test('Scenario: Shelf headers do not stick on phone', async ({ page, request }, 
 });
 
 const DRAG = 400;
+const STEPS = 8;
 
+// Inertia only counts moves from the last 100ms, and page.mouse sends each step as its own round trip, which a busy
+// runner spaces further apart than that. Stamped events keep the gesture a quick flick however slow the round trips are.
 async function drag(page: Page, row: ReturnType<Page['locator']>) {
 	const box = (await row.boundingBox())!;
+	const x = box.x + box.width - 60;
 	const y = box.y + box.height / 2;
 	const start = await row.evaluate((el) => el.scrollLeft);
-	await page.mouse.move(box.x + box.width - 60, y);
-	await page.mouse.down();
-	await page.mouse.move(box.x + box.width - 60 - DRAG, y, { steps: 8 });
-	// no round trip before release: inertia only counts moves from the last 100ms, which a slow runner can outlast
-	await page.mouse.up();
+	const cdp = await page.context().newCDPSession(page);
+	const t0 = Date.now() / 1000;
+	const send = (type: 'mouseMoved' | 'mousePressed' | 'mouseReleased', step: number, buttons: number) =>
+		cdp.send('Input.dispatchMouseEvent', {
+			type,
+			x: x - (DRAG * step) / STEPS,
+			y,
+			button: 'left',
+			buttons,
+			clickCount: type === 'mouseMoved' ? 0 : 1,
+			timestamp: t0 + step * 0.016
+		});
+	await send('mouseMoved', 0, 0);
+	await send('mousePressed', 0, 1);
+	for (let step = 1; step <= STEPS; step++) await send('mouseMoved', step, 1);
+	await send('mouseReleased', STEPS, 0);
 	return start + DRAG;
 }
 
