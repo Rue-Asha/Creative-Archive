@@ -63,15 +63,18 @@ test('Scenario: Shelf headers do not stick on phone', async ({ page, request }, 
 	for (const position of positions) expect(position).not.toBe('sticky');
 });
 
+const DRAG = 400;
+
 async function drag(page: Page, row: ReturnType<Page['locator']>) {
 	const box = (await row.boundingBox())!;
 	const y = box.y + box.height / 2;
+	const start = await row.evaluate((el) => el.scrollLeft);
 	await page.mouse.move(box.x + box.width - 60, y);
 	await page.mouse.down();
-	await page.mouse.move(box.x + box.width - 460, y, { steps: 8 });
-	const before = await row.evaluate((el) => el.scrollLeft);
+	await page.mouse.move(box.x + box.width - 60 - DRAG, y, { steps: 8 });
+	// no round trip before release: inertia only counts moves from the last 100ms, which a slow runner can outlast
 	await page.mouse.up();
-	return before;
+	return start + DRAG;
 }
 
 test('Scenario: Shelf rows drag-scroll with inertia on desktop', async ({ page, request }, info) => {
@@ -82,7 +85,6 @@ test('Scenario: Shelf rows drag-scroll with inertia on desktop', async ({ page, 
 	await expect(row.locator('[data-card]')).toHaveCount(20);
 
 	const before = await drag(page, row);
-	expect(before).toBeGreaterThan(100);
 	await expect.poll(() => row.evaluate((el) => el.scrollLeft)).toBeGreaterThan(before);
 	await expect(page).toHaveURL(/view=shelves/);
 });
@@ -95,7 +97,6 @@ test('Scenario: Reduced motion drag-scroll stops on release', async ({ page, req
 	const row = shelf(page, 'Want to read').locator('[data-shelf-row]');
 
 	const before = await drag(page, row);
-	expect(before).toBeGreaterThan(100);
 	await page.waitForTimeout(400);
 	expect(await row.evaluate((el) => el.scrollLeft)).toBe(before);
 });

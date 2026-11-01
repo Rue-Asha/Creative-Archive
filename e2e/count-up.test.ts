@@ -35,9 +35,9 @@ test('Scenario: Home counts count up on first view', async ({ page, request }) =
 	await page.locator(count).scrollIntoViewIfNeeded();
 
 	await expect(page.locator(count)).toHaveText('12');
-	const seen = await samples(page);
-	expect(seen.some((n) => n < 12)).toBe(true);
-	expect(seen.at(-1)).toBe(12);
+	// the sampler's frame callback can run before the count's in the frame that writes 12, so it records it a frame later
+	await expect.poll(async () => (await samples(page)).at(-1)).toBe(12);
+	expect((await samples(page)).some((n) => n < 12)).toBe(true);
 });
 
 test('Scenario: Reduced motion shows final counts immediately', async ({ page, request }) => {
