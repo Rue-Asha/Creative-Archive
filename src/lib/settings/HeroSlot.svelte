@@ -50,6 +50,7 @@
 		{#if image !== null}
 			<img src="/images/{image}" alt="" />
 		{:else}
+			<span class="tint" data-tint aria-hidden="true"></span>
 			<p class="empty">No photo yet</p>
 		{/if}
 	</div>
@@ -73,14 +74,14 @@
 				aria-label="{label} photo file"
 				onchange={onFile}
 			/>
-			<Button variant="secondary" arrow={false} icon="image" disabled={pending} onclick={() => input.click()}>
+			<Button variant="secondary" arrow={false} icon={image === null ? 'image' : undefined} disabled={pending} onclick={() => input.click()}>
 				{image !== null ? 'Replace' : 'Upload'}
 			</Button>
 		</form>
 		{#if image !== null}
 			<form method="POST" action="?/remove" use:enhance={submit}>
 				<input type="hidden" name="world" value={world} />
-				<Button variant="glass" arrow={false} type="submit" disabled={pending}>Remove</Button>
+				<Button variant="secondary" arrow={false} type="submit" disabled={pending}>Remove</Button>
 			</form>
 		{/if}
 	</div>
@@ -111,10 +112,17 @@
 		aspect-ratio: 4 / 3;
 		border-radius: var(--r-md);
 		overflow: hidden;
+		position: relative;
 		background:
 			var(--grain),
-			radial-gradient(90% 70% at 80% 10%, var(--accent-glow), transparent 65%),
 			linear-gradient(160deg, var(--accent-soft), var(--surface-2));
+	}
+
+	.tint {
+		position: absolute;
+		inset: -30% -40% 20% 10%;
+		background: var(--accent-glow);
+		mask-image: var(--glow-mask);
 	}
 
 	.frame img {
@@ -124,6 +132,7 @@
 	}
 
 	.empty {
+		position: relative;
 		font-size: var(--t-small);
 		font-weight: 500;
 		color: var(--ink-2);
@@ -136,7 +145,7 @@
 	}
 
 	.actions :global(.btn) {
-		padding-inline: var(--s-5);
+		padding-inline: var(--s-3);
 	}
 
 	.error {
@@ -144,6 +153,6 @@
 		padding-inline: var(--s-2);
 		font-size: var(--t-small);
 		font-weight: 600;
-		color: var(--ink);
+		color: var(--error);
 	}
 </style>

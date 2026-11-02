@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { parseProgress } from '#lib/entries/progress.ts';
 	import Icon from './Icon.svelte';
 
 	let {
@@ -19,15 +20,32 @@
 
 	const atEnd = $derived(total !== null && current >= total);
 
-	function commit(event: Event) {
+	let editing = $state(false);
+	let valueButton: HTMLButtonElement | undefined = $state();
+
+	function focusSelect(node: HTMLInputElement) {
+		node.focus();
+		node.select();
+	}
+
+	function finish(input: HTMLInputElement, save: boolean) {
+		if (!editing) return;
+		editing = false;
+		if (!save) return;
+		const next = parseProgress(input.value, total);
+		if (next !== null && next !== current) onset(next);
+	}
+
+	function leave(input: HTMLInputElement, save: boolean) {
+		finish(input, save);
+		// focusing the button inside the keydown would let the same Enter press activate it again
+		setTimeout(() => valueButton?.focus());
+	}
+
+	function keydown(event: KeyboardEvent) {
 		const input = event.currentTarget as HTMLInputElement;
-		const raw = input.value.trim();
-		const next = Number(raw);
-		if (raw === '' || !Number.isInteger(next) || next < 0 || (total !== null && next > total)) {
-			input.value = String(current);
-			return;
-		}
-		if (next !== current) onset(next);
+		if (event.key === 'Enter') leave(input, true);
+		else if (event.key === 'Escape') leave(input, false);
 	}
 </script>
 
@@ -35,17 +53,27 @@
 	<button type="button" class="step" aria-label="{label}: one less" disabled={current <= 0} onclick={() => onstep(-1)}>
 		<Icon name="minus" size={18} />
 	</button>
-	<span class="value tnum">
+	{#if editing}
 		<input
+			use:focusSelect
 			type="text"
 			inputmode="numeric"
 			aria-label={label}
 			value={current}
-			onchange={commit}
-			onkeydown={(e) => e.key === 'Enter' && (e.currentTarget as HTMLInputElement).blur()}
+			onkeydown={keydown}
+			onblur={(e) => finish(e.currentTarget, true)}
 		/>
-		<span class="total">/ {total ?? '?'}</span>
-	</span>
+	{:else}
+		<button
+			bind:this={valueButton}
+			type="button"
+			class="value tnum"
+			aria-label="{label} {current} of {total ?? 'unknown'}"
+			onclick={() => (editing = true)}
+		>
+			{current}{' '}<span class="total" aria-hidden="true">/ {total ?? '?'}</span>
+		</button>
+	{/if}
 	<button type="button" class="step" aria-label="{label}: one more" disabled={atEnd} onclick={() => onstep(1)}>
 		<Icon name="plus" size={18} />
 	</button>
@@ -99,10 +127,16 @@
 
 	.value {
 		display: inline-flex;
-		align-items: baseline;
+		align-items: center;
+		justify-content: center;
 		gap: 2px;
-		padding-inline-end: 6px;
-		font-size: 15px;
+		min-inline-size: 44px;
+		block-size: 44px;
+		padding: 0 6px;
+		border: 0;
+		border-radius: var(--r-pill);
+		background: transparent;
+		font-size: var(--t-body);
 		font-weight: 600;
 		white-space: nowrap;
 	}
@@ -126,5 +160,13 @@
 	.total {
 		color: var(--ink-2);
 		font-weight: 500;
+	}
+
+	/* the card is the container. A desktop grid card is ~227px, so the spec's 230px line would hide the total there;
+	   the total needs ~190px of control, which a 209px card still gives */
+	@container (max-width: 209px) {
+		.total {
+			display: none;
+		}
 	}
 </style>

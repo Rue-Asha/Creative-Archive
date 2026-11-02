@@ -69,7 +69,7 @@
 	{#if id !== null}
 		<input type="hidden" name="artistName" value={name} />
 		<span class="label" id="artist-label">Artist</span>
-		<span class="linked" data-linked role="group" aria-labelledby="artist-label">
+		<span class="linked token" data-linked role="group" aria-labelledby="artist-label">
 			<span>{name}</span>
 			<button type="button" aria-label="Unlink artist" onclick={unlink}><Icon name="x" size={14} /></button>
 		</span>
@@ -147,17 +147,7 @@
 	}
 
 	.linked {
-		display: inline-flex;
-		align-items: center;
 		align-self: flex-start;
-		gap: 6px;
-		min-block-size: 44px;
-		padding: 0 0 0 var(--s-4);
-		border-radius: var(--r-pill);
-		background: var(--accent);
-		color: var(--accent-ink);
-		font-size: 14px;
-		font-weight: 600;
 	}
 
 	.linked button {

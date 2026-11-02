@@ -1,5 +1,5 @@
 import { resolve } from 'node:path';
-import { expect, type APIRequestContext, type Page } from '@playwright/test';
+import { expect, type APIRequestContext, type Locator, type Page } from '@playwright/test';
 import type { SeedEntry, SeedInput, SeedResult } from '../src/lib/server/testing.ts';
 
 export type { SeedEntry, SeedInput, SeedResult };
@@ -40,4 +40,33 @@ export function countSaves(page: Page): (count: number) => Promise<void> {
 		if (res.request().method() === 'POST' && res.url().includes('?/')) done++;
 	});
 	return (count) => expect.poll(() => done).toBe(count);
+}
+
+// Every save request in the order it was sent, as "action field=value …". Saves are serialised, so a test that ends
+// on a sentinel save and polls for the exact list proves nothing else was queued before the sentinel.
+export function recordSaves(page: Page): () => string[] {
+	const sent: string[] = [];
+	page.on('request', (req) => {
+		if (req.method() !== 'POST' || !req.url().includes('?/')) return;
+		const fields = [...(req.postData() ?? '').matchAll(/name="([^"]+)"\r\n\r\n([^\r]*)/g)].map(([, k, v]) => `${k}=${v}`);
+		sent.push([req.url().split('?/')[1], ...fields].join(' '));
+	});
+	return () => sent;
+}
+
+export function progressValue(scope: Page | Locator, label: string): Locator {
+	return scope.getByRole('group', { name: label, exact: true }).getByRole('button', { name: new RegExp(`^${label} \\d+ of `) });
+}
+
+export async function editProgress(
+	scope: Page | Locator,
+	label: string,
+	text: string,
+	end: 'Enter' | 'Escape' | 'blur'
+): Promise<void> {
+	await progressValue(scope, label).click();
+	const input = scope.getByRole('group', { name: label, exact: true }).getByRole('textbox');
+	await input.fill(text);
+	if (end === 'blur') await input.evaluate((el) => (el as HTMLInputElement).blur());
+	else await input.press(end);
 }

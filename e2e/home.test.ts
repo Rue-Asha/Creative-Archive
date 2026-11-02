@@ -108,3 +108,70 @@ test('Scenario: Empty archive shows a welcome per domain', async ({ page, reques
 	await expect(page.locator('[data-coverflow]')).toHaveCount(0);
 	await expect(page.getByRole('region', { name: 'Collections', exact: true })).toHaveCount(0);
 });
+
+// Collections list newest first, so they are seeded in reverse to show up in the order the scenarios name them.
+const tileBoxes = (page: Page) =>
+	page.getByRole('region', { name: 'Collections', exact: true }).locator('[data-bento-card]').evaluateAll((els) =>
+		els.map((el) => {
+			const box = el.getBoundingClientRect();
+			return { name: el.querySelector('h3')!.textContent, width: Math.round(box.width), height: Math.round(box.height) };
+		})
+	);
+
+test('Scenario: Bento features the first collection with images', async ({ page, request }, info) => {
+	test.skip(info.project.name !== 'desktop', 'bento sizes are a desktop layout');
+	await calm(page);
+	await reset(request);
+	await seed(request, {
+		entries: [
+			{ type: 'album', title: 'Blonde', image: true },
+			{ type: 'book', title: 'Piranesi', image: true }
+		],
+		collections: [
+			{ name: 'Summer', entries: [1] },
+			{ name: 'Late Night', entries: [0] },
+			{ name: 'Empty one', entries: [] }
+		]
+	});
+	await open(page, '/');
+
+	const tiles = await tileBoxes(page);
+	expect(tiles.map((t) => t.name)).toEqual(['Late Night', 'Empty one', 'Summer']);
+	const [feature, empty, regular] = tiles;
+	expect(empty.width).toBe(regular.width);
+	expect(empty.height).toBe(regular.height);
+	expect(feature.width).toBeGreaterThan(regular.width * 1.9);
+	expect(feature.height).toBeGreaterThan(regular.height * 1.9);
+});
+
+test('Scenario: Bento without images features no collection', async ({ page, request }, info) => {
+	test.skip(info.project.name !== 'desktop', 'bento sizes are a desktop layout');
+	await calm(page);
+	await reset(request);
+	await seed(request, {
+		entries: [{ type: 'album', title: 'Plain' }, { type: 'book', title: 'Bare' }],
+		collections: [
+			{ name: 'One', entries: [0] },
+			{ name: 'Two', entries: [1] },
+			{ name: 'Three', entries: [] }
+		]
+	});
+	await open(page, '/');
+
+	const tiles = await tileBoxes(page);
+	expect(tiles).toHaveLength(3);
+	for (const tile of tiles) {
+		expect(tile.width).toBe(tiles[0].width);
+		expect(tile.height).toBe(tiles[0].height);
+	}
+});
+
+test('Scenario: Home without collections shows no bento', async ({ page, request }) => {
+	await calm(page);
+	await reset(request);
+	await seed(request, { entries: [{ type: 'album', title: 'Blonde', image: true }] });
+	await open(page, '/');
+
+	await expect(page.locator('[data-shelf]').first()).toBeVisible();
+	await expect(page.getByRole('region', { name: 'Collections', exact: true })).toHaveCount(0);
+});

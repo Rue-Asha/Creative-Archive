@@ -26,8 +26,10 @@ domain and the collections for the bento, omitting empty shelves.
 ### Requirement: Home page
 Home SHALL show a hero with Rue's home hero photo (or the home world's gradient without one), a headline in the display face and the
 coverflow, then the "In progress" shelf, a "Recently added" shelf per domain and a collections bento of collages.
-On a first run with an empty archive it SHALL show a welcoming empty state with "Add your first …" per domain and no
-shelves; empty shelves SHALL be hidden.
+The bento SHALL feature (as its large tile, placed first) the first collection that has images; a collection without
+images SHALL never be the large tile, and when no collection has images every tile SHALL have the same size. Without
+collections no bento SHALL render. On a first run with an empty archive it SHALL show a welcoming empty state with
+"Add your first …" per domain and no shelves; empty shelves SHALL be hidden.
 
 #### Scenario: Home shows the hero photo and headline
 - **WHEN** a home hero is seeded and `/` is opened
@@ -57,6 +59,21 @@ shelves; empty shelves SHALL be hidden.
 #### Scenario: Collections bento shows collages
 - **WHEN** two collections with images are seeded
 - **THEN** the bento shows both with their collage and count, each linking to its page
+- **proof:** e2e
+
+#### Scenario: Bento features the first collection with images
+- **WHEN** the collections "Empty one" (no entries), "Late Night" (entries with images) and "Summer" (entries with images) are seeded in that order and `/` is opened on desktop
+- **THEN** the first and largest bento tile (spanning two columns and two rows) is "Late Night", and "Empty one" is a regular-size tile
+- **proof:** e2e
+
+#### Scenario: Bento without images features no collection
+- **WHEN** only collections whose entries have no images are seeded and `/` is opened on desktop
+- **THEN** every bento tile has the same size
+- **proof:** e2e
+
+#### Scenario: Home without collections shows no bento
+- **WHEN** entries but no collections are seeded and `/` is opened
+- **THEN** no collections bento renders
 - **proof:** e2e
 
 #### Scenario: Empty archive shows a welcome per domain

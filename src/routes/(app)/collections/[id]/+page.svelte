@@ -64,7 +64,7 @@
 			<h1>{collection.name}</h1>
 			<span class="count tnum" data-count aria-label="{collection.count} {collection.count === 1 ? 'entry' : 'entries'}">{collection.count}</span>
 		</div>
-		{#if collection.description}<p class="description">{collection.description}</p>{/if}
+		{#if collection.description}<p class="description" data-prose>{collection.description}</p>{/if}
 		<div class="tools" inert={confirming} aria-hidden={confirming ? 'true' : undefined}>
 			{#if !renaming}<Button variant="secondary" arrow={false} onclick={rename}>Rename</Button>{/if}
 			<Button variant="secondary" arrow={false} onclick={askDelete}>Delete collection</Button>
@@ -210,7 +210,7 @@
 	}
 
 	.rename {
-		--field-error: color-mix(in srgb, var(--ink) 45%, tomato);
+		--field-error: var(--error);
 		display: grid;
 		gap: var(--s-4);
 		padding: var(--s-6);
@@ -234,7 +234,7 @@
 		border-radius: var(--r-sm);
 		border: 1px solid var(--line);
 		background: var(--glass-thin);
-		font-size: 15px;
+		font-size: var(--t-body);
 		line-height: 1.45;
 		transition: border-color var(--d-fast) var(--ease-out);
 	}
@@ -289,7 +289,7 @@
 		padding: 0 var(--s-3);
 		border: 0;
 		background: transparent;
-		font-size: 14px;
+		font-size: var(--t-small);
 		font-weight: 500;
 		color: var(--ink-2);
 		text-decoration: underline;

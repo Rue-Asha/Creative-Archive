@@ -36,7 +36,7 @@
 	}
 
 	h2 {
-		font-size: var(--t-display-2);
+		font-size: var(--t-section);
 	}
 
 	ul {
@@ -62,7 +62,7 @@
 
 	p {
 		color: var(--ink-2);
-		font-size: 14px;
+		font-size: var(--t-small);
 	}
 
 	a {
@@ -70,7 +70,7 @@
 		align-items: center;
 		gap: var(--s-2);
 		min-block-size: 44px;
-		font-size: 14px;
+		font-size: var(--t-small);
 		font-weight: 600;
 		color: var(--ink);
 	}

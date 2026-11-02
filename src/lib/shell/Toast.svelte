@@ -34,7 +34,7 @@
 		align-items: center;
 		padding: 0 var(--s-6);
 		border-radius: var(--r-pill);
-		font-size: 15px;
+		font-size: var(--t-body);
 		font-weight: 500;
 	}
 

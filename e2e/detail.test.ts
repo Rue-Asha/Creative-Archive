@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Locator } from '@playwright/test';
 import { calm, open, reset, seed } from './helpers.ts';
 import { WORLDS } from '../src/lib/styles/worlds.ts';
 
@@ -129,4 +129,96 @@ test('detail lays out as a cover and a panel side by side on desktop and stacks 
 		expect(panel.y).toBeGreaterThan(cover.y + cover.height - 1);
 		expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
 	}
+});
+
+const centreY = async (locator: Locator) => {
+	const box = (await locator.boundingBox())!;
+	return box.y + box.height / 2;
+};
+
+test('Scenario: Phone detail shows the title above the fold', async ({ page, request }, info) => {
+	test.skip(info.project.name !== 'phone');
+	const longTitle = Array.from({ length: 30 }, (_, i) => `word${i}`).join(' ').slice(0, 180);
+	const {
+		entries: [manga, long]
+	} = await seed(request, {
+		entries: [
+			{ type: 'manga', title: 'Vagabond', image: true },
+			{ type: 'book', title: longTitle, image: true }
+		]
+	});
+
+	for (const id of [manga, long]) {
+		await open(page, `/entries/${id}`);
+		const cover = (await page.locator(`[data-cover-id="${id}"]`).boundingBox())!;
+		const heading = (await page.getByRole('heading', { level: 1 }).boundingBox())!;
+		expect(cover.width).toBeLessThanOrEqual(240.5);
+		expect(heading.y).toBeLessThan(844);
+	}
+});
+
+test('Scenario: Desktop controls share one row', async ({ page, request }, info) => {
+	test.skip(info.project.name !== 'desktop');
+	const {
+		entries: [id]
+	} = await seed(request, {
+		entries: [{ type: 'anime', title: 'Frieren', status: 'progress', rating: 4, progress: { episodes: { current: 3, total: 28 } } }]
+	});
+	await open(page, `/entries/${id}`);
+	const panel = page.locator('[data-detail-panel]');
+
+	const status = await centreY(panel.locator('.status'));
+	const stars = await centreY(panel.getByRole('slider', { name: 'Rating' }));
+	const progress = panel.getByRole('group', { name: 'Episodes', exact: true });
+	const buttons = progress.getByRole('button');
+	expect(await buttons.count()).toBeGreaterThan(1);
+	expect(Math.abs(status - stars)).toBeLessThanOrEqual(2);
+	for (const button of await buttons.all()) expect(Math.abs((await centreY(button)) - status)).toBeLessThanOrEqual(2);
+});
+
+test('Scenario: Detail without progress keeps its controls row', async ({ page, request }, info) => {
+	test.skip(info.project.name !== 'desktop');
+	const {
+		entries: [id]
+	} = await seed(request, { entries: [{ type: 'album', title: 'Blonde', status: 'done', rating: 5 }] });
+	await open(page, `/entries/${id}`);
+	const panel = page.locator('[data-detail-panel]');
+
+	const status = await centreY(panel.locator('.status'));
+	const stars = await centreY(panel.getByRole('slider', { name: 'Rating' }));
+	expect(Math.abs(status - stars)).toBeLessThanOrEqual(2);
+});
+
+test('Scenario: Delete is a quiet action on the actions row', async ({ page, request }) => {
+	const {
+		entries: [id]
+	} = await seed(request, { entries: [{ type: 'album', title: 'Blonde' }] });
+	await open(page, `/entries/${id}`);
+	const edit = (await page.getByRole('link', { name: 'Edit' }).boundingBox())!;
+	const remove = page.getByRole('button', { name: 'Delete' });
+	const box = (await remove.boundingBox())!;
+
+	expect(Math.abs(box.y - edit.y)).toBeLessThanOrEqual(2);
+	const style = await remove.evaluate((el) => {
+		const s = getComputedStyle(el);
+		return { bg: s.backgroundColor, border: s.borderTopWidth, style: s.borderTopStyle };
+	});
+	expect(style.bg).toBe('rgba(0, 0, 0, 0)');
+	expect(style.border === '0px' || style.style === 'none').toBe(true);
+});
+
+test('Scenario: Detail backdrop fades out without a crease', async ({ page, request }) => {
+	const {
+		entries: [id]
+	} = await seed(request, { entries: [{ type: 'album', title: 'Blonde', image: true }] });
+	await open(page, `/entries/${id}`);
+
+	const backdrop = await page.locator('.backdrop').evaluate((el) => {
+		const mask = getComputedStyle(el).maskImage;
+		const overlay = getComputedStyle(el, '::after');
+		return { stops: (mask.match(/rgba?\(/g) ?? []).length, overlay: overlay.content, overlayImage: overlay.backgroundImage };
+	});
+	expect(backdrop.stops).toBeGreaterThanOrEqual(5);
+	expect(backdrop.overlay).toBe('none');
+	expect(backdrop.overlayImage).toBe('none');
 });

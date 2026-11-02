@@ -10,9 +10,9 @@
 <style>
 	.counter {
 		font-family: var(--font-text);
-		font-size: 13px;
+		font-size: var(--t-eyebrow);
 		font-weight: 500;
-		letter-spacing: 0.08em;
+		letter-spacing: var(--tracking-eyebrow);
 		color: var(--ink-2);
 		white-space: nowrap;
 	}

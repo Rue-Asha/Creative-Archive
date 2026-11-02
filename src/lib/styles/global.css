@@ -65,6 +65,7 @@
 }
 
 html {
+	cursor: default;
 	background: var(--ground);
 	color: var(--ink);
 	-webkit-text-size-adjust: 100%;
@@ -89,9 +90,19 @@ body {
 	color: var(--ink);
 }
 
+/* the ambient is a fixed layer, not background-attachment: fixed, which iOS ignores */
 [data-world] {
-	background: var(--ambient), var(--ground);
-	background-attachment: fixed;
+	background: var(--ground);
+	isolation: isolate;
+}
+
+[data-world]::before {
+	content: '';
+	position: fixed;
+	inset: 0;
+	z-index: -1;
+	background: var(--ambient);
+	pointer-events: none;
 }
 
 /* Matte liquid glass: a frosted tinted fill with grain, a soft inner rim light and an edge sheen that catches the
@@ -196,6 +207,60 @@ button {
 	cursor: pointer;
 }
 
+input,
+textarea,
+select,
+[contenteditable],
+[data-prose] {
+	cursor: auto;
+}
+
+/* the one select: native chrome off, the chevron drawn on the wrapper */
+.select {
+	position: relative;
+	display: inline-flex;
+}
+
+.select > select {
+	flex: 1;
+	min-inline-size: 0;
+	appearance: none;
+	padding-inline-end: var(--s-8);
+	text-overflow: ellipsis;
+}
+
+.select::after {
+	content: '';
+	position: absolute;
+	inset-inline-end: 10px;
+	inset-block-start: 50%;
+	inline-size: 10px;
+	block-size: 5px;
+	margin-block-start: -2.5px;
+	background-image: linear-gradient(45deg, transparent 50%, currentColor 50%), linear-gradient(135deg, currentColor 50%, transparent 50%);
+	background-position:
+		0 50%,
+		5px 50%;
+	background-size: 5px 5px;
+	background-repeat: no-repeat;
+	pointer-events: none;
+}
+
+/* artist link and tag chips in the entry form: one tone */
+.token {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	min-block-size: 44px;
+	padding: 0 0 0 var(--s-4);
+	border-radius: var(--r-pill);
+	background: var(--accent-soft);
+	color: var(--ink);
+	font-size: var(--t-small);
+	font-weight: 500;
+	white-space: nowrap;
+}
+
 ul,
 ol {
 	margin: 0;
@@ -208,8 +273,13 @@ ol {
 }
 
 :focus-visible {
-	box-shadow: var(--focus-ring);
-	border-radius: var(--r-pill);
+	outline: 2px solid var(--ink);
+	outline-offset: 2px;
+}
+
+/* the card draws its own ring on its corners (Card.svelte .card:has(a:focus-visible)) */
+[data-card] a:focus-visible {
+	outline: none;
 }
 
 ::selection {

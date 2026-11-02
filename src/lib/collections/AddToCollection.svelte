@@ -140,7 +140,7 @@
 	}
 
 	.menu {
-		--field-error: color-mix(in srgb, var(--ink) 45%, tomato);
+		--field-error: var(--error);
 		position: absolute;
 		inset-block-end: calc(100% + 8px);
 		inset-inline-start: 0;
@@ -165,7 +165,7 @@
 		border: 0;
 		border-radius: var(--r-sm);
 		background: transparent;
-		font-size: 15px;
+		font-size: var(--t-body);
 		font-weight: 500;
 		text-align: start;
 		transition: background-color var(--d-fast) var(--ease-out);
@@ -210,7 +210,7 @@
 		border-radius: var(--r-sm);
 		border: 1px solid var(--line);
 		background: var(--glass-thin);
-		font-size: 15px;
+		font-size: var(--t-body);
 		transition: border-color var(--d-fast) var(--ease-out);
 	}
 

@@ -111,3 +111,24 @@ test('a failed upload leaves the empty slot usable and a later upload clears the
 	await expect(shot(books)).toHaveAttribute('src', /^\/images\/\d+$/);
 	await expect(books.getByText('Unsupported image type')).toHaveCount(0);
 });
+
+test('Scenario: Replace and Remove sit side by side in one style', async ({ page, request }) => {
+	await seed(request, { heroes: ['music'] });
+	await open(page, '/settings');
+	const music = slot(page, 'Music');
+
+	const look = (name: string) =>
+		music.getByRole('button', { name }).evaluate((el) => {
+			const s = getComputedStyle(el);
+			const box = el.getBoundingClientRect();
+			return { x: box.x, y: box.y, height: box.height, background: s.backgroundColor, border: s.border };
+		});
+	const replace = await look('Replace');
+	const remove = await look('Remove');
+
+	expect(Math.abs(replace.y - remove.y)).toBeLessThanOrEqual(2);
+	expect(remove.x).toBeGreaterThan(replace.x);
+	expect(remove.background).toBe(replace.background);
+	expect(remove.border).toBe(replace.border);
+	expect(remove.height).toBe(replace.height);
+});

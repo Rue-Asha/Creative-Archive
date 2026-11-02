@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { calm, countSaves, open, reset, seed } from './helpers.ts';
+import { calm, countSaves, editProgress, open, progressValue, recordSaves, reset, seed } from './helpers.ts';
 
 const control = (page: Page, label: string) => page.getByRole('group', { name: label, exact: true });
 const more = (page: Page, label: string) => page.getByRole('button', { name: `${label}: one more`, exact: true });
@@ -26,12 +26,12 @@ test('Scenario: Step episodes with plus and minus', async ({ page, request }) =>
 	for (let i = 0; i < 3; i++) await more(page, 'Episodes').click();
 	await less(page, 'Episodes').click();
 
-	await expect(control(page, 'Episodes').getByRole('textbox')).toHaveValue('2');
-	await expect(control(page, 'Episodes')).toContainText('/ 28');
+	await expect(control(page, 'Episodes')).toContainText('2 / 28');
+	await expect(control(page, 'Episodes').getByRole('textbox')).toHaveCount(0);
 	await saved(4);
 	await page.reload();
-	await expect(control(page, 'Episodes').getByRole('textbox')).toHaveValue('2');
-	await expect(control(page, 'Episodes')).toContainText('/ 28');
+	await expect(control(page, 'Episodes')).toContainText('2 / 28');
+	await expect(control(page, 'Episodes').getByRole('textbox')).toHaveCount(0);
 });
 
 test('Scenario: Type progress directly', async ({ page, request }) => {
@@ -40,44 +40,133 @@ test('Scenario: Type progress directly', async ({ page, request }) => {
 	} = await seed(request, { entries: [anime(2)] });
 	const saved = countSaves(page);
 	await open(page, `/entries/${id}`);
-	const input = control(page, 'Episodes').getByRole('textbox');
-	await input.fill('27');
-	await input.press('Enter');
+	await editProgress(page, 'Episodes', '27', 'Enter');
 
-	await expect(input).toHaveValue('27');
-	await expect(control(page, 'Episodes')).toContainText('/ 28');
+	await expect(control(page, 'Episodes')).toContainText('27 / 28');
+	await expect(control(page, 'Episodes').getByRole('textbox')).toHaveCount(0);
 	await saved(1);
 	await page.reload();
-	await expect(input).toHaveValue('27');
+	await expect(control(page, 'Episodes')).toContainText('27 / 28');
 });
 
-test('typing a number above the total or a non-number is refused', async ({ page, request }) => {
+test('Scenario: Progress value is not editable text until activated', async ({ page, request }) => {
+	const {
+		entries: [id]
+	} = await seed(request, { entries: [anime(3)] });
+	await open(page, `/entries/${id}`);
+
+	await expect(control(page, 'Episodes').getByRole('textbox')).toHaveCount(0);
+	await expect(progressValue(page, 'Episodes')).toHaveAccessibleName('Episodes 3 of 28');
+	const cursors = await control(page, 'Episodes')
+		.locator('*')
+		.evaluateAll((els) => els.map((el) => getComputedStyle(el).cursor));
+	expect(cursors).not.toContain('text');
+	expect(await page.evaluate(() => document.activeElement?.tagName)).not.toBe('INPUT');
+});
+
+test('Scenario: Clicking the value enters edit mode with the value selected', async ({ page, request }) => {
+	const {
+		entries: [id]
+	} = await seed(request, { entries: [anime(3)] });
+	await open(page, `/entries/${id}`);
+	await progressValue(page, 'Episodes').click();
+
+	const input = control(page, 'Episodes').getByRole('textbox', { name: 'Episodes', exact: true });
+	await expect(input).toBeFocused();
+	await expect(input).toHaveValue('3');
+	await expect(input).toHaveAttribute('inputmode', 'numeric');
+	expect(await input.evaluate((el: HTMLInputElement) => [el.selectionStart, el.selectionEnd])).toEqual([0, 1]);
+});
+
+test('Scenario: Keyboard enters edit mode', async ({ page, request }) => {
+	const {
+		entries: [id]
+	} = await seed(request, { entries: [anime(3)] });
+	for (const key of ['Enter', 'Space']) {
+		await open(page, `/entries/${id}`);
+		await less(page, 'Episodes').focus();
+		await page.keyboard.press('Tab');
+		await expect(progressValue(page, 'Episodes')).toBeFocused();
+		await page.keyboard.press(key);
+
+		const input = control(page, 'Episodes').getByRole('textbox', { name: 'Episodes', exact: true });
+		await expect(input).toBeFocused();
+		expect(await input.evaluate((el: HTMLInputElement) => [el.selectionStart, el.selectionEnd])).toEqual([0, 1]);
+	}
+});
+
+test('Scenario: Leaving the input saves the edit', async ({ page, request }) => {
+	const {
+		entries: [id]
+	} = await seed(request, { entries: [anime(3)] });
+	const saves = recordSaves(page);
+	await open(page, `/entries/${id}`);
+	await progressValue(page, 'Episodes').click();
+	await control(page, 'Episodes').getByRole('textbox').fill('12');
+	await page.getByRole('heading', { level: 1 }).click();
+
+	await expect(control(page, 'Episodes')).toContainText('12 / 28');
+	await expect(control(page, 'Episodes').getByRole('textbox')).toHaveCount(0);
+	// a sentinel rating proves no second progress save was queued behind the first
+	await page.getByRole('slider', { name: 'Rating', exact: true }).focus();
+	await page.keyboard.press('ArrowRight');
+	await expect.poll(saves).toEqual(['progress key=episodes value=12', 'rating rating=0.5']);
+	await page.reload();
+	await expect(control(page, 'Episodes')).toContainText('12 / 28');
+});
+
+test('Scenario: Escape cancels editing', async ({ page, request }) => {
+	const {
+		entries: [id]
+	} = await seed(request, { entries: [anime(3)] });
+	const saves = recordSaves(page);
+	await open(page, `/entries/${id}`);
+	await editProgress(page, 'Episodes', '9', 'Escape');
+
+	await expect(control(page, 'Episodes')).toContainText('3 / 28');
+	await expect(control(page, 'Episodes').getByRole('textbox')).toHaveCount(0);
+	// saves are serialised: a sentinel step that is the only save sent proves nothing was queued before it
+	await more(page, 'Episodes').click();
+	await expect(control(page, 'Episodes')).toContainText('4 / 28');
+	await expect.poll(saves).toEqual(['progress key=episodes delta=1']);
+});
+
+test('Scenario: Invalid input reverts without saving', async ({ page, request }) => {
 	const {
 		entries: [id]
 	} = await seed(request, { entries: [anime(5)] });
+	const saves = recordSaves(page);
 	await open(page, `/entries/${id}`);
-	const input = control(page, 'Episodes').getByRole('textbox');
-	await input.fill('40');
-	await input.press('Enter');
-	await expect(input).toHaveValue('5');
-	await input.fill('abc');
-	await input.press('Enter');
+	for (const text of ['', 'abc', '-1', '2.5', '40']) {
+		await editProgress(page, 'Episodes', text, 'Enter');
 
-	await expect(input).toHaveValue('5');
+		await expect(control(page, 'Episodes')).toContainText('5 / 28');
+		await expect(control(page, 'Episodes').getByRole('textbox')).toHaveCount(0);
+	}
+	// saves are serialised: a sentinel step that is the only save sent proves nothing was queued before it
+	await more(page, 'Episodes').click();
+	await expect(control(page, 'Episodes')).toContainText('6 / 28');
+	await expect.poll(saves).toEqual(['progress key=episodes delta=1']);
 });
 
-test('clearing the field and pressing Enter changes nothing', async ({ page, request }) => {
+test('Scenario: Progress value is named for screen readers', async ({ page, request }) => {
 	const {
-		entries: [id]
-	} = await seed(request, { entries: [anime(27)] });
-	await open(page, `/entries/${id}`);
-	const input = control(page, 'Episodes').getByRole('textbox');
-	await input.fill('');
-	await input.press('Enter');
-
-	await expect(input).toHaveValue('27');
-	await page.reload();
-	await expect(input).toHaveValue('27');
+		entries: [animeId, mangaId]
+	} = await seed(request, {
+		entries: [
+			anime(3),
+			{
+				type: 'manga',
+				title: 'Vagabond',
+				status: 'progress',
+				progress: { chapters: { current: 120, total: null }, volumes: { current: 12, total: null } }
+			}
+		]
+	});
+	await open(page, `/entries/${animeId}`);
+	await expect(progressValue(page, 'Episodes')).toHaveAccessibleName('Episodes 3 of 28');
+	await open(page, `/entries/${mangaId}`);
+	await expect(progressValue(page, 'Chapters')).toHaveAccessibleName('Chapters 120 of unknown');
 });
 
 test('a progress post with an empty value is refused and changes nothing', async ({ page, request }) => {
@@ -95,7 +184,7 @@ test('a progress post with an empty value is refused and changes nothing', async
 
 	expect(res).toContain('failure');
 	await page.reload();
-	await expect(control(page, 'Episodes').getByRole('textbox')).toHaveValue('27');
+	await expect(control(page, 'Episodes')).toContainText('27 / 28');
 });
 
 test('minus is disabled at zero', async ({ page, request }) => {
@@ -122,12 +211,11 @@ test('Scenario: Ongoing manga shows n / ?', async ({ page, request }) => {
 	});
 	await open(page, `/entries/${id}`);
 
-	await expect(control(page, 'Chapters').getByRole('textbox')).toHaveValue('120');
-	await expect(control(page, 'Chapters')).toContainText('/ ?');
+	await expect(control(page, 'Chapters')).toContainText('120 / ?');
 	await expect(more(page, 'Chapters')).toBeEnabled();
 	await expect(control(page, 'Volumes')).toContainText('/ ?');
 	await more(page, 'Chapters').click();
-	await expect(control(page, 'Chapters').getByRole('textbox')).toHaveValue('121');
+	await expect(control(page, 'Chapters')).toContainText('121 / ?');
 });
 
 test('Scenario: Reaching the total offers Mark as watched', async ({ page, request }) => {
@@ -139,8 +227,7 @@ test('Scenario: Reaching the total offers Mark as watched', async ({ page, reque
 	await expect(page.getByRole('button', { name: 'Mark as watched' })).toHaveCount(0);
 	await more(page, 'Episodes').click();
 
-	await expect(control(page, 'Episodes').getByRole('textbox')).toHaveValue('28');
-	await expect(control(page, 'Episodes')).toContainText('/ 28');
+	await expect(control(page, 'Episodes')).toContainText('28 / 28');
 	await page.getByRole('button', { name: 'Mark as watched' }).click();
 	await expect(page.locator('[data-status-label]')).toHaveText('Watched');
 	await expect(page.getByRole('button', { name: 'Mark as watched' })).toHaveCount(0);

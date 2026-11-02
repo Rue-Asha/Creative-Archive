@@ -24,7 +24,8 @@
 </script>
 
 <svelte:head>
-	{@html `<style>html,body{background:${schemes[scheme].ground}}</style>`}
+	<!-- the transition pseudo-elements hang off html, outside the world's scheme block -->
+	{@html `<style>html,body{background:${schemes[scheme].ground}}html{--shadow-float:${schemes[scheme]['shadow-float']}}</style>`}
 </svelte:head>
 
 <div class="app" {...worldAttrs(world)} data-world={world} style:color-scheme={scheme}>
@@ -61,6 +62,28 @@
 		::view-transition-group(*) {
 			animation-duration: var(--d-slow);
 			animation-timing-function: var(--ease-out);
+		}
+
+		/* a cover keeps the card's corners and the detail cover's shadow all the way, and a 4/5 card cover
+		   crops into a 2/3 detail cover instead of stretching */
+		::view-transition-group(*.cover) {
+			border-radius: var(--r-card);
+			overflow: clip;
+			box-shadow: var(--shadow-float);
+		}
+
+		::view-transition-old(*.cover),
+		::view-transition-new(*.cover) {
+			block-size: 100%;
+			object-fit: cover;
+		}
+
+		/* a cover with no card to land on (morph.ts) fades with the root crossfade, as part of the page */
+		:root[data-morph='fade']::view-transition-group(*.cover) {
+			animation-duration: var(--d-base);
+			border-radius: 0;
+			overflow: visible;
+			box-shadow: none;
 		}
 	}
 

@@ -59,7 +59,7 @@
 		border: 1px solid var(--line);
 		background: transparent;
 		color: var(--ink);
-		font-size: 14px;
+		font-size: var(--t-small);
 		font-weight: 500;
 		line-height: 1;
 		white-space: nowrap;
@@ -100,7 +100,7 @@
 	}
 
 	.count {
-		font-size: 12px;
+		font-size: var(--t-eyebrow);
 		color: var(--ink-2);
 	}
 
@@ -112,7 +112,7 @@
 	.sm {
 		min-block-size: 26px;
 		padding: 0 11px;
-		font-size: 12px;
+		font-size: var(--t-eyebrow);
 		gap: 4px;
 	}
 

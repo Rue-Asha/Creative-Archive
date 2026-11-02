@@ -76,10 +76,13 @@
 		aspect-ratio: 2 / 3;
 	}
 
+	/* rounded itself, not only clipped by the card: the page transition snapshots this element alone */
 	.media {
 		position: absolute;
 		inset: 0;
 		z-index: -2;
+		border-radius: inherit;
+		overflow: hidden;
 	}
 
 	.media img {
@@ -116,7 +119,7 @@
 	}
 
 	.title {
-		font-size: 15px;
+		font-size: var(--t-body);
 		font-weight: 600;
 		line-height: 1.25;
 		color: var(--on-photo);
@@ -188,7 +191,7 @@
 
 	@container (min-width: 230px) {
 		.title {
-			font-size: 16px;
+			font-size: var(--t-body);
 		}
 
 		.foot {

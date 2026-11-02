@@ -78,7 +78,7 @@
 		min-block-size: 44px;
 		padding: 0 var(--s-3);
 		border-radius: var(--r-sm);
-		font-size: 15px;
+		font-size: var(--t-body);
 		font-weight: 500;
 		transition: background-color var(--d-fast) var(--ease-out);
 	}

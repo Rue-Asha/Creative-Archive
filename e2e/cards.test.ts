@@ -1,5 +1,5 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
-import { calm, countSaves, open, reset, seed } from './helpers.ts';
+import { calm, countSaves, editProgress, open, progressValue, reset, seed } from './helpers.ts';
 import { accents, schemes } from '../src/lib/styles/tokens.ts';
 import { WORLDS } from '../src/lib/styles/worlds.ts';
 
@@ -78,16 +78,15 @@ test('Scenario: Progress on the card', async ({ page, request }) => {
 	await open(page, '/animanga/anime');
 	const frieren = card(page, 'Frieren');
 	await expect(group(page, 'Episodes')).toHaveCount(1);
-	await expect(group(frieren, 'Episodes').getByRole('textbox')).toHaveValue('5');
+	await expect(group(frieren, 'Episodes')).toContainText('5 / 28');
 	await frieren.getByRole('button', { name: 'Episodes: one more', exact: true }).click();
 
-	await expect(group(frieren, 'Episodes').getByRole('textbox')).toHaveValue('6');
-	await expect(group(frieren, 'Episodes')).toContainText('/ 28');
+	await expect(group(frieren, 'Episodes')).toContainText('6 / 28');
 	await saved(1);
 	await page.reload();
-	await expect(group(card(page, 'Frieren'), 'Episodes').getByRole('textbox')).toHaveValue('6');
+	await expect(group(card(page, 'Frieren'), 'Episodes')).toContainText('6 / 28');
 	await open(page, `/entries/${id}`);
-	await expect(group(page, 'Episodes').getByRole('textbox')).toHaveValue('6');
+	await expect(group(page, 'Episodes')).toContainText('6 / 28');
 });
 
 test('a manga card steps chapters and an unknown total reads "n / ?"', async ({ page, request }) => {
@@ -100,7 +99,7 @@ test('a manga card steps chapters and an unknown total reads "n / ?"', async ({ 
 	await expect(group(vagabond, 'Volumes')).toHaveCount(0);
 	await vagabond.getByRole('button', { name: 'Chapters: one more', exact: true }).click();
 
-	await expect(group(vagabond, 'Chapters').getByRole('textbox')).toHaveValue('41');
+	await expect(group(vagabond, 'Chapters')).toContainText('41 / ?');
 });
 
 test('a card control sits only on in-progress anime and manga', async ({ page, request }) => {
@@ -183,11 +182,106 @@ test('Scenario: Failed save on the card shows a toast and reverts', async ({ pag
 	await more().click();
 
 	await expect(page.getByRole('status').filter({ hasText: "Couldn't save — try again" })).toBeVisible();
-	await expect(episodes().getByRole('textbox')).toHaveValue('5');
+	await expect(episodes()).toContainText('5 / 28');
 	await more().click();
 
-	await expect(episodes().getByRole('textbox')).toHaveValue('6');
+	await expect(episodes()).toContainText('6 / 28');
 	await saved(2);
 	await page.reload();
-	await expect(group(card(page, 'Frieren'), 'Episodes').getByRole('textbox')).toHaveValue('6');
+	await expect(group(card(page, 'Frieren'), 'Episodes')).toContainText('6 / 28');
+});
+
+test('Scenario: Activating the value on a card stays on the list', async ({ page, request }) => {
+	const {
+		entries: [id]
+	} = await seed(request, {
+		entries: [{ type: 'anime', title: 'Frieren', status: 'progress', progress: { episodes: { current: 5, total: 28 } } }]
+	});
+	const saved = countSaves(page);
+	await open(page, '/animanga/anime');
+	await editProgress(card(page, 'Frieren'), 'Episodes', '6', 'Enter');
+
+	await expect(page).toHaveURL(/\/animanga\/anime$/);
+	await expect(group(card(page, 'Frieren'), 'Episodes')).toContainText('6');
+	await saved(1);
+	await open(page, `/entries/${id}`);
+	await expect(group(page, 'Episodes')).toContainText('6 / 28');
+});
+
+const inProgress = (page: Page) => page.getByRole('region', { name: 'In progress', exact: true });
+
+test('Scenario: Numeric keyboard opens only in edit mode', async ({ page, request }, info) => {
+	test.skip(info.project.name !== 'phone', 'the soft keyboard is phone-only');
+	await seed(request, {
+		entries: [{ type: 'anime', title: 'Frieren', status: 'progress', progress: { episodes: { current: 5, total: 28 } } }]
+	});
+	await open(page, '/');
+	const frieren = inProgress(page).locator('[data-card]').filter({ hasText: 'Frieren' });
+	await expect(frieren).toBeVisible();
+
+	await expect(frieren.locator('[inputmode]')).toHaveCount(0);
+	await progressValue(frieren, 'Episodes').tap();
+	await expect(frieren.locator('input:focus')).toHaveAttribute('inputmode', 'numeric');
+});
+
+const inside = async (inner: Locator, outer: Locator) => {
+	const [a, b] = [(await inner.boundingBox())!, (await outer.boundingBox())!];
+	expect(a.x).toBeGreaterThanOrEqual(b.x - 0.5);
+	expect(a.y).toBeGreaterThanOrEqual(b.y - 0.5);
+	expect(a.x + a.width).toBeLessThanOrEqual(b.x + b.width + 0.5);
+	expect(a.y + a.height).toBeLessThanOrEqual(b.y + b.height + 0.5);
+};
+
+const fits = async (page: Page, title: string, label: string) => {
+	const frieren = inProgress(page).locator('[data-card]').filter({ hasText: title });
+	await expect(frieren).toBeVisible();
+	const controls = [
+		frieren.getByRole('button', { name: `${label}: one less`, exact: true }),
+		progressValue(frieren, label),
+		frieren.getByRole('button', { name: `${label}: one more`, exact: true })
+	];
+	for (const control of controls) {
+		const box = (await control.boundingBox())!;
+		expect(box.width).toBeGreaterThanOrEqual(43.5);
+		expect(box.height).toBeGreaterThanOrEqual(43.5);
+		await inside(control, frieren);
+	}
+};
+
+test('Scenario: Progress control fits a phone shelf card', async ({ page, request }, info) => {
+	test.skip(info.project.name !== 'phone', 'phone shelf cards only');
+	await seed(request, {
+		entries: [{ type: 'anime', title: 'Frieren', status: 'progress', progress: { episodes: { current: 12, total: 28 } } }]
+	});
+	await open(page, '/');
+	const frieren = inProgress(page).locator('[data-card]').filter({ hasText: 'Frieren' });
+	await fits(page, 'Frieren', 'Episodes');
+
+	await expect(inProgress(page)).toBeVisible();
+	await expect(frieren.getByText('/ 28')).toBeHidden();
+	await expect(progressValue(frieren, 'Episodes')).toHaveAccessibleName('Episodes 12 of 28');
+});
+
+test('Scenario: Three-digit progress fits a phone shelf card', async ({ page, request }, info) => {
+	test.skip(info.project.name !== 'phone', 'phone shelf cards only');
+	await seed(request, {
+		entries: [{ type: 'manga', title: 'Vagabond', status: 'progress', progress: { chapters: { current: 120, total: 327 }, volumes: { current: 4, total: null } } }]
+	});
+	await open(page, '/');
+	await expect(progressValue(inProgress(page), 'Chapters')).toContainText('120');
+
+	await fits(page, 'Vagabond', 'Chapters');
+	const value = progressValue(inProgress(page).locator('[data-card]').filter({ hasText: 'Vagabond' }), 'Chapters');
+	expect(await value.evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(true);
+});
+
+test('Scenario: Desktop cards show the total', async ({ page, request }, info) => {
+	test.skip(info.project.name !== 'desktop', 'desktop cards only');
+	await seed(request, {
+		entries: [{ type: 'anime', title: 'Frieren', status: 'progress', progress: { episodes: { current: 5, total: 28 } } }]
+	});
+	await open(page, '/animanga/anime');
+
+	await expect(group(card(page, 'Frieren'), 'Episodes')).toContainText('5 / 28');
+	await expect(group(card(page, 'Frieren'), 'Episodes').getByText('/ 28')).toBeVisible();
 });

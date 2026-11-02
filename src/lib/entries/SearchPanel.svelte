@@ -156,7 +156,7 @@
 		border-radius: var(--r-pill);
 		border: 1px solid var(--line);
 		background: var(--glass-thin);
-		font-size: 16px;
+		font-size: var(--t-body);
 		transition: border-color var(--d-fast) var(--ease-out);
 	}
 

@@ -1,5 +1,5 @@
 import { expect, test, type APIRequestContext, type Page } from '@playwright/test';
-import { calm, countSaves, open, photo, reset, seed } from './helpers.ts';
+import { calm, countSaves, editProgress, open, photo, reset, seed } from './helpers.ts';
 import { schemes } from '../src/lib/styles/tokens.ts';
 import { WORLDS } from '../src/lib/styles/worlds.ts';
 
@@ -48,17 +48,15 @@ async function animanga(page: Page) {
 	const episodes = group(page, 'Episodes');
 	await expect(episodes).toContainText('/ 28');
 	await episodes.getByRole('button', { name: 'Episodes: one more' }).click();
-	await expect(episodes.getByRole('textbox')).toHaveValue('1');
-	await episodes.getByRole('textbox').fill('28');
-	await episodes.getByRole('textbox').press('Enter');
-	await expect(episodes.getByRole('textbox')).toHaveValue('28');
+	await expect(episodes).toContainText('1 / 28');
+	await editProgress(page, 'Episodes', '28', 'Enter');
+	await expect(episodes).toContainText('28 / 28');
 	await page.getByRole('button', { name: 'Mark as watched' }).click();
 	await expect(statusLabel(page)).toHaveText('Watched');
 
 	await addByPick(page, '/add/manga', 'Vagabond', /Vagabond/);
 	const chapters = group(page, 'Chapters');
-	await expect(chapters.getByRole('textbox')).toHaveValue('0');
-	await expect(chapters).toContainText('/ ?');
+	await expect(chapters).toContainText('0 / ?');
 }
 
 async function brand(page: Page) {

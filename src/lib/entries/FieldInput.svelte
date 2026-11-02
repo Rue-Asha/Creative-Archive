@@ -31,19 +31,21 @@
 	<div class="field">
 		<label for="f-{name}">{label}</label>
 		{#if input === 'select'}
-			<select
-				id="f-{name}"
-				{name}
-				class="control"
-				bind:value={values[name]}
-				onchange={() => ondirty(name)}
-				aria-invalid={shown[name] ? 'true' : undefined}
-				aria-describedby={shown[name] ? `e-${name}` : undefined}
-			>
-				{#each def.options ?? [] as option (option.value)}
-					<option value={option.value}>{option.label}</option>
-				{/each}
-			</select>
+			<div class="select">
+				<select
+					id="f-{name}"
+					{name}
+					class="control"
+					bind:value={values[name]}
+					onchange={() => ondirty(name)}
+					aria-invalid={shown[name] ? 'true' : undefined}
+					aria-describedby={shown[name] ? `e-${name}` : undefined}
+				>
+					{#each def.options ?? [] as option (option.value)}
+						<option value={option.value}>{option.label}</option>
+					{/each}
+				</select>
+			</div>
 		{:else if input === 'textarea' || input === 'list'}
 			<textarea
 				id="f-{name}"

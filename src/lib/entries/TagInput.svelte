@@ -64,7 +64,7 @@
 	{/each}
 	<ul class="box" aria-label="Selected tags">
 		{#each selected as name (fold(name))}
-			<li class="tag" animate:flip={move()} in:pop out:fade={leave()}>
+			<li class="tag token" animate:flip={move()} in:pop out:fade={leave()}>
 				<span>{name}</span>
 				{#if isNew(name)}<span class="badge">new</span>{/if}
 				<button type="button" aria-label="Remove {name}" onclick={() => remove(name)}><Icon name="x" size={14} /></button>
@@ -120,23 +120,10 @@
 		border-color: var(--accent);
 	}
 
-	.tag {
-		display: inline-flex;
-		align-items: center;
-		gap: 6px;
-		min-block-size: 44px;
-		padding: 0 0 0 var(--s-4);
-		border-radius: var(--r-pill);
-		background: var(--accent-soft);
-		font-size: 14px;
-		font-weight: 500;
-		white-space: nowrap;
-	}
-
 	.badge {
-		font-size: 11px;
+		font-size: var(--t-eyebrow);
 		font-weight: 600;
-		letter-spacing: 0.06em;
+		letter-spacing: var(--tracking-eyebrow);
 		text-transform: uppercase;
 		color: var(--accent);
 	}
@@ -168,7 +155,7 @@
 		padding: 0 8px;
 		border: 0;
 		background: none;
-		font-size: 15px;
+		font-size: var(--t-body);
 	}
 
 	.entry input:focus-visible {

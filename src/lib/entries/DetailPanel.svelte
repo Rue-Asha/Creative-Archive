@@ -85,7 +85,7 @@
 				{/each}
 			</ul>
 		{/if}
-		{#if entry.note}<p class="note">{entry.note}</p>{/if}
+		{#if entry.note}<p class="note" data-prose>{entry.note}</p>{/if}
 		{#if actions}<div class="actions">{@render actions()}</div>{/if}
 	</div>
 </GlassPanel>
@@ -110,7 +110,7 @@
 
 	.creator {
 		margin-block-start: calc(var(--s-3) * -1);
-		font-size: 18px;
+		font-size: var(--t-title);
 		font-weight: 500;
 		color: var(--ink-2);
 	}

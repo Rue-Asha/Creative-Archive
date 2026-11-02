@@ -89,8 +89,8 @@ test('Scenario: Anime search prefills episodes', async ({ page }) => {
 
 	await expect(page.getByText('Sousou no Frieren')).toBeVisible();
 	await expect(page.getByText('2023', { exact: true })).toBeVisible();
-	await expect(progress(page, 'Episodes').getByRole('textbox')).toHaveValue('0');
-	await expect(progress(page, 'Episodes')).toContainText('/ 28');
+	await expect(progress(page, 'Episodes').getByRole('button', { name: 'Episodes 0 of 28' })).toBeVisible();
+	await expect(progress(page, 'Episodes')).toContainText('0 / 28');
 });
 
 test('Scenario: Ongoing manga autofill leaves totals empty', async ({ page }) => {

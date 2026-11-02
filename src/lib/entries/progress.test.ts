@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { clampProgress } from './progress.ts';
+import { clampProgress, parseProgress } from './progress.ts';
 
 describe('clampProgress', () => {
 	it('never goes below zero', () => {
@@ -14,5 +14,18 @@ describe('clampProgress', () => {
 
 	it('has no upper bound when the total is unknown', () => {
 		expect(clampProgress(1200, null)).toBe(1200);
+	});
+});
+
+describe('parseProgress', () => {
+	it('Scenario: Typed progress is parsed strictly', () => {
+		expect(parseProgress('27', 28)).toBe(27);
+		expect(parseProgress('400', null)).toBe(400);
+		expect(parseProgress('', 28)).toBeNull();
+		expect(parseProgress('abc', 28)).toBeNull();
+		expect(parseProgress('-1', 28)).toBeNull();
+		expect(parseProgress('2.5', 28)).toBeNull();
+		expect(parseProgress(' 7 ', 28)).toBe(7);
+		expect(parseProgress('40', 28)).toBeNull();
 	});
 });

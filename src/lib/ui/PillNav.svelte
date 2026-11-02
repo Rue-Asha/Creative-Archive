@@ -108,7 +108,7 @@
 		min-inline-size: 44px;
 		padding: 0 var(--s-4);
 		border-radius: var(--r-pill);
-		font-size: 14px;
+		font-size: var(--t-small);
 		font-weight: 500;
 		color: var(--ink);
 		-webkit-tap-highlight-color: transparent;
@@ -137,16 +137,20 @@
 	}
 
 	.bar li {
-		flex: 1;
+		flex: 1 1 auto;
 		min-inline-size: 0;
+	}
+
+	.bar li:has(a[aria-current='page']) {
+		min-inline-size: 64px;
 	}
 
 	.bar a {
 		flex-direction: column;
 		gap: 1px;
 		min-block-size: 54px;
-		padding: 0 2px;
-		font-size: 10.5px;
+		padding: 0 4px;
+		font-size: var(--t-eyebrow);
 		letter-spacing: 0.01em;
 	}
 

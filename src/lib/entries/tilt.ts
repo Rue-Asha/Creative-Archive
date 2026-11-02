@@ -4,6 +4,9 @@ const MAX_DEGREES = 6;
 const LIFT = -4;
 const FINE_POINTER = '(hover: hover) and (pointer: fine)';
 
+// cards pinned flat by atRest, which a pointer move must not tilt again
+const resting = new WeakSet<Element>();
+
 // Lifts the wrapped card and tilts it toward the pointer. A mouse on a fine-pointer device only; touch and reduced
 // motion leave the card alone (reduced motion also switches off the CSS hover lift in EntryCard).
 export function tilt(node: HTMLElement): { destroy(): void } {
@@ -12,7 +15,7 @@ export function tilt(node: HTMLElement): { destroy(): void } {
 
 	function move(event: PointerEvent) {
 		const el = card();
-		if (!el || !active(event)) return;
+		if (!el || resting.has(el) || !active(event)) return;
 		const box = el.getBoundingClientRect();
 		const x = (event.clientX - box.left) / box.width - 0.5;
 		const y = (event.clientY - box.top) / box.height - 0.5;
@@ -39,5 +42,27 @@ export function tilt(node: HTMLElement): { destroy(): void } {
 			node.removeEventListener('pointerleave', leave);
 			leave();
 		}
+	};
+}
+
+// The page transition snapshots a card's cover at rest: no lift, no tilt and no zoomed image, whatever the pointer
+// does until the snapshot is taken. Returns the undo.
+export function atRest(cover: HTMLElement): () => void {
+	const card = cover.closest<HTMLElement>('[data-card]');
+	const pinned = [card, cover.querySelector<HTMLElement>('img')].filter((el) => el !== null);
+	const saved = pinned.map((el) => ['transform', 'transition'].map((p) => [p, el.style.getPropertyValue(p)] as const));
+	if (card) resting.add(card);
+	for (const el of pinned) {
+		el.style.setProperty('transition', 'none');
+		el.style.setProperty('transform', 'none');
+	}
+	return () => {
+		if (card) resting.delete(card);
+		pinned.forEach((el, i) => {
+			for (const [p, value] of saved[i]) {
+				if (value) el.style.setProperty(p, value);
+				else el.style.removeProperty(p);
+			}
+		});
 	};
 }
