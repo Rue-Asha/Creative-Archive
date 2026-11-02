@@ -12,10 +12,10 @@ const TABS = {
 	music: ['Albums', 'Artists', 'Songs'],
 	animanga: ['Anime', 'Manga'],
 	books: ['Books'],
-	fashion: ['Brands', 'Shops', 'Influencers', 'Pieces', 'Wardrobe', 'Looks']
+	fashion: ['Wardrobe', 'Pieces', 'Looks', 'Brands', 'Shops', 'Influencers', 'Magazines']
 };
 
-const slugs = { Albums: 'albums', Artists: 'artists', Songs: 'songs', Anime: 'anime', Manga: 'manga', Books: 'books', Brands: 'brands', Shops: 'shops', Influencers: 'influencers', Pieces: 'pieces', Wardrobe: 'wardrobe', Looks: 'looks' } as const;
+const slugs = { Albums: 'albums', Artists: 'artists', Songs: 'songs', Anime: 'anime', Manga: 'manga', Books: 'books', Brands: 'brands', Shops: 'shops', Influencers: 'influencers', Magazines: 'magazines', Pieces: 'pieces', Wardrobe: 'wardrobe', Looks: 'looks' } as const;
 
 const hero = (page: Page) => page.locator('[data-hero]');
 
@@ -65,10 +65,10 @@ test("Scenario: Add offers the domain's types", async ({ page }) => {
 
 	await page.getByRole('button', { name: 'Add' }).click();
 	const menu = page.getByRole('menu', { name: 'Add to Fashion' });
-	await expect(menu.getByRole('menuitem')).toHaveText(['Brand', 'Shop/Site', 'Influencer', 'Piece', 'Look']);
+	await expect(menu.getByRole('menuitem')).toHaveText(['Brand', 'Shop/Site', 'Influencer', 'Magazine', 'Piece', 'Look']);
 
-	await menu.getByRole('menuitem', { name: 'Piece' }).click();
-	await expect(page).toHaveURL(/\/add\/piece$/);
+	await menu.getByRole('menuitem', { name: 'Magazine' }).click();
+	await expect(page).toHaveURL(/\/add\/magazine$/);
 });
 
 test('Scenario: Domain shelves show its entries', async ({ page, request }) => {

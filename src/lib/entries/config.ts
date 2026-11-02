@@ -173,6 +173,17 @@ export const TYPES: Record<EntryType, TypeConfig> = {
 		fields: [{ key: 'handles', label: 'Handles', input: 'handles', store: 'details' }],
 		preview: true
 	},
+	magazine: {
+		...plain,
+		type: 'magazine',
+		domain: 'fashion',
+		label: 'Magazine',
+		plural: 'Magazines',
+		slug: 'magazines',
+		titleLabel: 'Name',
+		fields: [{ key: 'handles', label: 'Handles', input: 'handles', store: 'details' }],
+		preview: true
+	},
 	piece: {
 		...plain,
 		type: 'piece',
@@ -206,10 +217,14 @@ export const TYPES_BY_DOMAIN: Record<Domain, EntryType[]> = {
 	music: ['album', 'artist', 'song'],
 	animanga: ['anime', 'manga'],
 	books: ['book'],
-	fashion: ['brand', 'site', 'influencer', 'piece', 'look']
+	fashion: ['brand', 'site', 'influencer', 'magazine', 'piece', 'look']
 };
 
 type ListDef = { slug: string; label: string; query: Omit<ListQuery, 'sort'> };
+export interface ListGroup {
+	label: string | null;
+	lists: ListDef[];
+}
 
 const listOf = (type: EntryType): ListDef => ({
 	slug: TYPES[type].slug,
@@ -217,18 +232,30 @@ const listOf = (type: EntryType): ListDef => ({
 	query: { types: [type] }
 });
 
-export const LISTS: Record<Domain, ListDef[]> = {
-	music: TYPES_BY_DOMAIN.music.map(listOf),
-	animanga: TYPES_BY_DOMAIN.animanga.map(listOf),
-	books: TYPES_BY_DOMAIN.books.map(listOf),
+const flat = (domain: Domain): ListGroup[] => [{ label: null, lists: TYPES_BY_DOMAIN[domain].map(listOf) }];
+
+export const LIST_GROUPS: Record<Domain, ListGroup[]> = {
+	music: flat('music'),
+	animanga: flat('animanga'),
+	books: flat('books'),
 	fashion: [
-		listOf('brand'),
-		listOf('site'),
-		listOf('influencer'),
-		listOf('piece'),
-		{ slug: 'wardrobe', label: 'Wardrobe', query: { types: ['piece'], status: 'owned' } },
-		listOf('look')
+		{
+			label: 'My things',
+			lists: [
+				{ slug: 'wardrobe', label: 'Wardrobe', query: { types: ['piece'], status: 'owned' } },
+				listOf('piece'),
+				listOf('look')
+			]
+		},
+		{ label: 'Discover', lists: [listOf('brand'), listOf('site'), listOf('influencer'), listOf('magazine')] }
 	]
+};
+
+export const LISTS: Record<Domain, ListDef[]> = {
+	music: LIST_GROUPS.music.flatMap((g) => g.lists),
+	animanga: LIST_GROUPS.animanga.flatMap((g) => g.lists),
+	books: LIST_GROUPS.books.flatMap((g) => g.lists),
+	fashion: LIST_GROUPS.fashion.flatMap((g) => g.lists)
 };
 
 export function typeBySlug(domain: Domain, slug: string): TypeConfig | null {

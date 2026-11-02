@@ -70,16 +70,20 @@ describe('setStatus', () => {
 		const brand = seed('brand', { kind: 'brand' });
 		const piece = seed('piece', { status: 'owned' });
 		const album = seed('album', { status: 'want' });
+		const magazine = seed('magazine');
 
 		expect(() => setStatus(brand, 'want')).toThrow(ValidationError);
+		expect(() => setStatus(magazine, 'done')).toThrow(ValidationError);
+		expect(() => setStatus(magazine, 'none')).toThrow(ValidationError);
 		expect(() => setStatus(brand, 'none')).toThrow(ValidationError);
 		expect(() => setStatus(piece, 'want')).toThrow(ValidationError);
 		expect(() => setStatus(album, 'owned')).toThrow(ValidationError);
 
 		expect(read(brand).status).toBeNull();
+		expect(read(magazine).status).toBeNull();
 		expect(read(piece).status).toBe('owned');
 		expect(read(album).status).toBe('want');
-		expect([brand, piece, album].map(eventCount)).toEqual([0, 0, 0]);
+		expect([brand, piece, album, magazine].map(eventCount)).toEqual([0, 0, 0, 0]);
 	});
 
 	it('stores no event for a piece and still changes its status', () => {

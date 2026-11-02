@@ -61,6 +61,12 @@ describe('0002_core schema', () => {
 		expect(() => entry({ type: 'look', status: 'owned' })).toThrow(/CHECK/);
 	});
 
+	it('Scenario: Database accepts a magazine only without a status', () => {
+		expect(() => entry({ type: 'magazine', status: null })).not.toThrow();
+		expect(() => entry({ type: 'magazine', status: 'done' })).toThrow(/CHECK/);
+		expect(() => entry({ type: 'magazine', status: 'owned' })).toThrow(/CHECK/);
+	});
+
 	it('refuses a piece with a media status and media with a piece status', () => {
 		expect(() => entry({ type: 'piece', status: 'want' })).toThrow(/CHECK/);
 		expect(() => entry({ type: 'anime', status: 'owned' })).toThrow(/CHECK/);

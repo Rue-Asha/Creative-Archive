@@ -90,6 +90,13 @@ describe('home queries', () => {
 		expect(shelves.map((s) => s.href)).toEqual([null, '/animanga/anime', '/animanga/manga']);
 	});
 
+	it('Scenario: Fashion shelves follow the type order', () => {
+		for (const type of ['look', 'piece', 'magazine', 'influencer', 'site', 'brand'] as const)
+			insertEntryRow({ type, title: type, kind: type === 'brand' || type === 'site' ? type : undefined });
+
+		expect(domainShelves('fashion').map((s) => s.title)).toEqual(['Brands', 'Shops', 'Influencers', 'Magazines', 'Pieces', 'Looks']);
+	});
+
 	it('has no In progress shelf for fashion and omits types without entries', () => {
 		insertEntryRow({ type: 'piece', title: 'Coat', status: 'owned' });
 		insertEntryRow({ type: 'brand', title: 'Acne', kind: 'brand' });

@@ -76,15 +76,16 @@ test('Scenario: Entry pages mark their domain', async ({ page, request }) => {
 
 test('Scenario: Fashion entries without status or rating show no controls', async ({ page, request }) => {
 	const {
-		entries: [brand, look]
+		entries: [brand, magazine, look]
 	} = await seed(request, {
 		entries: [
 			{ type: 'brand', title: 'Maison Example', kind: 'brand' },
+			{ type: 'magazine', title: 'Vestoj' },
 			{ type: 'look', title: 'Autumn layers' }
 		]
 	});
 
-	for (const id of [brand, look]) {
+	for (const id of [brand, magazine, look]) {
 		await open(page, `/entries/${id}`);
 
 		await expect(page.getByRole('heading', { level: 1 })).toBeVisible();

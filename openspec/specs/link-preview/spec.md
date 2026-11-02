@@ -52,11 +52,11 @@ Unit tests reach a local `node:http` server bound to `127.0.0.2` by exempting ex
 - **proof:** unit
 
 ### Requirement: Open Graph preview
-For Brand, Shop/Site, Influencer and Piece, pasting a URL SHALL fetch the page and read `og:title`, `og:image` and
-`og:description`, falling back to `<title>` for the title and to the page's icon for the image, resolving relative
-URLs against the page URL. A found image SHALL be downloaded and converted to WebP at once and shown in the form; a
-found title SHALL fill an empty name field; the description fills an empty description field; the pasted URL fills an
-empty URL field of the entry (brand, site, piece). When the page is
+For Brand, Shop/Site, Influencer, Magazine and Piece, pasting a URL SHALL fetch the page and read `og:title`,
+`og:image` and `og:description`, falling back to `<title>` for the title and to the page's icon for the image,
+resolving relative URLs against the page URL. A found image SHALL be downloaded and converted to WebP at once and
+shown in the form; a found title SHALL fill an empty name field; the description fills an empty description field;
+the pasted URL fills an empty URL field of the entry (brand, site, piece). When the page is
 blocked, a JS-only shell, a login wall or has no image, the form SHALL stay usable with "No preview found" and manual
 upload. An invalid URL SHALL show an inline error.
 
@@ -141,10 +141,10 @@ upload. An invalid URL SHALL show an inline error.
 - **proof:** manual (needs real sites over the network, which tests never reach; Gate 2)
 
 ### Requirement: Influencer handle prefill
-Pasting a profile URL into the influencer form's URL field SHALL fill the matching handle field: Instagram, TikTok and
-YouTube profile URLs fill that platform's handle, any other http(s) URL fills only the website field, and post or
-video URLs (Instagram posts/reels, TikTok videos, YouTube videos and shorts) SHALL fill nothing. A handle field that
-already holds a value SHALL NOT be overwritten. The URL preview runs as usual alongside.
+Pasting a profile URL into the URL field of a type with a handles field (influencer, magazine) SHALL fill the matching
+handle field: Instagram, TikTok and YouTube profile URLs fill that platform's handle, any other http(s) URL fills only
+the website field, and post or video URLs (Instagram posts/reels, TikTok videos, YouTube videos and shorts) SHALL fill
+nothing. A handle field that already holds a value SHALL NOT be overwritten. The URL preview runs as usual alongside.
 
 #### Scenario: Profile URLs map to handles
 - **WHEN** `handlesFromUrl` gets `https://www.instagram.com/someone/`, `https://instagram.com/someone`, `https://www.tiktok.com/@someone`, `https://m.youtube.com/@someone` and `https://www.youtube.com/c/someone`
@@ -179,5 +179,15 @@ already holds a value SHALL NOT be overwritten. The URL preview runs as usual al
 #### Scenario: Pasting a post URL fills no handle
 - **WHEN** `https://www.instagram.com/p/Cx1/` is pasted on `/add/influencer`
 - **THEN** every handle field, the website included, stays empty
+- **proof:** e2e
+
+#### Scenario: Pasting a profile on a magazine fills the handle
+- **WHEN** `https://www.instagram.com/someone/` is pasted on `/add/magazine`
+- **THEN** the Instagram handle field reads "someone", the TikTok, YouTube and Website fields stay empty, and "No preview found" shows
+- **proof:** e2e
+
+#### Scenario: Pasting a magazine's site fills name, image and website
+- **WHEN** `https://brand.example/` is pasted on `/add/magazine`
+- **THEN** the name field reads "Maison Example", the preview image shows, and the Website field reads `https://brand.example/` with the other handle fields empty
 - **proof:** e2e
 

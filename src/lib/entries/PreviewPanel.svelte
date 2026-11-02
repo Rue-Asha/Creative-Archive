@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onDestroy } from 'svelte';
 	import { COPY } from '#lib/copy.ts';
+	import { TYPES } from './config.ts';
 	import { handlesFromUrl } from './handles.ts';
 	import type { EntryType } from '#lib/types.ts';
 
@@ -43,7 +44,7 @@
 			phase = 'idle';
 			return;
 		}
-		if (type === 'influencer') {
+		if (TYPES[type].fields.some((f) => f.input === 'handles')) {
 			for (const [name, handle] of Object.entries(handlesFromUrl(value) ?? {})) fill(`details.handles.${name}`, handle);
 		}
 		controller = new AbortController();

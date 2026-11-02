@@ -36,6 +36,16 @@ describe('collections', () => {
 		expect(listCollections()).toEqual([]);
 	});
 
+	it('Scenario: Magazine joins a collection', () => {
+		const magazine = insertEntryRow({ type: 'magazine', title: 'Vestoj', details: { handles: { instagram: 'vestoj' } } });
+		const id = createCollection('Reading');
+
+		addToCollection(id, magazine);
+
+		expect(getCollection(id)!.entries.map((e) => e.id)).toEqual([magazine]);
+		expect(getCollection(id)!.entries[0].type).toBe('magazine');
+	});
+
 	it('Scenario: Same entry added twice is kept once', () => {
 		const album = insertEntryRow({ type: 'album', title: 'Twice' });
 		const id = createCollection('Moodboard');

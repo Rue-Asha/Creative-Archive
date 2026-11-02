@@ -1,0 +1,7 @@
+track: tweak
+triage: "tweak — one new Fashion type (magazine, with migration) plus grouped Fashion sub-tabs, one session. Appetite: one evening."
+base: main
+gate1: 2026-11-02
+gate2: 2026-11-02
+learnings:
+  - 'Tweak set by Rue but the new entry type needs a CHECK-constraint migration (entries table rebuild) → Rue chose to keep tweak; ask at explore with the migration named.'
