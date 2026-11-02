@@ -79,14 +79,14 @@
 		color: var(--accent-ink);
 		font-family: var(--font-display);
 		font-style: var(--accent-style);
-		font-size: 22px;
+		font-size: var(--t-display-3);
 		line-height: 1;
 		padding-block-end: 3px;
 	}
 
 	.word {
 		font-family: var(--font-display);
-		font-size: 21px;
+		font-size: var(--t-display-3);
 		font-weight: 500;
 		letter-spacing: -0.01em;
 	}

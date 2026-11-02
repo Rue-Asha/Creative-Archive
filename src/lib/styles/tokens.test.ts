@@ -70,6 +70,27 @@ const blocks = [...css.matchAll(/([^{}]+)\{([^{}]*)\}/g)].map((m) => ({
 }));
 const block = (selector: string) => blocks.find((b) => b.selectors.includes(selector))?.decls;
 
+function topLevel(args: string): string[] {
+	const parts: string[] = [];
+	let depth = 0;
+	let start = 0;
+	for (let i = 0; i < args.length; i++) {
+		if (args[i] === '(') depth++;
+		else if (args[i] === ')') depth--;
+		else if (args[i] === ',' && depth === 0) {
+			parts.push(args.slice(start, i).trim());
+			start = i + 1;
+		}
+	}
+	parts.push(args.slice(start).trim());
+	return parts;
+}
+
+function gradientStops(value: string): string[] {
+	const inner = value.slice(value.indexOf('(') + 1, value.lastIndexOf(')'));
+	return topLevel(inner).slice(1);
+}
+
 describe('tokens', () => {
 	it('Scenario: Every scheme and accent defines the full token set', () => {
 		expect(Object.keys(schemes.light).sort()).toEqual([...SCHEME_TOKENS].sort());
@@ -77,6 +98,49 @@ describe('tokens', () => {
 		expect(Object.keys(accents).length).toBe(10);
 		for (const [name, set] of Object.entries(accents))
 			for (const scheme of SCHEMES) expect(Object.keys(set[scheme]).sort(), `${name} ${scheme}`).toEqual([...ACCENT_TOKENS].sort());
+	});
+
+	it('Scenario: Error colour meets AA in both schemes', () => {
+		for (const scheme of SCHEMES) {
+			const set = schemes[scheme] as Record<string, string>;
+			const ground = parse(set.ground);
+			const error = parse(set.error);
+			expect(contrast(error, ground), `${scheme} on ground`).toBeGreaterThanOrEqual(4.5);
+			expect(contrast(error, over(parse(set['glass-strong']), ground)), `${scheme} on glass-strong`).toBeGreaterThanOrEqual(4.5);
+			expect(block(`[data-scheme='${scheme}']`)?.error, `${scheme} css`).toBe(set.error);
+		}
+	});
+
+	it('Scenario: Fade and glow masks are eased ramps', () => {
+		for (const name of ['fade-down', 'glow-mask']) {
+			const holders = blocks.filter((b) => name in b.decls);
+			expect(holders.map((b) => b.selectors), name).toEqual([[':root']]);
+			const stops = gradientStops(holders[0].decls[name]);
+			expect(stops.length, name).toBeGreaterThanOrEqual(5);
+			const alphas = stops.map((s) => +s.match(/\/\s*([\d.]+)\)/)![1]);
+			for (let i = 1; i < alphas.length; i++) expect(alphas[i], `${name} stop ${i}`).toBeLessThanOrEqual(alphas[i - 1]);
+			expect(alphas.at(-1), name).toBe(0);
+		}
+	});
+
+	it('Scenario: Ambient light is eased', () => {
+		for (const scheme of SCHEMES) {
+			const ambient = block(`[data-scheme='${scheme}']`)?.ambient ?? '';
+			const layers = ambient.split(/(?=radial-gradient\()/).map((l) => l.replace(/,\s*$/, ''));
+			expect(layers.length, scheme).toBeGreaterThanOrEqual(2);
+			for (const layer of layers) {
+				expect(layer, scheme).toMatch(/^radial-gradient\(.*\bin oklab\b/);
+				const stops = gradientStops(layer);
+				expect(stops.at(-1), scheme).toBe('transparent');
+				expect(stops.length - 1, `${scheme} stops before transparent`).toBeGreaterThanOrEqual(4);
+			}
+		}
+	});
+
+	it('Scenario: Section and initials tokens exist', () => {
+		expect(blocks.find((b) => b.selectors.includes(':root') && 't-section' in b.decls)?.decls['t-section']).toBe('var(--t-display-3)');
+		expect(block(':root')?.['t-initials']).toBe('clamp(28px, 34cqi, 120px)');
+		expect(css).toMatch(/@media \(min-width: 1024px\)\s*\{\s*:root\s*\{[^}]*--t-section:\s*var\(--t-display-2\)/);
 	});
 
 	it('Scenario: Text contrast meets AA in every world', () => {

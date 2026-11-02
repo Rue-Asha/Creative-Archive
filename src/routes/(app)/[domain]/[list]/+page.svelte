@@ -22,7 +22,7 @@
 	}
 
 	const shelves = $derived(data.state.view === 'shelves' ? statusShelves(data.type, data.entries) : null);
-	const images = $derived(data.entries.flatMap((e) => (e.imageId === null ? [] : [`/images/${e.imageId}`])).slice(0, 4));
+	const cover = $derived(data.entries.find((e) => e.imageId !== null)?.imageId ?? null);
 </script>
 
 <svelte:head><title>{data.label} · {DOMAIN_LABEL[data.world]} · Creative Archive</title></svelte:head>
@@ -49,9 +49,9 @@
 		</div>
 	{:else if data.entries.length}
 		<section class="column results" aria-label="{data.label} list">
-			<div class="glow" aria-hidden="true">
-				{#each images as src (src)}<img {src} alt="" />{/each}
-			</div>
+			{#if cover !== null}
+				<div class="glow" aria-hidden="true"><img src="/images/{cover}" alt="" /></div>
+			{/if}
 			<ul class="grid">
 				{#each data.entries as entry, i (entry.id)}
 					<li use:reveal={{ delay: stagger(i) }}><EntryCard {entry} /></li>
@@ -111,17 +111,15 @@
 		isolation: isolate;
 	}
 
-	/* ambient light: the list's own covers, blurred far behind it */
+	/* ambient light: the list's first cover, blurred far behind it */
 	.glow {
 		position: absolute;
-		inset: -12% -6%;
+		inset: -20% -4%;
 		z-index: -1;
-		display: grid;
-		grid-template-columns: repeat(4, minmax(0, 1fr));
-		filter: blur(90px) saturate(1.8);
+		filter: blur(90px) saturate(1.2);
 		opacity: 0.55;
 		pointer-events: none;
-		mask-image: radial-gradient(closest-side, white 40%, transparent);
+		mask-image: var(--glow-mask);
 	}
 
 	.glow img {

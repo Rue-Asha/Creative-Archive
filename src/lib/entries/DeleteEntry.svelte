@@ -51,7 +51,7 @@
 </script>
 
 <div class="trigger" inert={open} aria-hidden={open ? 'true' : undefined}>
-	<Button variant="secondary" arrow={false} onclick={show}>Delete</Button>
+	<button type="button" class="quiet" onclick={show}>Delete</button>
 </div>
 
 {#if open}
@@ -79,6 +79,22 @@
 {/if}
 
 <style>
+	.quiet {
+		min-block-size: 48px;
+		padding: 0 var(--s-4);
+		border: 0;
+		background: transparent;
+		font-size: var(--t-small);
+		font-weight: 600;
+		color: var(--ink-2);
+		text-decoration: underline;
+		text-underline-offset: 3px;
+	}
+
+	.quiet:hover {
+		color: var(--ink);
+	}
+
 	.overlay {
 		position: fixed;
 		inset: 0;

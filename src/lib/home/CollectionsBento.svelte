@@ -9,28 +9,30 @@
 
 	const counted: Action<HTMLElement, number> = (node, count) => countAction?.(node, count);
 
-	const images = $derived(collections.flatMap((c) => c.collage.slice(0, 1)).slice(0, 4));
+	const featured = $derived(collections.find((c) => c.collage.length));
+	const cover = $derived(featured?.collage[0] ?? null);
+	const tiles = $derived(featured ? [featured, ...collections.filter((c) => c !== featured)] : collections);
 </script>
 
 <section class="column collections" aria-label="Collections" use:reveal>
-	<div class="glow" aria-hidden="true">
-		{#each images as id (id)}<img src="/images/{id}" alt="" />{/each}
-	</div>
+	{#if cover !== null}
+		<div class="glow" aria-hidden="true"><img src="/images/{cover}" alt="" /></div>
+	{/if}
 	<div class="head">
 		<h2 data-section-heading>Collections</h2>
 		<span class="count tnum" use:counted={collections.length}>{collections.length}</span>
 		<a class="see-all" href="/collections">All collections <ArrowButton decorative variant="outline" size="sm" /></a>
 	</div>
 	<ul class="bento">
-		{#each collections as c, i (c.id)}
-			<li class:feature={i === 0} use:reveal={{ delay: stagger(i) }}>
+		{#each tiles as c, i (c.id)}
+			<li class:feature={c === featured} use:reveal={{ delay: stagger(i) }}>
 				<a class="collection liquid" data-bento-card href="/collections/{c.id}">
 					<div class="collage"><Collage images={c.collage} label="{c.name} collage" /></div>
 					<div class="text">
 						<h3>{c.name}</h3>
 						<span class="tnum"><span data-count-key={c.id} use:counted={c.count}>{c.count}</span> {c.count === 1 ? 'entry' : 'entries'}</span>
 					</div>
-					{#if i === 0 && c.description}<p class="desc">{c.description}</p>{/if}
+					{#if c === featured && c.description}<p class="desc">{c.description}</p>{/if}
 				</a>
 			</li>
 		{/each}
@@ -48,14 +50,12 @@
 
 	.glow {
 		position: absolute;
-		inset: -12% -6%;
+		inset: -20% -4%;
 		z-index: -1;
-		display: grid;
-		grid-template-columns: repeat(4, minmax(0, 1fr));
-		filter: blur(90px) saturate(1.8);
+		filter: blur(90px) saturate(1.2);
 		opacity: 0.55;
 		pointer-events: none;
-		mask-image: radial-gradient(closest-side, white 40%, transparent);
+		mask-image: var(--glow-mask);
 	}
 
 	.glow img {
@@ -71,7 +71,7 @@
 	}
 
 	h2 {
-		font-size: var(--t-display-2);
+		font-size: var(--t-section);
 	}
 
 	.count {
@@ -91,7 +91,7 @@
 		min-block-size: 44px;
 		margin-inline-start: auto;
 		align-self: center;
-		font-size: 14px;
+		font-size: var(--t-small);
 		font-weight: 600;
 	}
 
@@ -140,15 +140,11 @@
 
 	h3 {
 		font-family: var(--font-display);
-		font-size: 22px;
+		font-size: var(--t-display-3);
 		font-weight: 500;
 		white-space: nowrap;
 		overflow: hidden;
 		text-overflow: ellipsis;
-	}
-
-	.feature h3 {
-		font-size: var(--t-display-3);
 	}
 
 	.text span {
@@ -160,14 +156,10 @@
 	.desc {
 		padding: 0 var(--s-3) var(--s-3);
 		color: var(--ink-2);
-		font-size: 14px;
+		font-size: var(--t-small);
 	}
 
 	@media (max-width: 1023px) {
-		h2 {
-			font-size: var(--t-display-3);
-		}
-
 		.bento {
 			grid-template-columns: repeat(2, minmax(0, 1fr));
 			grid-auto-rows: 190px;

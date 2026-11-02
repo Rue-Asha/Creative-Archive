@@ -116,7 +116,7 @@
 	}
 
 	.new {
-		--field-error: color-mix(in srgb, var(--ink) 45%, tomato);
+		--field-error: var(--error);
 		display: grid;
 		gap: var(--s-4);
 		padding: var(--s-6);
@@ -140,7 +140,7 @@
 		border-radius: var(--r-sm);
 		border: 1px solid var(--line);
 		background: var(--glass-thin);
-		font-size: 15px;
+		font-size: var(--t-body);
 		line-height: 1.45;
 		transition: border-color var(--d-fast) var(--ease-out);
 	}

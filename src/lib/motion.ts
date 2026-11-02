@@ -45,6 +45,43 @@ export function fadeSlide(_node: Element, { y = 10 }: { y?: number } = {}): Tran
 	};
 }
 
+interface Held {
+	el: HTMLElement;
+	observe: () => void;
+	gone: boolean;
+}
+
+let held: Held[] | null = null;
+
+function inViewport(el: Element): boolean {
+	const r = el.getBoundingClientRect();
+	return r.bottom > 0 && r.top < innerHeight && r.right > 0 && r.left < innerWidth;
+}
+
+// A page reached by history back must not fade in again. While a hold is on, reveal() only marks its nodes; the
+// release, called once the page's scroll is back (Kit restores it after mounting), shows the ones in view at once and
+// observes the rest.
+export function holdReveals(): () => void {
+	const nodes: Held[] = (held = []);
+	return () => {
+		if (held === nodes) held = null;
+		const live = nodes.filter((n) => !n.gone);
+		// measured while revealed: a hidden node sits 28px low and would read as out of view at the bottom edge
+		for (const { el } of live) {
+			el.style.setProperty('transition', 'none');
+			el.setAttribute('data-revealed', '');
+		}
+		const shown = live.map(({ el }) => inViewport(el));
+		live.forEach((n, i) => {
+			if (shown[i]) return;
+			n.el.removeAttribute('data-revealed');
+			n.observe();
+		});
+		// the frame that captures the page computes the revealed styles; only then may the transition come back
+		requestAnimationFrame(() => requestAnimationFrame(() => live.forEach(({ el }) => el.style.removeProperty('transition'))));
+	};
+}
+
 // global.css hides [data-reveal] until [data-revealed]; the delay feeds its transition-delay
 export function reveal(node: Element, { delay = 0 }: { delay?: number } = {}): { destroy(): void } {
 	const el = node as HTMLElement;
@@ -54,16 +91,27 @@ export function reveal(node: Element, { delay = 0 }: { delay?: number } = {}): {
 	}
 	el.style.setProperty('--reveal-delay', `${delay}ms`);
 	el.setAttribute('data-reveal', '');
-	const observer = new IntersectionObserver(
-		(entries) => {
-			if (!entries.some((e) => e.isIntersecting)) return;
-			el.setAttribute('data-revealed', '');
-			observer.disconnect();
-		},
-		{ rootMargin: '0px 0px -8% 0px' }
-	);
-	observer.observe(el);
-	return { destroy: () => observer.disconnect() };
+	let observer: IntersectionObserver | null = null;
+	const observe = () => {
+		observer = new IntersectionObserver(
+			(entries) => {
+				if (!entries.some((e) => e.isIntersecting)) return;
+				el.setAttribute('data-revealed', '');
+				observer?.disconnect();
+			},
+			{ rootMargin: '0px 0px -8% 0px' }
+		);
+		observer.observe(el);
+	};
+	const hold: Held = { el, observe, gone: false };
+	if (held) held.push(hold);
+	else observe();
+	return {
+		destroy() {
+			hold.gone = true;
+			observer?.disconnect();
+		}
+	};
 }
 
 // Svelte only sets inert during an outro; a test locating by role would still find the leaving element

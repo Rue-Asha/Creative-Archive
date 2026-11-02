@@ -175,17 +175,19 @@
 				{#if config.status === 'piece'}
 					<div class="field">
 						<label for="f-status">Status</label>
-						<select
-							id="f-status"
-							name="status"
-							class="control"
-							bind:value={fields.status}
-							onchange={() => dismiss('status')}
-						>
-							{#each Object.entries(STATUS_LABELS.piece) as [value, label] (value)}
-								<option {value}>{label}</option>
-							{/each}
-						</select>
+						<div class="select">
+							<select
+								id="f-status"
+								name="status"
+								class="control"
+								bind:value={fields.status}
+								onchange={() => dismiss('status')}
+							>
+								{#each Object.entries(STATUS_LABELS.piece) as [value, label] (value)}
+									<option {value}>{label}</option>
+								{/each}
+							</select>
+						</div>
 						{#if shown.status}<p class="error" id="e-status" role="alert">{shown.status}</p>{/if}
 					</div>
 				{/if}
@@ -210,7 +212,7 @@
 
 <style>
 	.entry-form {
-		--field-error: color-mix(in srgb, var(--ink) 45%, tomato);
+		--field-error: var(--error);
 		display: flex;
 		flex-direction: column;
 		gap: var(--s-6);
@@ -271,9 +273,13 @@
 		border-radius: var(--r-sm);
 		border: 1px solid var(--line);
 		background: var(--glass-thin);
-		font-size: 15px;
+		font-size: var(--t-body);
 		line-height: 1.45;
 		transition: border-color var(--d-fast) var(--ease-out);
+	}
+
+	.entry-form :global(.select .control) {
+		padding-inline-end: var(--s-8);
 	}
 
 	.entry-form :global(textarea.control) {

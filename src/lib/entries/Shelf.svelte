@@ -15,7 +15,7 @@
 
 	// a shelf mixing shapes (Home's "In progress") shows them all as portrait cards
 	const shape = $derived(new Set(shelf.entries.map((e) => e.type)).size > 1 ? ('portrait' as const) : undefined);
-	const images = $derived(shelf.entries.flatMap((e) => (e.imageId === null ? [] : [`/images/${e.imageId}`])).slice(0, 4));
+	const cover = $derived(shelf.entries.find((e) => e.imageId !== null)?.imageId ?? null);
 
 	let row: HTMLElement;
 	let canPrev = $state(false);
@@ -39,9 +39,9 @@
 </script>
 
 <section class="shelf" data-shelf={shelf.key} aria-label={accent ? `${shelf.title} · ${accent}` : shelf.title}>
-	<div class="glow" aria-hidden="true">
-		{#each images as src (src)}<img {src} alt="" />{/each}
-	</div>
+	{#if cover !== null}
+		<div class="glow" aria-hidden="true"><img src="/images/{cover}" alt="" /></div>
+	{/if}
 	<div class="column shelf-head" data-shelf-head>
 		<h2 data-section-heading>
 			{shelf.title}{#if accent}<span class="dot-sep" aria-hidden="true">·</span><em>{accent}</em>{/if}
@@ -74,17 +74,15 @@
 		gap: var(--s-5);
 	}
 
-	/* ambient light: the shelf's own covers, blurred far behind it */
+	/* ambient light: the shelf's first cover, blurred far behind it */
 	.glow {
 		position: absolute;
-		inset: -12% -6%;
+		inset: -20% -4%;
 		z-index: -1;
-		display: grid;
-		grid-template-columns: repeat(4, minmax(0, 1fr));
-		filter: blur(90px) saturate(1.8);
+		filter: blur(90px) saturate(1.2);
 		opacity: 0.55;
 		pointer-events: none;
-		mask-image: radial-gradient(closest-side, white 40%, transparent);
+		mask-image: var(--glow-mask);
 	}
 
 	.glow img {
@@ -100,7 +98,7 @@
 	}
 
 	h2 {
-		font-size: var(--t-display-2);
+		font-size: var(--t-section);
 	}
 
 	h2 em {
@@ -135,7 +133,7 @@
 		align-items: center;
 		gap: var(--s-2);
 		min-block-size: 44px;
-		font-size: 14px;
+		font-size: var(--t-small);
 		font-weight: 600;
 	}
 
@@ -180,7 +178,7 @@
 		.shelf-head::before {
 			content: '';
 			position: absolute;
-			inset: -8px -12px;
+			inset: -10px -20px;
 			z-index: -1;
 			border-radius: var(--r-pill);
 			background: var(--grain), var(--glass-strong);

@@ -392,14 +392,14 @@
 		color: var(--accent-ink);
 		font-family: var(--font-display);
 		font-style: var(--accent-style);
-		font-size: 22px;
+		font-size: var(--t-display-3);
 		line-height: 1;
 		padding-block-end: 3px;
 	}
 
 	.word {
 		font-family: var(--font-display);
-		font-size: 21px;
+		font-size: var(--t-display-3);
 		font-weight: 500;
 		letter-spacing: -0.01em;
 	}
@@ -575,7 +575,7 @@
 
 	.stat-value {
 		font-family: var(--font-display);
-		font-size: 40px;
+		font-size: var(--t-display-1);
 		line-height: 1;
 	}
 
@@ -594,7 +594,7 @@
 		filter: blur(90px) saturate(1.8);
 		opacity: 0.55;
 		pointer-events: none;
-		mask-image: radial-gradient(closest-side, white 40%, transparent);
+		mask-image: var(--glow-mask);
 	}
 
 	.glow img {
@@ -624,7 +624,7 @@
 	}
 
 	h2 {
-		font-size: var(--t-display-2);
+		font-size: var(--t-section);
 	}
 
 	h2 em {
@@ -652,7 +652,7 @@
 		gap: var(--s-2);
 		min-block-size: 44px;
 		margin-inline-start: auto;
-		font-size: 14px;
+		font-size: var(--t-small);
 		font-weight: 600;
 		align-self: center;
 	}
@@ -719,7 +719,7 @@
 
 	.collection-text h3 {
 		font-family: var(--font-display);
-		font-size: 22px;
+		font-size: var(--t-display-3);
 		font-weight: 500;
 		white-space: nowrap;
 		overflow: hidden;
@@ -739,7 +739,7 @@
 	.collection-desc {
 		padding: 0 var(--s-3) var(--s-3);
 		color: var(--ink-2);
-		font-size: 14px;
+		font-size: var(--t-small);
 	}
 
 	/* domain hero */
@@ -761,7 +761,7 @@
 		block-size: 100%;
 		object-fit: cover;
 		z-index: -2;
-		mask-image: linear-gradient(180deg, white 62%, transparent);
+		mask-image: var(--fade-down);
 		animation: drift var(--d-ambient) var(--ease-in-out) infinite alternate;
 	}
 
@@ -769,7 +769,7 @@
 		position: absolute;
 		inset: 0;
 		z-index: -1;
-		mask-image: linear-gradient(180deg, white 62%, transparent);
+		mask-image: var(--fade-down);
 		background:
 			linear-gradient(90deg, var(--scrim-end) 0%, transparent 70%),
 			linear-gradient(0deg, var(--scrim-end) 0%, transparent 60%);
@@ -846,7 +846,7 @@
 			calc(100% - 15px) 50%;
 		background-size: 5px 5px;
 		background-repeat: no-repeat;
-		font-size: 14px;
+		font-size: var(--t-small);
 		font-weight: 500;
 	}
 
@@ -992,7 +992,7 @@
 	.note {
 		font-family: var(--font-display);
 		font-style: var(--accent-style);
-		font-size: 22px;
+		font-size: var(--t-display-3);
 		line-height: 1.35;
 	}
 
@@ -1050,10 +1050,6 @@
 				linear-gradient(0deg, var(--scrim-end) 0%, transparent 35%);
 		}
 
-		h2 {
-			font-size: var(--t-display-3);
-		}
-
 		.collection-text {
 			flex-direction: column;
 			align-items: flex-start;
@@ -1097,7 +1093,7 @@
 		}
 
 		.stat-value {
-			font-size: 32px;
+			font-size: var(--t-display-2);
 		}
 
 		.shelf-row-wrap {

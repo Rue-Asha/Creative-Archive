@@ -1,0 +1,210 @@
+## MODIFIED Requirements
+
+### Requirement: Tokens and worlds
+All colours, radii, blur, shadows, spacing, font sizes, fade and glow masks, durations and easings SHALL be CSS
+custom properties in `src/lib/styles/tokens.css`, the scheme and accent colours mirrored for tests in
+`tokens.ts`. Each scheme SHALL define an `--error` colour that reaches AA on its ground and on its strong glass. Fade
+and glow masks (`--fade-down`, `--glow-mask`) SHALL be eased ramps of at least five stops, declared once for both
+schemes. Component and route styles outside `src/lib/styles/` SHALL use no raw colour value and no named colour
+(`transparent` and `currentColor` excepted), and no style outside `tokens.css` SHALL set a raw font size. A world
+SHALL be selected by exactly three attributes, `data-scheme` (light | dark, a complete
+ground/surface/ink/glass/line/scrim/shadow/error set), `data-accent` (an accent set) and `data-font` (a type pairing,
+see Fonts), and `worlds.ts` SHALL map every world (home, music, animanga, books, fashion) to one scheme and accent and
+hold one app-wide pairing (`FONT`), so that changing a world's look is a change to that map only.
+
+#### Scenario: Every scheme and accent defines the full token set
+- **WHEN** `tokens.ts` is read
+- **THEN** the light and dark schemes define the same token names, `error` among them, and every accent defines `accent`, `accent-ink`, `accent-soft` and `accent-wash` for both schemes
+- **proof:** unit
+
+#### Scenario: Switching a world is a data change
+- **WHEN** `worldAttrs('music', { scheme: 'dark', accent: <any music candidate> })` is applied to the mockup page wrapper
+- **THEN** the computed `--ground`, `--ink` and `--accent` on the wrapper equal the dark scheme's and that accent's values from `tokens.ts`, and the wrapper carries `data-font` with the app-wide pairing
+- **proof:** e2e
+
+#### Scenario: Text contrast meets AA in every world
+- **WHEN** every text/background pair the components use is checked in both schemes with every accent candidate
+- **THEN** body-text pairs reach at least 4.5:1 and large display text at least 3:1
+- **proof:** unit
+
+#### Scenario: Text over photos stays legible
+- **WHEN** ink on glass and on-photo text over the scrim are composited over a pure black and a pure white photo in both schemes
+- **THEN** each reaches at least 4.5:1
+- **proof:** unit
+
+#### Scenario: Error colour meets AA in both schemes
+- **WHEN** `--error` is checked against `--ground`, and against `--glass-strong` composited over `--ground`, in the light and the dark scheme
+- **THEN** each pair reaches at least 4.5:1, and `tokens.css` declares the same `--error` values as `tokens.ts`
+- **proof:** unit
+
+#### Scenario: Components use no named colour
+- **WHEN** the styles of every `.svelte` and `.css` file under `src/` outside `src/lib/styles/` are scanned with comments stripped
+- **THEN** no CSS named colour appears as a value (`transparent` and `currentColor` excepted), so `tomato` and the `white` mask stops are gone
+- **proof:** unit
+
+#### Scenario: Font sizes come from the type scale
+- **WHEN** every `font-size` declaration in `.svelte` and `.css` files under `src/` other than `tokens.css` is read
+- **THEN** each value is a `var(--t-…)` token, a `calc()` of such tokens and unitless factors, `0` or `inherit`; none holds a px, rem, em, % or keyword size
+- **proof:** unit
+
+#### Scenario: Fade and glow masks are eased ramps
+- **WHEN** `--fade-down` and `--glow-mask` are read from `tokens.css`
+- **THEN** each has at least five colour stops whose alpha never increases and ends at 0, and each is declared only in the `:root` block, so light and dark share them
+- **proof:** unit
+
+#### Scenario: Ambient light is eased
+- **WHEN** `--ambient` is read for the light and the dark scheme
+- **THEN** each radial layer interpolates `in oklab` and has at least four stops before it reaches `transparent`
+- **proof:** unit
+
+## ADDED Requirements
+
+### Requirement: Type scale
+Every font size SHALL be one of the scale tokens: `--t-display-1`, `--t-display-2`, `--t-display-3`, `--t-title` (17),
+`--t-body` (16), `--t-small` (13), `--t-eyebrow` (11, 12 from 1024 px), `--t-section` (section headings: display-3
+below 1024 px, display-2 from 1024 px) and `--t-initials` (the placeholder's fluid initials). Former raw sizes fold
+into the scale: 14 px → small, 15 and 16 px → body, 21 and 22 px → display-3, 18 px → title, 10.5, 11 and 12 px and
+caps labels → eyebrow. Shelf and bento section headings SHALL share `--t-section`. Every all-caps label (Eyebrow,
+Counter, the tag input's label, the detail progress label) SHALL use `--t-eyebrow` and `--tracking-eyebrow`. Every
+input, select and textarea SHALL render at 16 px or more so iOS does not zoom on focus.
+
+#### Scenario: Section headings share one size
+- **WHEN** Home with a shelf and the collections bento is opened at 390 and at 1280 px
+- **THEN** every `[data-section-heading]` has the same computed font size: 26 px at 390 and 44 px at 1280
+- **proof:** e2e
+
+#### Scenario: Shelf heading fits one line on phone
+- **WHEN** Home shows the "Recently added · Music" shelf at 390 px
+- **THEN** its heading's height is at most one line height (computed `line-height` × 1.1) and the count pill sits on the same line
+- **proof:** e2e
+
+#### Scenario: Caps labels share the eyebrow style
+- **WHEN** the components page, an add form with a tag input and an anime's detail page are opened
+- **THEN** the Eyebrow, the Counter, the tag input's caps label and the detail progress label have the same computed font size and letter spacing as `--t-eyebrow` and `--tracking-eyebrow`
+- **proof:** e2e
+
+#### Scenario: Inputs do not zoom on phone
+- **WHEN** on phone the add form, the edit form, a list's filter bar, the collections index and page forms, the add-to-collection popover and an anime's progress input in edit mode are opened
+- **THEN** every visible `input`, `select` and `textarea` has a computed font size of at least 16 px
+- **proof:** e2e
+
+#### Scenario: Type reads even across screens
+- **WHEN** Rue looks at the screenshots of every main screen at phone and desktop size
+- **THEN** sizes step evenly, weight carries the hierarchy and no text looks out of scale
+- **proof:** manual (visual judgement at Gate 2, from the verifier's screenshots)
+
+### Requirement: Chrome cursor and focus rings
+Chrome text — nav labels, chips, counts, eyebrows, card overlays and button labels — SHALL show the default cursor,
+except inside a link or button, where it shows that control's pointer, and inside a drag-scroll shelf row, where it
+shows the row's grab cursor — never the I-beam; links and buttons SHALL keep the pointer; prose (an entry's note and a collection's description,
+marked `data-prose`) SHALL keep the text cursor and stay selectable. No style SHALL set `user-select: none` on text.
+Keyboard focus SHALL show an outline with an offset that follows the focused element's own border radius (no forced
+pill shape); a focused card SHALL show one ring on the card's corners.
+
+#### Scenario: Chrome text shows the default cursor
+- **WHEN** Home and a domain list with seeded entries are opened on desktop
+- **THEN** on both an Eyebrow has computed cursor `default` and a nav label its link's `pointer`; on Home a shelf count has `default` and a card's chip and meta line inside a shelf row have the row's `grab`; on the list (grid) a card's chip and meta line have `default` — none of them `text`
+- **proof:** e2e
+
+#### Scenario: Links and buttons keep the pointer
+- **WHEN** the same pages are opened
+- **THEN** a nav link, a card title link and a shelf arrow button have computed cursor `pointer`
+- **proof:** e2e
+
+#### Scenario: Prose keeps the text cursor and stays selectable
+- **WHEN** the detail page of an entry with a note and a collection page with a description are opened
+- **THEN** the note and the description carry `data-prose`, have computed cursor `text` or `auto`, and computed `user-select` is not `none`
+- **proof:** e2e
+
+#### Scenario: Focus ring follows the element's own radius
+- **WHEN** the star rating on a detail page, a filter chip on a list and a nav link are focused with the keyboard
+- **THEN** each has a solid outline with a positive offset and the same computed `border-radius` as before it was focused
+- **proof:** e2e
+
+#### Scenario: Focused card shows one ring on its corners
+- **WHEN** a card's title link is focused with the keyboard
+- **THEN** the card shows the focus ring with its 24 px radius and the title link draws no outline of its own
+- **proof:** e2e
+
+### Requirement: Smooth fades and glows
+Heroes (the photo and its scrim, the framed Home hero), the detail backdrop and the no-photo fallback SHALL fade
+through `--fade-down` or other eased ramps of at least five stops, and colour-to-colour gradients SHALL interpolate
+`in oklab`. Shelf, bento and list glows SHALL come from one cover filling the glow box, at a saturation of at most
+1.2, under `--glow-mask`, extending at least 15 % of their section's height above and below it so the fade does not
+end at the sticky head bar; without covers no glow SHALL render. Placeholders ("No photo yet" in settings and the
+entry placeholder) SHALL tint through `--glow-mask` without a visible rim. The page ambient SHALL be a fixed layer
+behind the content, not `background-attachment: fixed`.
+
+#### Scenario: Hero photo fades through the eased mask
+- **WHEN** `/music` with a seeded hero photo is opened at 390 and at 1280 px
+- **THEN** the hero photo's and the scrim's computed `mask-image` each have at least five colour stops, and each scrim gradient has at least five stops, no two of them at the same position
+- **proof:** e2e
+
+#### Scenario: Framed Home hero fades the same way
+- **WHEN** `/` with a seeded home hero is opened at 390 and at 1280 px
+- **THEN** the hero photo's computed `mask-image` inside the frame has at least five colour stops
+- **proof:** e2e
+
+#### Scenario: Hero without photo blends in oklab
+- **WHEN** `/books` without a hero is opened
+- **THEN** the fallback gradient's computed `background-image` contains `in oklab` and a grain layer
+- **proof:** e2e
+
+#### Scenario: Detail backdrop fades out without a crease
+- **WHEN** the detail page of an entry with an image is opened at 390 and at 1280 px
+- **THEN** the backdrop's computed `mask-image` has at least five colour stops and no two-stop overlay sits on it
+- **proof:** e2e
+
+#### Scenario: Shelf glow comes from one cover
+- **WHEN** a shelf with three covers is shown on `/music`
+- **THEN** its glow holds exactly one image, its computed `filter` saturation is at most 1.2 and its computed `mask-image` has at least five colour stops
+- **proof:** e2e
+
+#### Scenario: Shelf glow is centred
+- **WHEN** a shelf with one cover is shown on desktop
+- **THEN** the horizontal centre of its glow box is within 2 px of the shelf section's centre
+- **proof:** e2e
+
+#### Scenario: Shelf glow has room to fade vertically
+- **WHEN** a shelf with covers is shown on desktop
+- **THEN** its glow box extends above and below the shelf section by at least 15 % of the section's height each
+- **proof:** e2e
+
+#### Scenario: No glow without covers
+- **WHEN** a shelf whose entries have no images is shown
+- **THEN** it renders no glow element
+- **proof:** e2e
+
+#### Scenario: Bento and list glows match the shelf glow
+- **WHEN** Home with two collections with images and a list page with covers are opened
+- **THEN** the bento glow and the list glow each hold one image, saturate at most 1.2 and have a `mask-image` with at least five colour stops
+- **proof:** e2e
+
+#### Scenario: Placeholders have no rim
+- **WHEN** a card without an image and an empty settings slot ("No photo yet") are shown
+- **THEN** each placeholder's tint layer has a computed `mask-image` with at least five colour stops and no two-stop radial gradient in its background
+- **proof:** e2e
+
+#### Scenario: Ambient is a fixed layer
+- **WHEN** Home is opened and scrolled by 2000 px
+- **THEN** the world wrapper's computed `background-attachment` is not `fixed`, and its ambient layer has computed `position: fixed`, inset 0 and a negative z-index above the wrapper's ground
+- **proof:** e2e
+
+#### Scenario: Fades and glows look smooth
+- **WHEN** Rue looks at the screenshots of Home, a domain page, a list, a detail page, settings and the light-scheme mockups at phone and desktop size
+- **THEN** no hero, glow, backdrop, placeholder or ambient shows a visible crease, rim, band or lopsided patch
+- **proof:** manual (smoothness is a visual judgement at Gate 2, from the verifier's screenshots)
+
+### Requirement: Consistent control styles
+The edit and add forms' selects SHALL use the same chevron style as the list FilterBar's selects (one shared `.select`
+style), and the artist token and the tag tokens in the entry form SHALL use one chip tone.
+
+#### Scenario: Form selects match the filter select
+- **WHEN** the add form for a piece and a list's filter bar are opened
+- **THEN** the piece form's status select and the filter bar's sort select both sit in a `.select` wrapper, both have computed `appearance: none`, and both wrappers draw the same chevron (equal computed `::after` mask or background image)
+- **proof:** e2e
+
+#### Scenario: Artist and tag tokens share one tone
+- **WHEN** an album form shows a picked artist and an added tag
+- **THEN** the artist token and the tag token have the same computed background colour, text colour and border radius
+- **proof:** e2e

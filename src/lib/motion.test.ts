@@ -2,7 +2,7 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { coverName, fadeSlide, hideOnOutro, pop, reducedMotion, reveal, rise, stagger } from './motion.ts';
+import { coverName, fadeSlide, hideOnOutro, holdReveals, pop, reducedMotion, reveal, rise, stagger } from './motion.ts';
 
 function prefersReduced(reduce: boolean) {
 	vi.stubGlobal('matchMedia', (query: string) => ({
@@ -12,9 +12,17 @@ function prefersReduced(reduce: boolean) {
 }
 
 class FakeNode {
+	constructor(public top = 100) {}
 	attrs = new Map<string, string>();
 	listeners = new Map<string, Set<() => void>>();
-	style = { props: new Map<string, string>(), setProperty: (k: string, v: string) => this.style.props.set(k, v) };
+	style = {
+		props: new Map<string, string>(),
+		setProperty: (k: string, v: string) => this.style.props.set(k, v),
+		removeProperty: (k: string) => this.style.props.delete(k)
+	};
+	getBoundingClientRect() {
+		return { top: this.top, bottom: this.top + 200, left: 0, right: 160 };
+	}
 	setAttribute(k: string, v: string) {
 		this.attrs.set(k, v);
 	}
@@ -201,6 +209,61 @@ describe('motion', () => {
 		expect(el.hasAttribute('data-revealed')).toBe(true);
 		expect(observers[0].disconnected).toBe(true);
 		action.destroy();
+	});
+
+	it('Scenario: Reveal shows in-view nodes at once on history back', () => {
+		prefersReduced(false);
+		stubObserver();
+		vi.stubGlobal('innerHeight', 800);
+		vi.stubGlobal('innerWidth', 390);
+		const frames: (() => void)[] = [];
+		vi.stubGlobal('requestAnimationFrame', (fn: () => void) => frames.push(fn));
+		const shown = new FakeNode(100);
+		const below = new FakeNode(1400);
+		const release = holdReveals();
+		reveal(shown as unknown as Element);
+		reveal(below as unknown as Element);
+		release();
+
+		expect(shown.hasAttribute('data-revealed')).toBe(true);
+		expect(shown.style.props.get('transition')).toBe('none');
+		expect(below.hasAttribute('data-reveal')).toBe(true);
+		expect(below.hasAttribute('data-revealed')).toBe(false);
+		expect(observers.flatMap((o) => o.targets)).toEqual([below]);
+		while (frames.length) frames.shift()!();
+		expect(shown.style.props.has('transition')).toBe(false);
+		observers[0].cb([{ isIntersecting: true, target: below }]);
+		expect(below.hasAttribute('data-revealed')).toBe(true);
+	});
+
+	it('Scenario: Reveal runs as before on other navigations', () => {
+		prefersReduced(false);
+		stubObserver();
+		vi.stubGlobal('innerHeight', 800);
+		vi.stubGlobal('innerWidth', 390);
+		const el = new FakeNode(100);
+		reveal(el as unknown as Element);
+
+		expect(el.hasAttribute('data-reveal')).toBe(true);
+		expect(el.hasAttribute('data-revealed')).toBe(false);
+		expect(observers.flatMap((o) => o.targets)).toEqual([el]);
+		observers[0].cb([{ isIntersecting: true, target: el }]);
+		expect(el.hasAttribute('data-revealed')).toBe(true);
+	});
+
+	it('a node gone before the hold is released is left alone', () => {
+		prefersReduced(false);
+		stubObserver();
+		vi.stubGlobal('innerHeight', 800);
+		vi.stubGlobal('innerWidth', 390);
+		vi.stubGlobal('requestAnimationFrame', () => 0);
+		const el = new FakeNode(1400);
+		const release = holdReveals();
+		reveal(el as unknown as Element).destroy();
+		release();
+
+		expect(observers).toHaveLength(0);
+		expect(el.hasAttribute('data-revealed')).toBe(false);
 	});
 
 	it('reduced motion reveals at once without observing', () => {

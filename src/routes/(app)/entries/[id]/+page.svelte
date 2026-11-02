@@ -117,8 +117,10 @@
 			{/snippet}
 			{#snippet actions()}
 				<AddToCollection collections={data.collections} memberOf={data.memberOf} />
-				<Button href="/entries/{entry.id}/edit" variant="secondary" arrow={false}>Edit</Button>
-				<DeleteEntry title={entry.title} typeLabel={config.label} />
+				<div class="pair">
+					<Button href="/entries/{entry.id}/edit" variant="secondary" arrow={false}>Edit</Button>
+					<DeleteEntry title={entry.title} typeLabel={config.label} />
+				</div>
 			{/snippet}
 		</DetailPanel>
 	</div>
@@ -140,6 +142,7 @@
 		block-size: min(90vh, 820px);
 		overflow: hidden;
 		pointer-events: none;
+		mask-image: var(--fade-down);
 	}
 
 	.backdrop img {
@@ -149,13 +152,6 @@
 		filter: blur(56px) saturate(1.5);
 		opacity: 0.5;
 		transform: scale(1.3);
-	}
-
-	.backdrop::after {
-		content: '';
-		position: absolute;
-		inset: 0;
-		background: linear-gradient(to bottom, transparent 30%, var(--ground));
 	}
 
 	.layout {
@@ -170,7 +166,7 @@
 	}
 
 	.cover {
-		inline-size: min(100%, 300px);
+		inline-size: min(100%, 240px);
 		margin-inline: auto;
 		border-radius: var(--r-card);
 		overflow: hidden;
@@ -182,6 +178,12 @@
 		inline-size: 100%;
 		block-size: 100%;
 		object-fit: cover;
+	}
+
+	.pair {
+		display: flex;
+		align-items: center;
+		gap: var(--s-2);
 	}
 
 	.rating {
@@ -196,20 +198,24 @@
 		padding: 0 var(--s-3);
 		border: 0;
 		background: transparent;
-		font-size: 14px;
+		font-size: var(--t-small);
 		font-weight: 500;
 		color: var(--ink-2);
+		white-space: nowrap;
 		text-decoration: underline;
 		text-underline-offset: 3px;
 	}
 
 	.progress {
-		display: grid;
-		gap: 2px;
+		position: relative;
 	}
 
+	/* out of flow so the label never offsets the control from the status and stars row */
 	.progress-label {
-		padding-inline-start: var(--s-3);
+		position: absolute;
+		inset: auto auto calc(100% + 2px) var(--s-3);
+		line-height: 1;
+		white-space: nowrap;
 		font-size: var(--t-eyebrow);
 		font-weight: 600;
 		letter-spacing: var(--tracking-eyebrow);

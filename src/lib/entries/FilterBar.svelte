@@ -92,18 +92,11 @@
 
 	.select select {
 		min-block-size: 44px;
-		padding: 0 var(--s-8) 0 var(--s-4);
+		padding-inline-start: var(--s-4);
 		border-radius: var(--r-pill);
 		border: 1px solid var(--line);
 		background: var(--surface);
-		appearance: none;
-		background-image: linear-gradient(45deg, transparent 50%, currentColor 50%), linear-gradient(135deg, currentColor 50%, transparent 50%);
-		background-position:
-			calc(100% - 20px) 50%,
-			calc(100% - 15px) 50%;
-		background-size: 5px 5px;
-		background-repeat: no-repeat;
-		font-size: 14px;
+		font-size: var(--t-body);
 		font-weight: 500;
 	}
 

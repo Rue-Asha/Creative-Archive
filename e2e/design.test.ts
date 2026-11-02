@@ -77,7 +77,7 @@ test.describe('components page', () => {
 		const progress = page.locator('[data-pane="light"]').getByRole('group', { name: 'Chapters' });
 		await expect(progress).toContainText('/ ?');
 		await progress.getByRole('button', { name: 'Chapters: one more' }).click();
-		await expect(progress.getByRole('textbox', { name: 'Chapters' })).toHaveValue('215');
+		await expect(progress.getByRole('button', { name: 'Chapters 215 of unknown' })).toBeVisible();
 	});
 
 	test('both schemes render side by side with their own tokens', async ({ page }) => {

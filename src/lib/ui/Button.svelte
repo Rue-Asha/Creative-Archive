@@ -57,7 +57,7 @@
 		padding: 0 var(--s-6);
 		border-radius: var(--r-pill);
 		border: 1px solid transparent;
-		font-size: 15px;
+		font-size: var(--t-body);
 		font-weight: 600;
 		letter-spacing: -0.005em;
 		line-height: 1;

@@ -1,0 +1,15 @@
+track: feature
+triage: "feature — polish pass (caret, card-detail morph, fades/glows, type scale + 18 audit findings) across existing capabilities, no schema; escalated from tweak after the owner chose everything. Appetite: one long session."
+base: main
+gate0: 2026-11-02
+gate1: 2026-11-02
+gate2: 2026-11-02
+learnings:
+  - '[flow] UI polish/audit request with an open ''find more'' ask → triage feature up front, not tweak (audit found 18 findings beyond the user''s 4; tweak escalated at explore) — update the tweak-escalation entry'
+  - '[flow] Orchestrator briefing the planner on a release bump → read ship.md *Release* for the track default (feature = minor) before naming a version and ask a deviation at Gate 1 (brief said 0.1.1, ship.md says 0.2.0) — update the Briefing subagents entry'
+  - '[flow] Planner on UI scenarios → measure the narrowest desktop card before a container-query threshold (227px card vs planned 230px), check the loader sort before seeded-order scenarios (Home collections created_at DESC), list existing tests asserting the exact old computed CSS string as owned (domain-pages in oklab), and give fit scenarios an overflow check (scrollWidth <= clientWidth; a shrinking button passed before the fix) — update the Planner writing scenarios entry'
+  - '[repo] SvelteKit 3: NavigationType is imported from $app/navigation, not @sveltejs/kit (U3 cost an attempt) — new'
+  - '[repo] e2e asserting how many saves were sent (none / exactly one) → use the recordSaves exact list, never countSaves(n) (a stray same-value save satisfied toBe(1), found in review) — update the countSaves entry'
+  - '[repo] Screenshots from node build → run npm run build first, and switch scheme via the app setting (the app ignores emulated prefers-color-scheme; a stale build showed the old UI) — update the Bare playwright test entry'
+  - '[repo] Static style guards (raw font-size/colour scans) → pair with a computed-style e2e (FilterBar select at --t-small = 13px passed the guard; inputs >= 16px e2e caught it) — update the New component or style entry'
+  - '[global] Waiting on a background proof in agent shells → wait for the completion notice only; pgrep -f matches the waiting command and parallel units, a blocking tail hit the 600s cap (U6, U7) — update the Proof runs in agent shells entry'

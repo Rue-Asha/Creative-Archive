@@ -67,7 +67,7 @@
 	}
 
 	.photo {
-		mask-image: linear-gradient(180deg, white 62%, transparent);
+		mask-image: var(--fade-down);
 		overflow: hidden;
 	}
 
@@ -91,18 +91,19 @@
 		position: absolute;
 		inset: 0;
 		background:
+			var(--grain),
 			var(--ambient),
-			linear-gradient(160deg, var(--accent-soft), var(--surface-2) 55%, var(--ground));
+			linear-gradient(in oklab 160deg, var(--accent-soft), var(--surface-2) 55%, var(--ground));
 	}
 
 	.scrim {
 		position: absolute;
 		inset: 0;
 		z-index: -1;
-		mask-image: linear-gradient(180deg, white 62%, transparent);
+		mask-image: var(--fade-down);
 		background:
-			linear-gradient(90deg, var(--scrim-end) 0%, transparent 70%),
-			linear-gradient(0deg, var(--scrim-end) 0%, transparent 60%);
+			linear-gradient(in oklab 90deg, var(--scrim-end) 0%, color-mix(in oklab, var(--scrim-end) 90%, transparent) 14%, color-mix(in oklab, var(--scrim-end) 65%, transparent) 28%, color-mix(in oklab, var(--scrim-end) 35%, transparent) 42%, color-mix(in oklab, var(--scrim-end) 10%, transparent) 56%, transparent 70%),
+			linear-gradient(in oklab 0deg, var(--scrim-end) 0%, color-mix(in oklab, var(--scrim-end) 90%, transparent) 12%, color-mix(in oklab, var(--scrim-end) 65%, transparent) 24%, color-mix(in oklab, var(--scrim-end) 35%, transparent) 36%, color-mix(in oklab, var(--scrim-end) 10%, transparent) 48%, transparent 60%);
 	}
 
 	.body {
@@ -133,7 +134,7 @@
 		}
 
 		.scrim {
-			background: linear-gradient(0deg, var(--scrim-end) 0%, var(--scrim-end) 40%, transparent 92%);
+			background: linear-gradient(in oklab 0deg, var(--scrim-end) 0%, var(--scrim-end) 40%, color-mix(in oklab, var(--scrim-end) 90%, transparent) 48.32%, color-mix(in oklab, var(--scrim-end) 65%, transparent) 56.64%, color-mix(in oklab, var(--scrim-end) 35%, transparent) 64.96%, color-mix(in oklab, var(--scrim-end) 10%, transparent) 73.28%, transparent 81.6%);
 		}
 	}
 </style>

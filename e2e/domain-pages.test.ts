@@ -45,7 +45,7 @@ test('Scenario: Domain without hero photo shows the theme gradient', async ({ pa
 	const surface = rgb(schemes[scheme]['surface-2']);
 	const ground = rgb(schemes[scheme].ground);
 	expect(await gradient.evaluate((el) => getComputedStyle(el).backgroundImage)).toContain(
-		`linear-gradient(160deg, ${soft}, ${surface} 55%, ${ground})`
+		`linear-gradient(160deg in oklab, ${soft}, ${surface} 55%, ${ground})`
 	);
 });
 

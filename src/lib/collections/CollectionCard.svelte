@@ -38,7 +38,7 @@
 	}
 
 	h3 {
-		font-size: 16px;
+		font-size: var(--t-body);
 		font-weight: 600;
 		line-height: 1.25;
 		overflow-wrap: anywhere;

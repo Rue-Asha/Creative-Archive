@@ -113,7 +113,7 @@
 		align-items: center;
 		gap: 10px;
 		padding-inline: var(--s-5) var(--s-4);
-		font-size: 15px;
+		font-size: var(--t-body);
 		font-weight: 600;
 		white-space: nowrap;
 	}
@@ -176,7 +176,7 @@
 		border: 0;
 		border-radius: var(--r-sm);
 		background: transparent;
-		font-size: 15px;
+		font-size: var(--t-body);
 		font-weight: 500;
 		text-align: start;
 		transition: background-color var(--d-fast) var(--ease-out);
