@@ -45,17 +45,26 @@ export function migrate(db: DatabaseSync, migrations: Migration[] = loadMigratio
 	const record = db.prepare(
 		"INSERT INTO schema_migrations (name, applied_at) VALUES (?, datetime('now'))"
 	);
-	for (const m of migrations) {
-		if (done.has(m.name)) continue;
-		db.exec('BEGIN');
-		try {
-			db.exec(m.sql);
-			record.run(m.name);
-			db.exec('COMMIT');
-		} catch (e) {
-			db.exec('ROLLBACK');
-			throw new Error(`Migration ${m.name} failed: ${(e as Error).message}`, { cause: e });
+	// off for every migration, so rebuilding a table cannot cascade into its children; a no-op inside the
+	// transaction, hence set around it
+	try {
+		for (const m of migrations) {
+			if (done.has(m.name)) continue;
+			db.exec('PRAGMA foreign_keys = OFF');
+			db.exec('BEGIN');
+			try {
+				db.exec(m.sql);
+				const broken = db.prepare('PRAGMA foreign_key_check').all();
+				if (broken.length) throw new Error(`${broken.length} foreign key violation(s) in ${broken[0].table}`);
+				record.run(m.name);
+				db.exec('COMMIT');
+			} catch (e) {
+				db.exec('ROLLBACK');
+				throw new Error(`Migration ${m.name} failed: ${(e as Error).message}`, { cause: e });
+			}
 		}
+	} finally {
+		db.exec('PRAGMA foreign_keys = ON');
 	}
 }
 

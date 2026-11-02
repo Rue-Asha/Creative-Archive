@@ -11,7 +11,7 @@
 		music: 'Albums, artists and songs you love or want to hear.',
 		animanga: 'What you watch and read, episode by episode.',
 		books: 'The shelf you are in the middle of, and the one waiting.',
-		fashion: 'Brands, shops, pieces you own and looks you keep.'
+		fashion: 'Brands, shops, magazines, pieces you own and looks you keep.'
 	};
 </script>
 

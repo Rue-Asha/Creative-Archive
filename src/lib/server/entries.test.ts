@@ -73,6 +73,7 @@ describe('createEntry', () => {
 				title: 'Someone',
 				details: { handles: { instagram: 'someone', tiktok: 'someone', youtube: 'someone', website: 'https://someone.example/' } }
 			},
+			{ type: 'magazine', title: 'Vestoj', details: { handles: { instagram: 'vestoj', website: 'https://vestoj.example/' } } },
 			{
 				type: 'piece',
 				title: 'Wool Coat',
@@ -82,7 +83,7 @@ describe('createEntry', () => {
 		];
 		const defaults: Record<EntryType, string | null> = {
 			album: 'none', artist: 'none', song: 'none', anime: 'none', manga: 'none', book: 'none',
-			brand: null, site: null, influencer: null, piece: 'wishlist', look: null
+			brand: null, site: null, influencer: null, magazine: null, piece: 'wishlist', look: null
 		};
 
 		for (const input of inputs) {

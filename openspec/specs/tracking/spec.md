@@ -9,7 +9,7 @@ labelled per domain (Music: Want to listen / Listening / Listened; Anime: Plan t
 and Books: Want to read / Reading / Read; all: Dropped; none: No status). Every change of status SHALL store one
 status event with the new status and the time; setting the current status again SHALL store nothing. Creating a media
 entry with a status other than none SHALL store its first event. Pieces SHALL have wishlist | owned | gone without
-events; brands, shops, influencers and looks SHALL have no status.
+events; brands, shops, influencers, magazines and looks SHALL have no status.
 
 #### Scenario: Changing status stores a dated event
 - **WHEN** `setStatus` moves a seeded album from want to done
@@ -32,7 +32,7 @@ events; brands, shops, influencers and looks SHALL have no status.
 - **proof:** unit
 
 #### Scenario: Invalid status for a type is rejected
-- **WHEN** `setStatus` gives a brand any status, or a piece the status want
+- **WHEN** `setStatus` gives a brand or a magazine any status, or a piece the status want
 - **THEN** it throws a ValidationError and nothing changes
 - **proof:** unit
 
@@ -52,8 +52,8 @@ events; brands, shops, influencers and looks SHALL have no status.
 - **proof:** e2e
 
 #### Scenario: Fashion entries without status or rating show no controls
-- **WHEN** the detail pages of a seeded brand and a seeded look are opened
-- **THEN** neither shows a status pill nor a star rating
+- **WHEN** the detail pages of a seeded brand, a seeded magazine and a seeded look are opened
+- **THEN** none of them shows a status pill or a star rating
 - **proof:** e2e
 
 ### Requirement: Progress for anime and manga

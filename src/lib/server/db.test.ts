@@ -90,6 +90,31 @@ describe('db', () => {
 		db.close();
 	});
 
+	it('Scenario: Migration that breaks a foreign key is rolled back', () => {
+		const db = openDb(join(dir, 'fk.db'));
+		const run = () =>
+			migrate(db, [
+				...loadMigrations(),
+				{ name: '9999_dangling.sql', sql: 'INSERT INTO entry_tags (entry_id, tag_id) VALUES (999, 1)' }
+			]);
+
+		expect(run).toThrow(/9999_dangling\.sql/);
+		expect(db.prepare('SELECT count(*) AS n FROM entry_tags').get()?.n).toBe(0);
+		expect(applied(db)).not.toContain('9999_dangling.sql');
+		db.close();
+	});
+
+	it('Scenario: Foreign keys are on after migrating', () => {
+		const db = openDb(join(dir, 'after.db'));
+		const fk = () => db.prepare('PRAGMA foreign_keys').get()?.foreign_keys;
+
+		migrate(db);
+		expect(fk()).toBe(1);
+		expect(() => migrate(db, [...loadMigrations(), { name: '9999_bad.sql', sql: 'CREATE TABL nope' }])).toThrow();
+		expect(fk()).toBe(1);
+		db.close();
+	});
+
 	it('loads migrations in name order from the package root', () => {
 		const names = loadMigrations().map((m) => m.name);
 

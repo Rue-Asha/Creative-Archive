@@ -10,6 +10,7 @@ export type EntryType =
 	| 'brand'
 	| 'site'
 	| 'influencer'
+	| 'magazine'
 	| 'piece'
 	| 'look';
 export type MediaType = 'album' | 'artist' | 'song' | 'anime' | 'manga' | 'book';

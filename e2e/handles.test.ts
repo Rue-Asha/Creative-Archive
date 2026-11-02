@@ -34,6 +34,23 @@ test('Scenario: Pasting another site fills the website field', async ({ page }) 
 	await expectHandles(page, { Website: 'https://brand.example/' });
 });
 
+test('Scenario: Pasting a profile on a magazine fills the handle', async ({ page }) => {
+	await open(page, '/add/magazine');
+	await paste(page, 'https://www.instagram.com/someone/');
+
+	await expect(page.getByText('No preview found')).toBeVisible();
+	await expectHandles(page, { Instagram: 'someone' });
+});
+
+test("Scenario: Pasting a magazine's site fills name, image and website", async ({ page }) => {
+	await open(page, '/add/magazine');
+	await paste(page, 'https://brand.example/');
+
+	await expect(page.getByRole('img', { name: 'Page preview' })).toBeVisible();
+	await expect(page.getByLabel('Name', { exact: true })).toHaveValue('Maison Example');
+	await expectHandles(page, { Website: 'https://brand.example/' });
+});
+
 test('Scenario: A typed handle is not overwritten', async ({ page }) => {
 	await open(page, '/add/influencer');
 	await handle(page, 'Instagram').fill('mine');
