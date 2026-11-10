@@ -141,14 +141,14 @@ SHALL hold exactly one top-level directory `creative-archive-<version>/` contain
 - **proof:** unit
 
 ### Requirement: Harness declaration
-`CLAUDE.md` SHALL describe the app and the Kit 3 conventions and contain `## Harness` declaring proof
+`AGENTS.md` SHALL describe the app and the Kit 3 conventions and contain `## Harness` declaring proof
 `npm run proof`, proof-full `npm run proof:full`, run `npm run dev` → http://localhost:5173, package, `ship: merge`
 and `release: tag`, followed by the e2e paragraph (projects, workers, `.e2e/$PORT.db`, test flag, proxy header,
 `BODY_SIZE_LIMIT`, `data-hydrated` wait, reset-first). The README SHALL cover setup, checks and the env vars `PORT`,
 `HOST`, `DATABASE_PATH`, `PROTOCOL_HEADER`, `BODY_SIZE_LIMIT`, `CREATIVE_ARCHIVE_TEST`, `MOCKUP_PHOTOS_DIR`.
 
 #### Scenario: Harness declared with merge and tag policy
-- **WHEN** `CLAUDE.md` is read
+- **WHEN** `AGENTS.md` is read
 - **THEN** its `## Harness` section lists `proof`, `proof-full`, `run`, `package`, `ship: merge` and `release: tag` and the e2e paragraph follows
 - **proof:** manual (documentation; checked by reading the file at Gate 2)
 
