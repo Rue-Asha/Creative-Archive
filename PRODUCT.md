@@ -63,4 +63,6 @@ Name: Creative Archive. Copy is English only. Title pattern `<Page> · Creative 
 
 ## Accessibility & Inclusion
 
+Target: WCAG 2.2 AA, set for every app in the shared design fingerprint (Design-System).
+
 Interaction must stay operable by keyboard and by touch: roles and accessible names for status, rating (slider or spin button), progress (group and buttons), menus, dialogs, toolbar, combobox and carousel; focus managed in dialogs and on the first invalid field; status and errors announced; targets at least 44 px on phone; no horizontal page scroll on phone; reduced-motion respected. No formal standard has been stated; treat WCAG 2.2 AA as the working target (open).
