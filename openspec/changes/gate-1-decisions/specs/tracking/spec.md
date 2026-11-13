@@ -39,6 +39,11 @@ star value times 2.
 - **THEN** the control reads 1 star and `aria-valuenow` is 1
 - **proof:** e2e
 
+#### Scenario: Home and End move the cursor in the rating field
+- **WHEN** the typed rating field holds 8.75 and Home, then End is pressed
+- **THEN** the text cursor moves to the start, then the end, of the field and the stored rating stays 8.75 (Home and End do not set 0 or 10; confirmed by Rue on 2026-11-13, gate 1 / task 2.5)
+- **proof:** e2e (built with the redesign's rating field)
+
 #### Scenario: Rated entries show their rating on cards
 - **WHEN** a list holds an album whose stored rating is 7
 - **THEN** its card shows the star display with accessible name "3.5 of 5"

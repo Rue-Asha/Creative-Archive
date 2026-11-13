@@ -207,7 +207,7 @@ Controls by type:
 
 Actions:
 - Change status, rating, progress: shown at once, saved in the background through a one-at-a-time queue; later changes still save after a failure. On failure the toast "Couldn't save — try again" shows and the control returns to the server's value.
-- Rating: Rue can set any value from 0 to 10 with up to two decimals (e.g. 8.75), by pointer, by typing, or by stepping; every such value must be reachable and the control must make the scale (out of 10) clear. Keyboard: arrows step the value (step size is free), Home 0, End 10, Delete/Backspace clears. Exposed with the name "Rating" and its numeric value (slider or spin button semantics; the accessible value text reads "<n> of 10"). Allowed values 0 to 10 with at most two decimals; others are rejected with "Rating must be between 0 and 10 with up to two decimals".
+- Rating: Rue can set any value from 0 to 10 with up to two decimals (e.g. 8.75), by pointer, by typing, or by stepping; every such value must be reachable and the control must make the scale (out of 10) clear. Keyboard: it is a typed number field, so arrows step the value (step size is free), Delete/Backspace edit and clear as in any text field, and Home and End move the text cursor (they do not set 0 or 10; confirmed by Rue on 2026-11-13, gate 1 / task 2.5). Exposed with the name "Rating" and its numeric value (spin button semantics, no slider; the accessible value text reads "<n> of 10"). Allowed values 0 to 10 with at most two decimals; others are rejected with "Rating must be between 0 and 10 with up to two decimals".
 - Progress control (also on in-progress entries in shelves and lists): a step-down and a step-up button named "<Label>: one less" and "<Label>: one more" (step-down disabled at 0, step-up disabled at a known total). The value is plain text exposed as a button named "<Label> <current> of <total|unknown>" with no text input and no caret. Activating it (click, tap, Enter, Space) turns it into a numeric input named "<Label>" (numeric keyboard hint), focused with the value selected. Enter or leaving saves a changed value and returns to the button; Escape returns without saving. Empty, non-integer, negative, or above-known-total input reverts without a save. The displayed value reads "n / total" or "n / ?" everywhere.
 - "Add to collection" menu: lists all collections with a checked state for those holding this entry (toggle membership immediately), and "New collection" which asks for a Name (error "Name is required"), then creates the collection and adds the entry at once. Keyboard: arrows/Home/End, Escape closes and refocuses the button.
 - "Edit" navigates to `/entries/<id>/edit`.
@@ -215,7 +215,7 @@ Actions:
 
 States: E n/a. L n/a. X yes (failed saves, 404). 1 n/a. N yes (many tags, many works). T yes (180-character titles shown in full; on phone the title must not push the page's own controls or navigation out of reach).
 
-Keyboard/touch: slider semantics for rating, button semantics for the counters, menu semantics for status and collection; 44 px targets; progress value never raises a keyboard until activated.
+Keyboard/touch: spin button semantics for the typed rating field, button semantics for the counters, menu semantics for status and collection; 44 px targets; progress value never raises a keyboard until activated.
 
 ### 4.6 `/entries/[id]/edit`
 
@@ -287,7 +287,7 @@ Image handling:
 
 Settings: hero photos only (4.9).
 
-Shortcuts and keyboard summary: carousel (ArrowLeft/Right), shelves (step buttons and drag), menus (ArrowUp/Down, Home, End, Escape, Tab closes), rating (arrows, Home, End, Delete/Backspace), progress value (Enter/Space to edit, Enter or blur to save, Escape to cancel), tag input (Enter and comma confirm, Backspace removes last), artist combobox (arrows, Enter, Escape), dialogs (Tab trapped, Escape to cancel/keep editing), search (Enter searches now). No global shortcuts exist.
+Shortcuts and keyboard summary: carousel (ArrowLeft/Right), shelves (step buttons and drag), menus (ArrowUp/Down, Home, End, Escape, Tab closes), rating (arrows step; Home and End move the cursor; Delete/Backspace edit), progress value (Enter/Space to edit, Enter or blur to save, Escape to cancel), tag input (Enter and comma confirm, Backspace removes last), artist combobox (arrows, Enter, Escape), dialogs (Tab trapped, Escape to cancel/keep editing), search (Enter searches now). No global shortcuts exist.
 
 Sizing and devices: all interactive targets at least 44 px on phone; no horizontal page scroll on a phone viewport (390 px); on a desktop viewport (1280 px) the content must make use of the available width rather than staying at phone width. Both are covered by e2e.
 
@@ -462,10 +462,10 @@ Rue answered the former open questions. Type: contract-only = no code change; se
 |---|---|---|---|
 | 1 | Wardrobe "Add": Wishlist or Owned? | Add from Wardrobe creates an Owned piece, so it appears in Wardrobe. Wishlist stays for pieces that are cool to remember. Owned is preselected and the form's status stays editable. | server/data (`status` prefill on `/add/piece`); the Wardrobe Add link and the form are UI |
 | 2 | Initial status on the media create form | The media create form offers an initial status (default No status); a non-none choice stores the first status event. | server/data (create accepts a status and writes the event); the field is UI |
-| 3a | Brands and Shops/Sites: two lists or one | One combined list "Brands & shops" at `/fashion/brands-shops`, filtered by Kind (Brand, Shop, Site). Kind no longer moves an entry between lists. | server/data (list config, query, routes) |
-| 3b | Old list URLs | `/fashion/brands` and `/fashion/shops` permanently redirect to the combined list (brands adds `kind=brand`). | server/data |
+| 3a | Brands and Shops/Sites: two lists or one | One combined list "Brands & shops" at `/fashion/brands-shops`, filtered by Kind (Brand, Shop, Site). Kind no longer moves an entry between lists. Merge at list level only, the two stored types stay; confirmed by Rue on 2026-11-13 (gate 1 / task 2.5). | server/data (list config, query, routes) |
+| 3b | Old list URLs | `/fashion/brands` and `/fashion/shops` permanently redirect to the combined list (brands adds `kind=brand`). Confirmed by Rue on 2026-11-13 (gate 1 / task 2.5). | server/data |
 | 4a | Artists: keep status and rating | Artists keep status and rating. | contract-only (no code change) |
-| 4b | Rating scale | Rating everywhere is a number out of 10 with up to two decimals (0 to 10, 0 allowed, none = unrated). Existing star ratings convert to stars times 2 (4.5 stars becomes 9). | server/data (storage migration, validation, filters); rating control and display are UI |
+| 4b | Rating scale | Rating everywhere is a number out of 10 with up to two decimals (0 to 10, 0 allowed and distinct from unrated). Existing star ratings convert to stars times 2 (4.5 stars becomes 9); old `rating=` URLs now mean the 0 to 10 scale. Confirmed by Rue on 2026-11-13 (gate 1 / task 2.5). | server/data (storage migration, validation, filters); rating control and display are UI |
 | 5 | Collection order | Collection entries are manually reorderable; new entries go to the end; existing order kept. | server/data (order storage and reorder action); the reorder control is UI |
 | 6 | Collection descriptions | Also shown on `/collections` (data is already loaded there). | UI |
 | 7 | Error page | Keep SvelteKit's default error page; not part of the redesign. | contract-only (no code change) |
