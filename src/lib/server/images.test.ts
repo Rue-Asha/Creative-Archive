@@ -27,6 +27,7 @@ async function rejection(p: Promise<unknown>): Promise<unknown> {
 }
 
 describe('storeImage', () => {
+	// CPU-bound sharp encoding of a large photo is slow on the shared CI runner
 	it('Scenario: Uploaded image is stored as WebP', async () => {
 		const input = await photo(3000, 2000).jpeg({ quality: 92 }).toBuffer();
 
@@ -41,7 +42,7 @@ describe('storeImage', () => {
 		expect(row.width).toBe(meta.width);
 		expect(row.height).toBe(meta.height);
 		expect(bytes.length).toBeLessThanOrEqual(200 * 1024);
-	});
+	}, 30_000);
 
 	it('Scenario: Each listed format is accepted', async () => {
 		const base = sharp({ create: { width: 200, height: 120, channels: 3, background: '#c05030' } });
@@ -113,6 +114,7 @@ describe('storeImageFromUrl', () => {
 });
 
 describe('toWebpDataUrl', () => {
+	// CPU-bound sharp encoding of a large photo is slow on the shared CI runner
 	it('returns a WebP data URL within the size target', async () => {
 		const input = await photo(2400, 1600).jpeg({ quality: 92 }).toBuffer();
 
@@ -123,7 +125,7 @@ describe('toWebpDataUrl', () => {
 		expect(bytes.length).toBeLessThanOrEqual(200 * 1024);
 		expect((await sharp(bytes).metadata()).format).toBe('webp');
 		expect(imageRows()).toBe(0);
-	});
+	}, 30_000);
 
 	it('rejects a non-image', async () => {
 		const err = await rejection(toWebpDataUrl(new TextEncoder().encode('nope')));
