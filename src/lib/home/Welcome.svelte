@@ -15,7 +15,7 @@
 	};
 </script>
 
-<section class="column welcome" data-welcome aria-labelledby="welcome-title" use:reveal>
+<section class="column welcome" data-column data-welcome aria-labelledby="welcome-title" use:reveal>
 	<h2 id="welcome-title" data-section-heading>Your archive starts here</h2>
 	<ul>
 		{#each DOMAINS as domain, i (domain)}

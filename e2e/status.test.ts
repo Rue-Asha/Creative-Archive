@@ -3,7 +3,7 @@ import { calm, countSaves, open, reset, seed } from './helpers.ts';
 
 declare global {
 	interface Window {
-		__anims: { label: boolean }[];
+		__anims: string[];
 	}
 }
 
@@ -13,13 +13,13 @@ async function recordAnimations(page: Page) {
 		window.__anims = [];
 		const animate = Element.prototype.animate;
 		Element.prototype.animate = function (this: Element, ...args: Parameters<typeof animate>) {
-			window.__anims.push({ label: this.closest('[data-status-label]') !== null });
+			window.__anims.push((this.textContent ?? '').trim());
 			return animate.apply(this, args);
 		};
 	});
 }
 
-const labelAnimations = (page: Page) => page.evaluate(() => window.__anims.filter((a) => a.label).length);
+const labelAnimations = (page: Page, label: string) => page.evaluate((text) => window.__anims.filter((a) => a === text).length, label);
 const pill = (page: Page, current: string) => page.getByRole('button', { name: `Status: ${current}`, exact: true });
 
 test.beforeEach(async ({ page, request }) => {
@@ -36,10 +36,10 @@ test('Scenario: Set status from the detail page', async ({ page, request }) => {
 	await pill(page, 'Want to listen').click();
 	await page.getByRole('menuitemradio', { name: 'Listened' }).click();
 
-	await expect(page.locator('[data-status-label]')).toHaveText('Listened');
+	await expect(pill(page, 'Listened')).toBeVisible();
 	await saved(1);
 	await page.reload();
-	await expect(page.locator('[data-status-label]')).toHaveText('Listened');
+	await expect(pill(page, 'Listened')).toBeVisible();
 	await expect(pill(page, 'Listened')).toBeVisible();
 });
 
@@ -52,10 +52,10 @@ test('Scenario: Set a piece status from the detail page', async ({ page, request
 	await pill(page, 'Wishlist').click();
 	await page.getByRole('menuitemradio', { name: 'Owned' }).click();
 
-	await expect(page.locator('[data-status-label]')).toHaveText('Owned');
+	await expect(pill(page, 'Owned')).toBeVisible();
 	await saved(1);
 	await page.reload();
-	await expect(page.locator('[data-status-label]')).toHaveText('Owned');
+	await expect(pill(page, 'Owned')).toBeVisible();
 });
 
 test('Scenario: Status labels follow the domain', async ({ page, request }) => {
@@ -90,7 +90,7 @@ test('choosing the current status again changes nothing', async ({ page, request
 	await pill(page, 'Reading').click();
 	await page.getByRole('menuitemradio', { name: 'Reading' }).click();
 
-	await expect(page.locator('[data-status-label]')).toHaveText('Reading');
+	await expect(pill(page, 'Reading')).toBeVisible();
 });
 
 test('the status action refuses a status the type does not have', async ({ page, request }) => {
@@ -107,7 +107,7 @@ test('the status action refuses a status the type does not have', async ({ page,
 
 	expect(res).toContain('failure');
 	await page.reload();
-	await expect(page.locator('[data-status-label]')).toHaveText('Wishlist');
+	await expect(pill(page, 'Wishlist')).toBeVisible();
 });
 
 test('Scenario: Status pill animates on change', async ({ page, request }) => {
@@ -117,12 +117,12 @@ test('Scenario: Status pill animates on change', async ({ page, request }) => {
 		entries: [id]
 	} = await seed(request, { entries: [{ type: 'anime', title: 'Frieren', status: 'want' }] });
 	await open(page, `/entries/${id}`);
-	expect(await labelAnimations(page)).toBe(0);
+	expect(await labelAnimations(page, 'Plan to watch')).toBe(0);
 	await pill(page, 'Plan to watch').click();
 	await page.getByRole('menuitemradio', { name: 'Watching' }).click();
 
-	await expect.poll(() => labelAnimations(page)).toBeGreaterThan(0);
-	await expect(page.locator('[data-status-label]')).toHaveText('Watching');
+	await expect.poll(() => labelAnimations(page, 'Watching')).toBeGreaterThan(0);
+	await expect(pill(page, 'Watching')).toBeVisible();
 });
 
 test('Scenario: Reduced motion changes status instantly', async ({ page, request }) => {
@@ -134,8 +134,8 @@ test('Scenario: Reduced motion changes status instantly', async ({ page, request
 	await pill(page, 'Plan to watch').click();
 	await page.getByRole('menuitemradio', { name: 'Watching' }).click();
 
-	await expect(page.locator('[data-status-label]')).toHaveText('Watching');
-	expect(await labelAnimations(page)).toBe(0);
+	await expect(pill(page, 'Watching')).toBeVisible();
+	expect(await labelAnimations(page, 'Watching')).toBe(0);
 });
 
 test('Scenario: Failed save on the detail page shows a toast and reverts', async ({ page, request }) => {
@@ -151,7 +151,7 @@ test('Scenario: Failed save on the detail page shows a toast and reverts', async
 	for (let i = 0; i < 8; i++) await page.keyboard.press('ArrowRight');
 
 	await expect(page.getByRole('status').filter({ hasText: "Couldn't save — try again" })).toBeVisible();
-	await expect(page.locator('[data-status-label]')).toHaveText('Want to listen');
+	await expect(pill(page, 'Want to listen')).toBeVisible();
 	await saved(8);
 	await page.reload();
 	await expect(page.getByRole('slider', { name: 'Rating', exact: true })).toHaveAttribute('aria-valuenow', '4');

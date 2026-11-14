@@ -1,7 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import { DOMAIN_LABEL } from '../src/lib/domains.ts';
-import { WORLDS } from '../src/lib/styles/worlds.ts';
-import { calm, counts, open, reset } from './helpers.ts';
+import { calm, counts, expectCurrent, expectWorld, open, reset } from './helpers.ts';
 
 test.beforeEach(async ({ page, request }) => {
 	await calm(page);
@@ -99,7 +98,7 @@ test('add pages mark their domain in the nav and the world', async ({ page }) =>
 
 	for (const [type, domain] of [['album', 'music'], ['manga', 'animanga'], ['book', 'books'], ['piece', 'fashion']] as const) {
 		await open(page, `/add/${type}?manual=1`);
-		await expect(nav.locator('[aria-current="page"]'), type).toHaveText(DOMAIN_LABEL[domain]);
-		await expect(page.locator('[data-world]'), type).toHaveAttribute('data-accent', WORLDS[domain].accent);
+		await expectCurrent(nav, DOMAIN_LABEL[domain], type);
+		await expectWorld(page, domain, type);
 	}
 });

@@ -58,7 +58,7 @@
 <svelte:head><title>{collection.name} · Collections · Creative Archive</title></svelte:head>
 
 <div class="page">
-	<header class="column head">
+	<header class="column head" data-column>
 		<Eyebrow parts={['Collections']} tone="accent" />
 		<div class="title-row">
 			<h1>{collection.name}</h1>
@@ -72,7 +72,7 @@
 	</header>
 
 	{#if renaming}
-		<div class="column">
+		<div class="column" data-column>
 			<GlassPanel strong>
 				<form
 					class="rename"
@@ -103,7 +103,7 @@
 	{/if}
 
 	{#if collection.entries.length}
-		<section class="column" aria-label="Entries">
+		<section class="column" data-column aria-label="Entries">
 			<ul class="grid">
 				{#each collection.entries as entry, i (entry.id)}
 					<li use:reveal={{ delay: stagger(i) }}>
@@ -120,7 +120,7 @@
 			</ul>
 		</section>
 	{:else}
-		<section class="column empty" aria-label="Empty collection">
+		<section class="column empty" data-column aria-label="Empty collection">
 			<h2>Nothing in here yet</h2>
 			<p>Use "Add to collection" on any entry's page.</p>
 		</section>

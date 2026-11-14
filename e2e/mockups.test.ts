@@ -1,45 +1,40 @@
 import { expect, test, type Page } from '@playwright/test';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync } from 'node:fs';
+import { accents, schemes } from '../src/lib/styles/tokens.ts';
+import { CANDIDATES } from '../src/lib/styles/worlds.ts';
+import { calm, open } from './helpers.ts';
 
-// U4 runs beside U3, before e2e/helpers.ts exists on its branch, so it opens pages itself.
 const worlds = ['home', 'music', 'animanga', 'books', 'fashion'] as const;
-const schemes = ['light', 'dark'] as const;
+const colorSchemes = ['light', 'dark'] as const;
 
-async function open(page: Page, path: string) {
-	await page.goto(path);
-	await expect(page.locator('html[data-hydrated]')).toBeAttached();
-	await page.evaluate(() => document.fonts.ready);
-}
-
-const calm = (page: Page) => page.emulateMedia({ reducedMotion: 'reduce' });
-
-// the mirror of tokens.css, read as text so the test needs no TS import of app code
-const tokens = readFileSync('src/lib/styles/tokens.ts', 'utf8');
-function tokenValue(block: string, name: string): string {
-	const start = tokens.indexOf(block);
-	const m = tokens.slice(start).match(new RegExp(`'?${name}'?: '([^']+)'`));
-	return m![1];
-}
-const rgb = (hex: string) => {
-	const n = parseInt(hex.slice(1), 16);
-	return `rgb(${n >> 16}, ${(n >> 8) & 255}, ${n & 255})`;
-};
+// the world's scheme and accent reach every element as inherited custom properties, so the page heading shows them
+const tokensOf = (page: Page) =>
+	page
+		.getByRole('heading', { level: 1 })
+		.first()
+		.evaluate((el) => {
+			const style = getComputedStyle(el);
+			// the build's CSS minifier may shorten #111111 to #111
+			const value = (name: string) => style.getPropertyValue(name).trim().toUpperCase().replace(/^#(\w)(\w)(\w)$/, '#$1$1$2$2$3$3');
+			return { ground: value('--ground'), ink: value('--ink'), accent: value('--accent'), font: style.fontFamily.split(',')[0].replace(/['"]/g, '') };
+		});
 
 for (const world of worlds) {
-	for (const scheme of schemes) {
+	for (const scheme of colorSchemes) {
 		const path = `/__mockups/${world}/${scheme}`;
 
 		test.describe(`mockup ${world}/${scheme}`, () => {
 			test(`Scenario: Mockups render every world in light and dark (${world}/${scheme})`, async ({ page }) => {
 				await calm(page);
 				await open(page, path);
-				const wrapper = page.locator('[data-world]');
+				const tokens = await tokensOf(page);
 
-				await expect(wrapper).toHaveAttribute('data-scheme', scheme);
-				await expect(wrapper).toHaveAttribute('data-world', world);
-				await expect(page.locator('[data-hero] img').first()).toBeVisible();
-				await expect(page.locator('[data-shelf]').first().locator('[data-card]').first()).toBeVisible();
-				expect(await page.locator('[data-shelf]').first().locator('[data-card]').count()).toBeGreaterThanOrEqual(4);
+				expect(tokens.ground).toBe(schemes[scheme].ground.toUpperCase());
+				expect(tokens.accent).toBe(accents[CANDIDATES[world][0]][scheme].accent.toUpperCase());
+				await expect(page.locator('[data-hero-image]').first()).toBeVisible();
+				const shelf = page.getByRole('region').filter({ has: page.getByRole('article') }).first();
+				await expect(shelf.getByRole('article').first()).toBeVisible();
+				expect(await shelf.getByRole('article').count()).toBeGreaterThanOrEqual(4);
 			});
 
 			test(`Scenario: Pages load no external resources (${world}/${scheme})`, async ({ page, baseURL }) => {
@@ -64,7 +59,7 @@ for (const world of worlds) {
 							return r.width > 0 && r.height > 0 && getComputedStyle(el).visibility !== 'hidden' && !el.closest('[inert]');
 						})
 						// a card's title link is stretched over the whole card by a pseudo-element
-						.filter((el) => !el.closest('[data-card-title]'))
+						.filter((el) => !el.closest('article h3'))
 						.map((el) => {
 							const r = el.getBoundingClientRect();
 							return { control: el.outerHTML.slice(0, 100), width: Math.round(r.width), height: Math.round(r.height) };
@@ -78,39 +73,45 @@ for (const world of worlds) {
 			test(`Scenario: Mockups share one alignment rule (${world}/${scheme})`, async ({ page }, info) => {
 				await calm(page);
 				await open(page, path);
-				const m = await page.evaluate(() => {
-					const left = (el: Element) => el.getBoundingClientRect().left;
-					const visible = (el: Element) => el.getBoundingClientRect().width > 0;
-					const columns = [...document.querySelectorAll('[data-column]')].filter(visible).map((el) => el.getBoundingClientRect());
-					return {
-						viewport: document.documentElement.clientWidth,
-						scrollWidth: document.documentElement.scrollWidth,
-						columns: columns.map((c) => ({ left: c.left, right: c.right })),
-						header: [...document.querySelectorAll('[data-page-header]')].filter(visible).map(left),
-						sections: [...document.querySelectorAll('[data-section-heading]')].filter(visible).map(left)
-					};
-				});
+				const edges = async (level: number) => {
+					const xs: number[] = [];
+					for (const heading of await page.getByRole('heading', { level }).all()) {
+						if (await heading.isVisible()) xs.push(Math.round((await heading.boundingBox())!.x));
+					}
+					return xs;
+				};
+				const viewport = page.viewportSize()!.width;
+				const header = await edges(1);
+				const sections = await edges(2);
+				const columns = await page.evaluate(() =>
+					[...document.querySelectorAll('[data-column]')].map((el) => el.getBoundingClientRect()).filter((b) => b.width > 0).map((b) => ({ left: b.left, right: b.right }))
+				);
+				const pageHeaders = await page.evaluate(() =>
+					[...document.querySelectorAll('[data-page-header]')].map((el) => el.getBoundingClientRect()).filter((b) => b.width > 0).map((b) => b.left)
+				);
 
-				expect(m.scrollWidth).toBe(m.viewport);
-				expect(m.columns.length).toBeGreaterThan(1);
-				expect(m.header).toHaveLength(1);
-				expect(m.sections.length).toBeGreaterThanOrEqual(3);
-				const [column] = m.columns;
-				for (const c of m.columns) {
+				expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(viewport);
+				expect(columns.length).toBeGreaterThan(1);
+				expect(header).toHaveLength(1);
+				expect(pageHeaders).toHaveLength(1);
+				expect(sections.length).toBeGreaterThanOrEqual(3);
+				const [column] = columns;
+				for (const c of columns) {
 					expect(Math.abs(c.left - column.left)).toBeLessThanOrEqual(1);
 					expect(Math.abs(c.right - column.right)).toBeLessThanOrEqual(1);
 				}
-				const expected = info.project.name === 'phone' ? 16 : (m.viewport - 1200) / 2;
+				const expected = info.project.name === 'phone' ? 16 : (viewport - 1200) / 2;
 				expect(Math.abs(column.left - expected)).toBeLessThanOrEqual(1);
 				expect(column.right - column.left).toBeLessThanOrEqual(1200);
-				for (const x of [...m.header, ...m.sections]) expect(Math.abs(x - column.left)).toBeLessThanOrEqual(1);
+				for (const x of [...pageHeaders, ...sections]) expect(Math.abs(x - column.left)).toBeLessThanOrEqual(1);
+				if (world !== 'home') for (const x of header) expect(Math.abs(x - column.left)).toBeLessThanOrEqual(1);
 			});
 
 			test(`Scenario: Mockup screenshots are produced for both viewports (${world}/${scheme})`, async ({ page }, info) => {
+				await calm(page);
 				await open(page, path);
 				await page.evaluate(async () => {
 					for (const img of document.querySelectorAll('img')) img.loading = 'eager';
-					for (const el of document.querySelectorAll('[data-reveal]')) el.setAttribute('data-revealed', '');
 					await document.fonts.ready;
 					await Promise.all([...document.images].map((img) => img.decode().catch(() => undefined)));
 					await Promise.all(
@@ -118,8 +119,14 @@ for (const world of worlds) {
 					);
 				});
 				await page.waitForTimeout(900);
-				// a full-page shot would leave the fixed nav half-way down the image; pin it to the page's end
-				await page.addStyleTag({ content: 'body { position: relative } [data-shot-bottom] { position: absolute !important }' });
+				// a full-page shot would leave the fixed nav half-way down the image; pin its wrapper to the page's end
+				await page
+					.getByRole('navigation', { name: 'Main' })
+					.last()
+					.evaluate((el) => {
+						document.body.style.position = 'relative';
+						el.parentElement!.style.setProperty('position', 'absolute', 'important');
+					});
 
 				const shot = `test-results/shots/mockups/${info.project.name}-${world}-${scheme}.png`;
 				await page.screenshot({ path: shot, fullPage: true, animations: 'disabled' });
@@ -132,31 +139,20 @@ for (const world of worlds) {
 
 test('Scenario: Switching a world is a data change', async ({ page }) => {
 	await calm(page);
-	for (const accent of ['ember', 'violet']) {
+	for (const accent of ['ember', 'violet'] as const) {
 		await open(page, `/__mockups/music/dark?accent=${accent}`);
-		const wrapper = page.locator('[data-world]');
-		await expect(wrapper).toHaveAttribute('data-accent', accent);
-		await expect(wrapper).toHaveAttribute('data-font', 'a');
-		const computed = await wrapper.evaluate((el) => {
-			const s = getComputedStyle(el);
-			// the build's CSS minifier may shorten #111111 to #111
-			const value = (name: string) =>
-				s.getPropertyValue(name).trim().toUpperCase().replace(/^#(\w)(\w)(\w)$/, '#$1$1$2$2$3$3');
-			return { ground: value('--ground'), ink: value('--ink'), accent: value('--accent') };
-		});
+		const tokens = await tokensOf(page);
 
-		expect(computed.ground).toBe(tokenValue('dark: {', 'ground'));
-		expect(computed.ink).toBe(tokenValue('dark: {', 'ink'));
-		const darkAccent = tokens.match(new RegExp(`${accent}: accent\\(\\[[^\\]]*\\], \\['([^']+)'`))![1];
-		expect(computed.accent).toBe(darkAccent);
-		// and the wrapper is painted with it
-		expect(await wrapper.evaluate((el) => getComputedStyle(el).backgroundColor)).toBe(rgb(tokenValue('dark: {', 'ground')));
+		expect(tokens.ground).toBe(schemes.dark.ground.toUpperCase());
+		expect(tokens.ink).toBe(schemes.dark.ink.toUpperCase());
+		expect(tokens.accent).toBe(accents[accent].dark.accent.toUpperCase());
+		expect(tokens.font).toBe('Bricolage Grotesque');
 	}
 });
 
 test('accent b picks the second candidate and an unknown accent is a 404', async ({ page }) => {
 	await open(page, '/__mockups/books/light?accent=b');
-	await expect(page.locator('[data-world]')).toHaveAttribute('data-accent', 'oxblood');
+	expect((await tokensOf(page)).accent).toBe(accents.oxblood.light.accent.toUpperCase());
 	const response = await page.goto('/__mockups/books/light?accent=ember');
 	expect(response?.status()).toBe(404);
 });

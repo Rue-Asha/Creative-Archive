@@ -2,8 +2,8 @@ import { expect, test, type Locator, type Page } from '@playwright/test';
 import { calm, counts, open, photo, reset, seed } from './helpers.ts';
 
 const slot = (page: Page, name: string) => page.getByRole('region', { name });
-const shot = (s: Locator) => s.locator('img');
-const upload = (s: Locator, file: string) => s.locator('input[type="file"]').setInputFiles(photo(file));
+const shot = (s: Locator) => s.getByRole('presentation');
+const upload = (s: Locator, file: string) => s.getByLabel(/photo file$/).setInputFiles(photo(file));
 
 test.beforeEach(async ({ page, request }) => {
 	await calm(page);
@@ -60,8 +60,7 @@ test('Scenario: Unsupported hero file shows an inline error', async ({ page, req
 	const posts: string[] = [];
 	page.on('request', (r) => r.method() === 'POST' && posts.push(r.url()));
 
-	await books
-		.locator('input[type="file"]')
+	await books.getByLabel(/photo file$/)
 		.setInputFiles({ name: 'notes.txt', mimeType: 'text/plain', buffer: Buffer.from('not a picture') });
 
 	await expect(books.getByText('Unsupported image type')).toBeVisible();
@@ -77,8 +76,7 @@ test('Scenario: Oversize hero file shows an inline error', async ({ page, reques
 	const posts: string[] = [];
 	page.on('request', (r) => r.method() === 'POST' && posts.push(r.url()));
 
-	await animanga
-		.locator('input[type="file"]')
+	await animanga.getByLabel(/photo file$/)
 		.setInputFiles({ name: 'huge.jpg', mimeType: 'image/jpeg', buffer: Buffer.alloc(17 * 1024 * 1024) });
 
 	await expect(animanga.getByText('Image is larger than 16 MB')).toBeVisible();
@@ -101,8 +99,7 @@ test('the five slots sit in one row on desktop and stack on phone', async ({ pag
 test('a failed upload leaves the empty slot usable and a later upload clears the error', async ({ page }) => {
 	await open(page, '/settings');
 	const books = slot(page, 'Books');
-	await books
-		.locator('input[type="file"]')
+	await books.getByLabel(/photo file$/)
 		.setInputFiles({ name: 'notes.txt', mimeType: 'text/plain', buffer: Buffer.from('x') });
 	await expect(books.getByText('Unsupported image type')).toBeVisible();
 

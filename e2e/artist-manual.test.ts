@@ -8,7 +8,7 @@ test.beforeEach(async ({ page, request }) => {
 
 const save = (page: Page) => page.getByRole('button', { name: 'Save' });
 const artist = (page: Page) => page.getByLabel('Artist', { exact: true });
-const linked = (page: Page) => page.locator('[data-linked]');
+const linked = (page: Page) => page.getByRole('group', { name: 'Artist', exact: true });
 
 test('Scenario: Manual entry picks an existing artist', async ({ page, request }) => {
 	await seed(request, { entries: [{ type: 'artist', title: 'Solange' }] });

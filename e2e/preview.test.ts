@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { calm, open, photo, reset } from './helpers.ts';
+import { calm, cover, open, photo, reset } from './helpers.ts';
 
 test.beforeEach(async ({ page, request }) => {
 	await calm(page);
@@ -25,7 +25,7 @@ test('Scenario: Paste a brand URL and get its preview image', async ({ page }) =
 	await page.getByRole('button', { name: 'Save' }).click();
 
 	await expect(page).toHaveURL(/\/entries\/\d+$/);
-	await expect(page.locator('[data-cover-id] img')).toHaveAttribute('src', /^\/images\/\d+$/);
+	await expect(cover(page, 'Maison Example')).toHaveAttribute('src', /^\/images\/\d+$/);
 });
 
 test('Scenario: Piece URL preview fills name and image', async ({ page }) => {
@@ -48,11 +48,11 @@ test('Scenario: Blocked site keeps the form usable', async ({ page }) => {
 	await expect(page.getByText('No preview found')).toBeVisible();
 	await expect(urlField(page)).toHaveValue('https://blocked.example/');
 	await name(page).fill('Blocked Label');
-	await page.locator('input[type=file]').setInputFiles(photo('fashion-look.jpg'));
+	await page.getByLabel('Photo file').setInputFiles(photo('fashion-look.jpg'));
 	await page.getByRole('button', { name: 'Save' }).click();
 
 	await expect(page).toHaveURL(/\/entries\/\d+$/);
-	await expect(page.locator('[data-cover-id] img')).toHaveAttribute('src', /^\/images\/\d+$/);
+	await expect(cover(page, 'Blocked Label')).toHaveAttribute('src', /^\/images\/\d+$/);
 });
 
 test('Scenario: JS-only shell shows No preview found', async ({ page }) => {
@@ -67,11 +67,11 @@ test('Scenario: Login wall shows No preview found', async ({ page }) => {
 
 	await expect(page.getByText('No preview found')).toBeVisible();
 	await name(page).fill('Someone');
-	await page.locator('input[type=file]').setInputFiles(photo('fashion-look.jpg'));
+	await page.getByLabel('Photo file').setInputFiles(photo('fashion-look.jpg'));
 	await page.getByRole('button', { name: 'Save' }).click();
 
 	await expect(page).toHaveURL(/\/entries\/\d+$/);
-	await expect(page.locator('[data-cover-id] img')).toHaveAttribute('src', /^\/images\/\d+$/);
+	await expect(cover(page, 'Someone')).toHaveAttribute('src', /^\/images\/\d+$/);
 });
 
 test('Scenario: Existing name is not overwritten by the preview', async ({ page }) => {

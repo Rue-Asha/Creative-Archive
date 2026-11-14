@@ -1,12 +1,10 @@
 import { expect, test } from '@playwright/test';
-import { calm, open, reset, seed } from './helpers.ts';
+import { calm, cardTitles, cards, open, reset, seed } from './helpers.ts';
 
 test.beforeEach(async ({ page, request }) => {
 	await calm(page);
 	await reset(request);
 });
-
-const titles = (page: import('@playwright/test').Page) => page.locator('[data-card] [data-card-title]');
 
 test('Scenario: List shows entries of one type', async ({ page, request }) => {
 	await seed(request, {
@@ -18,8 +16,8 @@ test('Scenario: List shows entries of one type', async ({ page, request }) => {
 	});
 	await open(page, '/music/albums');
 
-	await expect(page.locator('[data-card]')).toHaveCount(2);
-	await expect(titles(page)).toHaveText(['Newer Album', 'Older Album']);
+	await expect(cards(page)).toHaveCount(2);
+	await expect(cardTitles(page)).toHaveText(['Newer Album', 'Older Album']);
 	await expect(page.getByRole('heading', { level: 1, name: 'Albums' })).toBeVisible();
 });
 
@@ -33,14 +31,14 @@ test('Scenario: Wardrobe lists owned pieces', async ({ page, request }) => {
 	});
 	await open(page, '/fashion/wardrobe');
 
-	await expect(titles(page)).toHaveText(['Wool Coat']);
+	await expect(cardTitles(page)).toHaveText(['Wool Coat']);
 	await expect(page.getByRole('heading', { level: 1, name: 'Wardrobe' })).toBeVisible();
 });
 
 test('Scenario: Empty list offers Add', async ({ page }) => {
 	await open(page, '/fashion/looks');
 
-	await expect(page.locator('[data-card]')).toHaveCount(0);
+	await expect(cards(page)).toHaveCount(0);
 	await expect(page.getByRole('link', { name: 'Add', exact: true })).toHaveAttribute('href', '/add/look');
 });
 

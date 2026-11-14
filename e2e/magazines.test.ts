@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { calm, open, reset } from './helpers.ts';
+import { calm, cardTitles, cards, open, reset, shelf } from './helpers.ts';
 
 test.beforeEach(async ({ page, request }) => {
 	await calm(page);
@@ -18,17 +18,16 @@ test('Scenario: Create a magazine from the Add menu', async ({ page }) => {
 
 	await expect(page).toHaveURL(/\/entries\/\d+$/);
 	await expect(page.getByRole('heading', { level: 1, name: 'Vestoj' })).toBeVisible();
-	const handles = page.locator('[data-detail-panel] dl');
-	await expect(handles.locator('dt', { hasText: /^Instagram$/ })).toBeVisible();
-	await expect(handles.getByText('vestoj', { exact: true })).toBeVisible();
+	await expect(page.getByRole('term').filter({ hasText: /^Instagram$/ })).toBeVisible();
+	await expect(page.getByRole('definition').getByText('vestoj', { exact: true })).toBeVisible();
 
 	await open(page, '/fashion/magazines');
-	await expect(page.locator('[data-card] [data-card-title]')).toHaveText(['Vestoj']);
+	await expect(cardTitles(page)).toHaveText(['Vestoj']);
 
 	await open(page, '/');
-	const shelf = page.locator('[data-shelf="recent-fashion"]');
-	await expect(shelf.getByRole('heading', { level: 2 })).toHaveText(/Recently added\s*·?\s*Fashion/);
-	await expect(shelf).toContainText('Vestoj');
+	const recent = shelf(page, 'Recently added · Fashion');
+	await expect(recent.getByRole('heading', { level: 2 })).toHaveText(/Recently added\s*·?\s*Fashion/);
+	await expect(recent).toContainText('Vestoj');
 });
 
 test('Scenario: Magazine form shows the influencer fields', async ({ page }) => {
@@ -43,14 +42,14 @@ test('Scenario: Magazine form shows the influencer fields', async ({ page }) => 
 test('Scenario: Empty magazines list offers Add', async ({ page }) => {
 	await open(page, '/fashion/magazines');
 
-	await expect(page.locator('[data-card]')).toHaveCount(0);
+	await expect(cards(page)).toHaveCount(0);
 	await expect(page.getByRole('link', { name: 'Add', exact: true })).toHaveAttribute('href', '/add/magazine');
 });
 
 test('Scenario: Fashion welcome names magazines', async ({ page }) => {
 	await open(page, '/');
 
-	const fashion = page.locator('[data-welcome-domain="fashion"]');
+	const fashion = page.getByRole('listitem').filter({ has: page.getByRole('heading', { name: 'Fashion', exact: true }) });
 	await expect(fashion).toContainText('Brands, shops, magazines, pieces you own and looks you keep.');
 	await expect(fashion.getByRole('link')).toHaveAttribute('href', '/add/piece');
 });

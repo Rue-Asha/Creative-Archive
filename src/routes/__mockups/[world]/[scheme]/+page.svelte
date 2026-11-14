@@ -133,7 +133,7 @@
 		<main class="home">
 			<div class="column" data-column>
 				<header class="frame" data-hero data-page-header>
-					<img class="frame-photo" src={home.hero} alt="" />
+					<img class="frame-photo" data-hero-image src={home.hero} alt="" />
 					<span class="frame-scrim" aria-hidden="true"></span>
 					<div class="frame-body">
 						<div class="frame-copy">
@@ -235,7 +235,7 @@
 	{:else if domain}
 		<main class="domain">
 			<header class="hero" data-hero>
-				<img class="hero-photo" src={domain.hero} alt="" />
+				<img class="hero-photo" data-hero-image src={domain.hero} alt="" />
 				<span class="hero-scrim" aria-hidden="true"></span>
 				<span class="settings-phone hero-settings"><IconButton icon="settings" label="Settings" href="/__mockups/components" /></span>
 				<div class="column hero-body" data-column>

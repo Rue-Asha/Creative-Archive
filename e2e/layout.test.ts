@@ -1,5 +1,5 @@
-import { expect, test, type APIRequestContext, type Page } from '@playwright/test';
-import { calm, open, reset, seed, type SeedEntry } from './helpers.ts';
+import { expect, test, type APIRequestContext, type Locator } from '@playwright/test';
+import { calm, cards, open, reset, seed, type SeedEntry } from './helpers.ts';
 
 const spaced = 'An Exceptionally Long Title That Keeps Going Well Past Any Phone Width And Then Some More';
 const unbroken = 'Supercalifragilisticexpialidocious-Pneumonoultramicroscopicsilicovolcanoconiosis-Floccinaucinihilipilification';
@@ -58,38 +58,62 @@ const screens = (ids: number[], collections: number[]) =>
 		['Settings', '/settings']
 	] as const;
 
-// A heading inside a framed hero or a settings slot starts where that box starts; a full-bleed hero sets its heading in
-// its own column, so the heading itself is measured. The detail panel and its cover form one row (the cover is centred
-// on phone, the panel is not), so that row starts at the leftmost of the two. Slots sit side by side on desktop: only
-// the first of a row has to reach the column edge.
-function headingEdges(page: Page): Promise<{ text: string; left: number; cell: boolean }[]> {
-	return page.evaluate(() => {
-		const visible = (el: Element) => {
-			const b = el.getBoundingClientRect();
-			return b.width > 0 && b.height > 0;
-		};
-		const left = (el: Element | null) => Math.round(el!.getBoundingClientRect().left);
-		return [...document.querySelectorAll('main h1, main h2')].filter(visible).map((h) => {
-			const found = h.closest('[data-hero], [data-slot]');
-			const box = found?.parentElement?.closest('.column') ? found : null;
-			const panel = h.closest('[data-detail-panel]');
-			const anchor = panel ? Math.min(left(panel), left(document.querySelector('[data-cover-id]'))) : left(box ?? h);
-			return { text: (h.textContent ?? '').trim(), left: anchor, cell: box?.hasAttribute('data-slot') ?? false };
-		});
-	});
+async function left(box: Locator): Promise<number> {
+	return Math.round((await box.boundingBox())!.x);
 }
 
+// A heading inside a settings slot starts where that slot starts, and the detail panel and its cover form one row
+// (the cover is centred on phone, the panel is not), so that row starts at the leftmost of the two. The framed home
+// hero is left out: its box has no role or name to find it by. Slots sit side by side on desktop: only the first of a
+// row has to reach the column edge.
 test('Scenario: Real screens share one alignment rule', async ({ page, request }, info) => {
 	await calm(page);
 	const { ids, collections } = await setup(request);
-	const edge = info.project.name === 'phone' ? 16 : (1280 - 1200) / 2;
+	const viewport = page.viewportSize()!.width;
+	const edge = info.project.name === 'phone' ? 16 : (viewport - 1200) / 2;
 
 	for (const [name, path] of screens(ids, collections)) {
 		await open(page, path);
-		const headings = await headingEdges(page);
-		expect(headings.length, `${name} has headings`).toBeGreaterThan(0);
-		for (const h of headings.filter((h) => !h.cell)) expect(h.left, `${name}: "${h.text}"`).toBe(edge);
-		const cells = headings.filter((h) => h.cell).map((h) => h.left);
+		const headings = [...(await page.getByRole('heading', { level: 1 }).all()), ...(await page.getByRole('heading', { level: 2 }).all())];
+		let measured = 0;
+		const cells: number[] = [];
+		for (const heading of headings) {
+			if (!(await heading.isVisible())) continue;
+			const text = ((await heading.textContent()) ?? '').trim();
+			if (name === 'Home' && (await heading.evaluate((el) => el.tagName)) === 'H1') continue;
+			measured++;
+			if (name === 'Settings') {
+				const slot = page.getByRole('region', { name: text, exact: true });
+				if (await slot.count()) {
+					cells.push(await left(slot));
+					continue;
+				}
+			}
+			if ((name === 'Detail' || name === 'Artist detail') && (await heading.evaluate((el) => el.tagName)) === 'H1') {
+				const panel = page.getByRole('region', { name: text, exact: true });
+				if (await panel.count()) {
+					const cover = page.getByRole('img', { name: text, exact: true });
+					expect(Math.min(await left(panel), await left(cover)), `${name}: "${text}"`).toBe(edge);
+					continue;
+				}
+			}
+			expect(await left(heading), `${name}: "${text}"`).toBe(edge);
+		}
+		expect(measured, `${name} has headings`).toBeGreaterThan(0);
+		const columns = await page.evaluate(() =>
+			[...document.querySelectorAll('main [data-column]')]
+				.map((el) => el.getBoundingClientRect())
+				.filter((b) => b.width > 0)
+				.map((b) => ({ left: Math.round(b.left), right: Math.round(b.right) }))
+		);
+		expect(columns.length, `${name} has a column`).toBeGreaterThan(0);
+		for (const c of columns) {
+			expect(c.right - c.left, `${name}: column width`).toBeLessThanOrEqual(1200);
+		}
+		for (const c of columns) {
+			expect(c.left, `${name}: column left edge`).toBe(edge);
+			expect(c.right, `${name}: column right edge`).toBe(viewport - edge);
+		}
 		if (cells.length) expect(Math.min(...cells), `${name}: first slot`).toBe(edge);
 	}
 });
@@ -98,27 +122,25 @@ test('Scenario: Desktop uses the width', async ({ page, request }, info) => {
 	test.skip(info.project.name !== 'desktop');
 	await calm(page);
 	const { ids } = await setup(request);
-	const columns = (selector: string) =>
-		page.evaluate((s) => new Set([...document.querySelectorAll(s)].map((el) => Math.round(el.getBoundingClientRect().left))).size, selector);
+	const columns = async (items: Locator) => new Set((await Promise.all((await items.all()).map(async (item) => Math.round((await item.boundingBox())!.x))))).size;
 
 	await open(page, '/music/albums');
-	const firstRow = await page.evaluate(() => {
-		const tops = [...document.querySelectorAll('[data-card]')].map((el) => Math.round(el.getBoundingClientRect().top));
-		return tops.filter((t) => t === tops[0]).length;
-	});
+	await expect(cards(page).first()).toBeVisible();
+	const tops = await Promise.all((await cards(page).all()).map(async (card) => Math.round((await card.boundingBox())!.y)));
+	const firstRow = tops.filter((t) => t === tops[0]).length;
 	expect(firstRow).toBeGreaterThanOrEqual(4);
 
 	await open(page, `/entries/${ids[1]}`);
-	const cover = (await page.locator('[data-cover-id]').boundingBox())!;
-	const panel = (await page.locator('[data-detail-panel]').boundingBox())!;
+	const cover = (await page.getByRole('img', { name: spaced, exact: true }).boundingBox())!;
+	const panel = (await page.getByRole('region', { name: spaced, exact: true }).boundingBox())!;
 	expect(cover.x + cover.width).toBeLessThanOrEqual(panel.x);
 	expect(Math.abs(cover.y - panel.y)).toBeLessThan(cover.height);
 
 	await open(page, '/');
-	expect(await columns('[data-bento-card]')).toBeGreaterThanOrEqual(3);
+	expect(await columns(page.getByRole('region', { name: 'Collections', exact: true }).getByRole('list').getByRole('link'))).toBeGreaterThanOrEqual(3);
 
 	await open(page, '/collections');
-	expect(await columns('[data-collection-card]')).toBeGreaterThanOrEqual(3);
+	expect(await columns(cards(page))).toBeGreaterThanOrEqual(3);
 });
 
 test('Scenario: No horizontal page scroll on phone', async ({ page, request }, info) => {
@@ -131,13 +153,34 @@ test('Scenario: No horizontal page scroll on phone', async ({ page, request }, i
 		const widths = await page.evaluate(() => ({
 			scroll: document.documentElement.scrollWidth,
 			view: innerWidth,
-			// the app wrapper clips x overflow, so scrollWidth alone cannot see a column that is wider than the phone
-			// (aria-hidden glows are blurred decoration that bleeds on purpose)
-			past: [...document.querySelectorAll('main .column, main .column > *:not([aria-hidden="true"])')]
-				.filter((el) => el.getBoundingClientRect().right > innerWidth + 1)
-				.map((el) => el.className || el.tagName)
+			columns: [...document.querySelectorAll('main [data-column]')].filter((el) => el.getBoundingClientRect().right > innerWidth + 1).length
 		}));
+		// the app wrapper clips x overflow, so scrollWidth alone cannot see a heading or section that is wider than the phone
+		const past: string[] = [];
+		const roles = ['region', 'toolbar', 'list', 'article', 'textbox', 'form'] as const;
+		const boxes = [
+			...[1, 2].map((level) => page.getByRole('heading', { level })),
+			...roles.map((role) => page.getByRole(role)),
+			page.locator('main [data-column] > *:not([aria-hidden="true"])')
+		];
+		for (const box of boxes) {
+			past.push(
+				...(await box.evaluateAll((els) => {
+					// shelves scroll sideways and the hero clips its carousel on purpose, so whatever sits in such a box inside main runs past the phone
+					const scrolled = (el: Element) => {
+						for (let node: Element | null = el.parentElement; node && node.tagName !== 'MAIN'; node = node.parentElement) {
+							if (getComputedStyle(node).overflowX !== 'visible' && node.scrollWidth > node.clientWidth) return true;
+						}
+						return false;
+					};
+					return els
+						.filter((el) => el.getBoundingClientRect().right > innerWidth + 1 && !scrolled(el))
+						.map((el) => `${el.tagName} ${el.textContent?.slice(0, 30)}`);
+				}))
+			);
+		}
 		expect(widths.scroll, name).toBe(widths.view);
-		expect(widths.past, `${name}: wider than the phone`).toEqual([]);
+		expect(widths.columns, `${name}: columns wider than the phone`).toBe(0);
+		expect(past, `${name}: wider than the phone`).toEqual([]);
 	}
 });

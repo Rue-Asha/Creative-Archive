@@ -28,7 +28,7 @@
 <svelte:head><title>{data.label} · {DOMAIN_LABEL[data.world]} · Creative Archive</title></svelte:head>
 
 <div class="page">
-	<header class="column head">
+	<header class="column head" data-column>
 		<Eyebrow parts={[DOMAIN_LABEL[data.world]]} tone="accent" />
 		<div class="title-row">
 			<h1>{data.label}</h1>
@@ -38,7 +38,7 @@
 	</header>
 
 	{#if data.total}
-		<div class="column">
+		<div class="column" data-column>
 			<FilterBar {config} state={data.state} tags={data.tags} fixedStatus={data.fixedStatus} onchange={apply} />
 		</div>
 	{/if}
@@ -48,7 +48,7 @@
 			{#each shelves as shelf (shelf.key)}<Shelf {shelf} />{/each}
 		</div>
 	{:else if data.entries.length}
-		<section class="column results" aria-label="{data.label} list">
+		<section class="column results" data-column aria-label="{data.label} list">
 			{#if cover !== null}
 				<div class="glow" aria-hidden="true"><img src="/images/{cover}" alt="" /></div>
 			{/if}
@@ -59,12 +59,12 @@
 			</ul>
 		</section>
 	{:else if data.total}
-		<section class="column empty" aria-label="No matches">
+		<section class="column empty" data-column aria-label="No matches">
 			<h2>{COPY.nothingMatches}</h2>
 			<Button variant="secondary" arrow={false} onclick={() => goto(page.url.pathname, { reset: false })}>{COPY.resetFilters}</Button>
 		</section>
 	{:else}
-		<section class="column empty" aria-label="No entries">
+		<section class="column empty" data-column aria-label="No entries">
 			<h2>No {config.plural.toLowerCase()} yet</h2>
 			<p>Add the first one to start the list.</p>
 			<Button href="/add/{data.type}" variant="accent">Add</Button>

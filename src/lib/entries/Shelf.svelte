@@ -42,7 +42,7 @@
 	{#if cover !== null}
 		<div class="glow" aria-hidden="true"><img src="/images/{cover}" alt="" /></div>
 	{/if}
-	<div class="column shelf-head" data-shelf-head>
+	<div class="column shelf-head" data-column data-shelf-head>
 		<h2 data-section-heading>
 			{shelf.title}{#if accent}<span class="dot-sep" aria-hidden="true">·</span><em>{accent}</em>{/if}
 		</h2>

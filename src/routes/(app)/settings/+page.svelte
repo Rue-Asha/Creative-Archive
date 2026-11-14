@@ -14,7 +14,7 @@
 
 <svelte:head><title>Settings · Creative Archive</title></svelte:head>
 
-<div class="column page">
+<div class="column page" data-column>
 	<header>
 		<Eyebrow parts={['Settings']} tone="accent" />
 		<h1 class="display">Hero <em>photos</em></h1>

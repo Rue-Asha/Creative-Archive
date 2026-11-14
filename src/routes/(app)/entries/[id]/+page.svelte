@@ -81,7 +81,7 @@
 	<div class="backdrop" aria-hidden="true">
 		{#if entry.imageId !== null}<img src="/images/{entry.imageId}" alt="" />{/if}
 	</div>
-	<div class="column layout">
+	<div class="column layout" data-column>
 		<div class="cover" data-cover-id={entry.id} style:aspect-ratio={ratio}>
 			{#if entry.imageId !== null}
 				<img src="/images/{entry.imageId}" alt={entry.title} />
@@ -125,7 +125,7 @@
 		</DetailPanel>
 	</div>
 	{#if data.works.length}
-		<div class="column below"><ArtistWorks works={data.works} /></div>
+		<div class="column below" data-column><ArtistWorks works={data.works} /></div>
 	{/if}
 </div>
 

@@ -1,5 +1,5 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
-import { countSaves, open, reset, seed, type SeedEntry } from './helpers.ts';
+import { cardOf, cards, countSaves, open, reset, seed, shelf, type SeedEntry } from './helpers.ts';
 
 interface Box {
 	x: number;
@@ -10,7 +10,6 @@ interface Box {
 
 interface Item {
 	target: boolean;
-	revealed: boolean;
 	opacity: number;
 	transform: string;
 }
@@ -61,21 +60,20 @@ async function watchBack(page: Page) {
 				await callback?.();
 				const all = [...document.querySelectorAll('*')].filter((el) => getComputedStyle(el).viewTransitionName.startsWith('cover-'));
 				named = all[0];
-				const card = named?.closest('[data-card]') ?? null;
-				const shelf = named?.closest('[data-shelf]') ?? null;
-				const rows = [...document.querySelectorAll('[data-shelf-row]')].map((row) => [row.closest('[data-shelf]')?.getAttribute('data-shelf') ?? '', row.scrollLeft]);
+				const card = named?.closest('article') ?? null;
+				const shelf = named?.closest('section[aria-label]') ?? null;
+				const rows = [...document.querySelectorAll('section[aria-label]')].map((section) => [section.getAttribute('aria-label') ?? '', section.querySelector('ul')?.scrollLeft ?? 0]);
 				const items = [...document.querySelectorAll('li')]
-					.filter((li) => li.querySelector('[data-card]') && (inView(li) || (card !== null && li.contains(card))))
+					.filter((li) => li.querySelector('article') && (inView(li) || (card !== null && li.contains(card))))
 					.map((li) => ({
 						target: card !== null && li.contains(card),
-						revealed: li.hasAttribute('data-revealed'),
 						opacity: Number(getComputedStyle(li).opacity),
 						transform: getComputedStyle(li).transform
 					}));
 				window.__backMorph.captured.push({
 					names: all.map((el) => getComputedStyle(el).viewTransitionName),
-					shelf: shelf?.getAttribute('data-shelf') ?? null,
-					index: card ? [...(shelf ?? document).querySelectorAll('[data-card]')].indexOf(card) : -1,
+					shelf: shelf?.getAttribute('aria-label') ?? null,
+					index: card ? [...(shelf ?? document).querySelectorAll('article')].indexOf(card) : -1,
 					box: named ? box(named) : null,
 					rows: Object.fromEntries(rows),
 					items
@@ -129,9 +127,9 @@ test('Scenario: Back morph lands on the clicked card', async ({ page, request })
 	} = await seed(request, { entries });
 	await watchBack(page);
 	await open(page, '/');
-	const recent = page.locator('[data-shelf="recent-animanga"] [data-card]');
+	const recent = cards(shelf(page, 'Recently added · Animanga'));
 	await expect(recent).toHaveCount(3);
-	await expect(page.locator('[data-shelf="progress"] [data-card]').filter({ hasText: 'Frieren' })).toHaveCount(1);
+	await expect(cardOf(shelf(page, 'In progress'), 'Frieren')).toHaveCount(1);
 	const card = recent.nth(1);
 	await expect(card).toContainText('Frieren');
 	await card.scrollIntoViewIfNeeded();
@@ -139,7 +137,7 @@ test('Scenario: Back morph lands on the clicked card', async ({ page, request })
 	const { captured, settled } = await back(page, '/');
 
 	expect(captured.names).toEqual([`cover-${id}`]);
-	expect(captured.shelf).toBe('recent-animanga');
+	expect(captured.shelf).toBe('Recently added · Animanga');
 	expect(captured.index).toBe(1);
 	for (const key of ['x', 'y', 'width', 'height'] as const) expect(Math.abs(captured.box![key] - settled![key])).toBeLessThanOrEqual(1);
 });
@@ -153,10 +151,10 @@ test('Scenario: Back restores the shelf scroll position', async ({ page, request
 	});
 	await watchBack(page);
 	await open(page, '/music');
-	const row = page.locator('[data-shelf="album"] [data-shelf-row]');
-	const cards = page.locator('[data-shelf="album"] [data-card]');
-	await expect(cards).toHaveCount(12);
-	const eighth = cards.nth(7);
+	const albums = shelf(page, 'Albums');
+	const row = albums.getByRole('list');
+	await expect(cards(albums)).toHaveCount(12);
+	const eighth = cards(albums).nth(7);
 	await expect(eighth).toContainText('Album 08');
 	await eighth.scrollIntoViewIfNeeded();
 	const left = () => row.evaluate((el) => el.scrollLeft);
@@ -173,9 +171,9 @@ test('Scenario: Back restores the shelf scroll position', async ({ page, request
 	await openCard(page, eighth, 'Album 08');
 	const { captured } = await back(page, '/music');
 
-	expect(Math.abs(captured.rows.album - before)).toBeLessThanOrEqual(2);
+	expect(Math.abs(captured.rows['Albums'] - before)).toBeLessThanOrEqual(2);
 	expect(captured.names).toEqual([`cover-${ids[7]}`]);
-	expect(captured.shelf).toBe('album');
+	expect(captured.shelf).toBe('Albums');
 	expect(captured.index).toBe(7);
 });
 
@@ -186,16 +184,17 @@ test('Scenario: Back shows in-view cards without re-running the reveal', async (
 	});
 	await watchBack(page);
 	await open(page, '/music/albums');
-	const card = page.locator('[data-card]').filter({ hasText: 'Album 07' });
+	const card = cardOf(page, 'Album 07');
 	await card.scrollIntoViewIfNeeded();
-	await expect(card.locator('xpath=ancestor::li[1]')).toHaveAttribute('data-revealed', '');
+	const cell = page.getByRole('listitem').filter({ has: card });
+	await expect.poll(() => cell.evaluate((el) => Number(getComputedStyle(el).opacity))).toBe(1);
 	await openCard(page, card, 'Album 07');
 	const { captured } = await back(page, '/music/albums');
 
 	expect(captured.names).toHaveLength(1);
 	expect(captured.items.filter((i) => i.target)).toHaveLength(1);
 	expect(captured.items.length).toBeGreaterThan(1);
-	for (const item of captured.items) expect(item).toMatchObject({ revealed: true, opacity: 1, transform: 'none' });
+	for (const item of captured.items) expect(item).toMatchObject({ opacity: 1, transform: 'none' });
 });
 
 test('Scenario: Back to a card that left its shelf crossfades', async ({ page, request }) => {
@@ -211,12 +210,12 @@ test('Scenario: Back to a card that left its shelf crossfades', async ({ page, r
 	const saves = countSaves(page);
 	await watchBack(page);
 	await open(page, '/animanga');
-	const card = page.locator('[data-shelf="progress"] [data-card]').first();
+	const card = cards(shelf(page, 'In progress')).first();
 	await expect(card).toContainText('Frieren');
 	await openCard(page, card, 'Frieren');
 	await page.getByRole('button', { name: 'Status: Watching' }).click();
 	await page.getByRole('menu', { name: 'Status' }).getByRole('menuitemradio', { name: 'Watched' }).click();
-	await expect(page.locator('[data-status-label]')).toHaveText('Watched');
+	await expect(page.getByRole('button', { name: 'Status: Watched', exact: true })).toBeVisible();
 	await saves(1);
 	const { captured, pseudos } = await back(page, '/animanga');
 
@@ -226,5 +225,5 @@ test('Scenario: Back to a card that left its shelf crossfades', async ({ page, r
 	const covers = pseudos.filter((p) => p.pseudo.includes('(cover-'));
 	expect(covers.map((p) => p.pseudo)).toEqual([`::view-transition-old(cover-${id})`]);
 	for (const cover of covers) expect(cover).toMatchObject({ duration: root.duration, shadow: 'none', radius: '0px' });
-	await expect(page.locator('[data-shelf="progress"] [data-card]')).toHaveCount(1);
+	await expect(cards(shelf(page, 'In progress'))).toHaveCount(1);
 });

@@ -57,9 +57,7 @@ test('Scenario: Progress value is not editable text until activated', async ({ p
 
 	await expect(control(page, 'Episodes').getByRole('textbox')).toHaveCount(0);
 	await expect(progressValue(page, 'Episodes')).toHaveAccessibleName('Episodes 3 of 28');
-	const cursors = await control(page, 'Episodes')
-		.locator('*')
-		.evaluateAll((els) => els.map((el) => getComputedStyle(el).cursor));
+	const cursors = await control(page, 'Episodes').evaluate((el) => [el, ...el.querySelectorAll('*')].map((node) => getComputedStyle(node).cursor));
 	expect(cursors).not.toContain('text');
 	expect(await page.evaluate(() => document.activeElement?.tagName)).not.toBe('INPUT');
 });
@@ -229,11 +227,11 @@ test('Scenario: Reaching the total offers Mark as watched', async ({ page, reque
 
 	await expect(control(page, 'Episodes')).toContainText('28 / 28');
 	await page.getByRole('button', { name: 'Mark as watched' }).click();
-	await expect(page.locator('[data-status-label]')).toHaveText('Watched');
+	await expect(page.getByRole('button', { name: 'Status: Watched', exact: true })).toBeVisible();
 	await expect(page.getByRole('button', { name: 'Mark as watched' })).toHaveCount(0);
 	await saved(2);
 	await page.reload();
-	await expect(page.locator('[data-status-label]')).toHaveText('Watched');
+	await expect(page.getByRole('button', { name: 'Status: Watched', exact: true })).toBeVisible();
 });
 
 test('Scenario: Reaching the chapter total offers Mark as read', async ({ page, request }) => {
@@ -253,7 +251,7 @@ test('Scenario: Reaching the chapter total offers Mark as read', async ({ page, 
 	await more(page, 'Chapters').click();
 	await page.getByRole('button', { name: 'Mark as read' }).click();
 
-	await expect(page.locator('[data-status-label]')).toHaveText('Read');
+	await expect(page.getByRole('button', { name: 'Status: Read', exact: true })).toBeVisible();
 });
 
 test('an anime already watched at its total offers nothing', async ({ page, request }) => {
@@ -274,10 +272,10 @@ test('progress above zero moves want to in progress', async ({ page, request }) 
 	await open(page, `/entries/${id}`);
 	await more(page, 'Episodes').click();
 
-	await expect(page.locator('[data-status-label]')).toHaveText('Watching');
+	await expect(page.getByRole('button', { name: 'Status: Watching', exact: true })).toBeVisible();
 	await saved(1);
 	await page.reload();
-	await expect(page.locator('[data-status-label]')).toHaveText('Watching');
+	await expect(page.getByRole('button', { name: 'Status: Watching', exact: true })).toBeVisible();
 });
 
 test('books and albums have no progress controls', async ({ page, request }) => {

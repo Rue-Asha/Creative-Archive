@@ -20,7 +20,7 @@ test('Scenario: Autofill creates the artist with status none and photo', async (
 	await page.getByRole('link', { name: 'Frank Ocean' }).click();
 
 	await expect(page.getByRole('heading', { level: 1 })).toHaveText('Frank Ocean');
-	await expect(page.locator('[data-status-label]')).toHaveText('No status');
+	await expect(page.getByRole('button', { name: 'Status: No status', exact: true })).toBeVisible();
 	await expect(page.getByRole('img', { name: 'Frank Ocean' })).toHaveAttribute('src', /^\/images\/\d+$/);
 	expect((await counts(request)).entries).toBe(2);
 });

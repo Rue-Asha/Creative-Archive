@@ -1,7 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import { DOMAIN_LABEL } from '../src/lib/domains.ts';
-import { WORLDS } from '../src/lib/styles/worlds.ts';
-import { calm, open, reset, seed } from './helpers.ts';
+import { calm, expectCurrent, expectWorld, open, reset, seed } from './helpers.ts';
 
 test.beforeEach(async ({ page, request }) => {
 	await calm(page);
@@ -120,7 +119,7 @@ test('edit pages mark their domain in the nav and the world', async ({ page, req
 
 	for (const [id, domain] of [[entries[0], 'animanga'], [entries[1], 'books']] as const) {
 		await open(page, `/entries/${id}/edit`);
-		await expect(nav.locator('[aria-current="page"]')).toHaveText(DOMAIN_LABEL[domain]);
-		await expect(page.locator('[data-world]')).toHaveAttribute('data-accent', WORLDS[domain].accent);
+		await expectCurrent(nav, DOMAIN_LABEL[domain]);
+		await expectWorld(page, domain);
 	}
 });

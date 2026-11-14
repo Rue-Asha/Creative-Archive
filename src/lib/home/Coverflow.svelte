@@ -101,9 +101,13 @@
 	>
 		{#each entries as entry, i (entry.id)}
 			{@const p = place(i, position)}
-			<!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
+			<!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_noninteractive_element_interactions -->
 			<div
 				class="item"
+				role="group"
+				aria-roledescription="slide"
+				aria-label={entry.title}
+				aria-current={i === current ? 'true' : undefined}
 				data-coverflow-card
 				data-active={i === current ? '' : undefined}
 				style="--x: {p.x}%; --z: {p.z}px; --r: {p.rotate}deg; --s: {p.scale}; --o: {p.fade}; z-index: {p.layer}"

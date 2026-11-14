@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { calm, counts, open, reset, seed } from './helpers.ts';
+import { calm, counts, cover, open, reset, seed } from './helpers.ts';
 
 test.beforeEach(async ({ page, request }) => {
 	await calm(page);
@@ -30,9 +30,9 @@ test('Scenario: Search shows results with cover, title, creator and year', async
 	await expect(row.getByText('Blonde', { exact: true })).toBeVisible();
 	await expect(row.getByText('Frank Ocean')).toBeVisible();
 	await expect(row.getByText('2016')).toBeVisible();
-	const cover = row.locator('img');
-	await expect(cover).toBeVisible();
-	await expect.poll(() => cover.evaluate((img: HTMLImageElement) => img.naturalWidth)).toBeGreaterThan(0);
+	const thumb = row.getByRole('presentation');
+	await expect(thumb).toBeVisible();
+	await expect.poll(() => thumb.evaluate((img: HTMLImageElement) => img.naturalWidth)).toBeGreaterThan(0);
 });
 
 test('Scenario: Typing is debounced', async ({ page }) => {
@@ -77,7 +77,7 @@ test('Scenario: Saved cover is stored locally', async ({ page, request }) => {
 	await pick(page, '/add/album', 'Blonde', /Blonde/);
 	await save(page);
 
-	const src = await page.locator('[data-cover-id] img').getAttribute('src');
+	const src = await cover(page, 'Blonde').getAttribute('src');
 	expect(src).toMatch(/^\/images\/\d+$/);
 	const image = await request.get(src!);
 	expect(image.headers()['content-type']).toBe('image/webp');
@@ -119,15 +119,15 @@ test('Scenario: Original-script author stays editable', async ({ page }) => {
 test('Scenario: Cover download failure saves without cover', async ({ page, request }) => {
 	await pick(page, '/add/book', 'Norwegian', /Vintage/);
 	await save(page);
-	await expect(page.locator('[data-cover-id] img')).toHaveCount(0);
+	await expect(cover(page, 'Norwegian Wood (Vintage)')).not.toHaveAttribute('src');
 	expect((await counts(request)).images).toBe(0);
 
 	await pick(page, '/add/book', 'Broken', /Broken/);
 	await save(page);
 
 	await expect(page.getByText('Cover could not be downloaded')).toBeVisible();
-	await expect(page.locator('[data-cover-id] img')).toHaveCount(0);
-	await expect(page.locator('[data-cover-id]').getByRole('img', { name: 'Broken' })).toBeVisible();
+	await expect(cover(page, 'Broken')).not.toHaveAttribute('src');
+	await expect(cover(page, 'Broken')).toBeVisible();
 	expect((await counts(request)).entries).toBe(2);
 	expect((await counts(request)).images).toBe(0);
 });

@@ -24,7 +24,7 @@
 <svelte:head><title>Collections · Creative Archive</title></svelte:head>
 
 <div class="page">
-	<header class="column head">
+	<header class="column head" data-column>
 		<Eyebrow parts={['Archive']} tone="accent" />
 		<div class="title-row">
 			<h1>Collections</h1>
@@ -34,7 +34,7 @@
 	</header>
 
 	{#if creating}
-		<div class="column">
+		<div class="column" data-column>
 			<GlassPanel strong>
 				<form
 					class="new"
@@ -65,7 +65,7 @@
 	{/if}
 
 	{#if data.collections.length}
-		<section class="column" aria-label="All collections">
+		<section class="column" data-column aria-label="All collections">
 			<ul class="grid">
 				{#each data.collections as collection, i (collection.id)}
 					<li use:reveal={{ delay: stagger(i) }}><CollectionCard {collection} /></li>
@@ -73,7 +73,7 @@
 			</ul>
 		</section>
 	{:else if !creating}
-		<section class="column empty" aria-label="No collections">
+		<section class="column empty" data-column aria-label="No collections">
 			<h2>No collections yet</h2>
 			<p>Group entries of any kind into one place.</p>
 		</section>

@@ -11,7 +11,7 @@
 <nav class="tabs" class:grouped={groups.some((g) => g.label)} aria-label="Sub-types">
 	{#each groups as group, i (i)}
 		{#if group.label}
-			{#if i > 0}<span class="divider" data-tab-divider aria-hidden="true"></span>{/if}
+			{#if i > 0}<span class="divider" data-tab-divider role="separator"></span>{/if}
 			<div class="group" role="group" aria-labelledby="subtabs-{domain}-{i}" data-tab-group>
 				<span class="caption" id="subtabs-{domain}-{i}" data-tab-caption>{group.label}</span>
 				{#each group.lists as list (list.slug)}
