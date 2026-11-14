@@ -14,7 +14,7 @@
 	const tiles = $derived(featured ? [featured, ...collections.filter((c) => c !== featured)] : collections);
 </script>
 
-<section class="column collections" aria-label="Collections" use:reveal>
+<section class="column collections" data-column aria-label="Collections" use:reveal>
 	{#if cover !== null}
 		<div class="glow" aria-hidden="true"><img src="/images/{cover}" alt="" /></div>
 	{/if}

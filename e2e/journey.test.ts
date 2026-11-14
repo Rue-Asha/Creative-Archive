@@ -1,5 +1,5 @@
 import { expect, test, type APIRequestContext, type Page } from '@playwright/test';
-import { calm, countSaves, editProgress, open, photo, reset, seed } from './helpers.ts';
+import { calm, cardOf, cardTitles, cards, countSaves, cover, editProgress, expectWorld, open, photo, rate, reset, seed } from './helpers.ts';
 import { schemes } from '../src/lib/styles/tokens.ts';
 import { WORLDS } from '../src/lib/styles/worlds.ts';
 
@@ -10,7 +10,6 @@ declare global {
 }
 
 const group = (page: Page, label: string) => page.getByRole('group', { name: label, exact: true });
-const statusLabel = (page: Page) => page.locator('[data-status-label]');
 const statusPill = (page: Page) => page.getByRole('button', { name: /^Status:/ });
 const rgb = (hex: string) => {
 	const n = parseInt(hex.slice(1), 16);
@@ -27,19 +26,19 @@ async function addByPick(page: Page, path: string, query: string, name: RegExp) 
 
 async function album(page: Page) {
 	await addByPick(page, '/add/album', 'Blonde', /Blonde/);
-	await expect(page.locator('[data-cover-id] img')).toHaveAttribute('src', /^\/images\/\d+$/);
+	await expect(cover(page, 'Blonde')).toHaveAttribute('src', /^\/images\/\d+$/);
 	await expect(page.getByRole('link', { name: 'Frank Ocean' })).toHaveAttribute('href', /^\/entries\/\d+$/);
 
 	const saved = countSaves(page);
 	await statusPill(page).click();
 	await page.getByRole('menuitemradio', { name: 'Listened' }).click();
-	await expect(statusLabel(page)).toHaveText('Listened');
-	await page.getByRole('slider', { name: 'Rating', exact: true }).locator('[data-fill]').nth(4).click({ position: { x: 3, y: 20 } });
+	await expect(page.getByRole('button', { name: 'Status: Listened', exact: true })).toBeVisible();
+	await rate(page.getByRole('slider', { name: 'Rating', exact: true }), 5, 'left');
 	await expect(page.getByRole('slider', { name: 'Rating', exact: true })).toHaveAttribute('aria-valuenow', '4.5');
 	await saved(2);
 
 	await page.reload();
-	await expect(statusLabel(page)).toHaveText('Listened');
+	await expect(page.getByRole('button', { name: 'Status: Listened', exact: true })).toBeVisible();
 	await expect(page.getByRole('slider', { name: 'Rating', exact: true })).toHaveAttribute('aria-valuenow', '4.5');
 }
 
@@ -52,7 +51,7 @@ async function animanga(page: Page) {
 	await editProgress(page, 'Episodes', '28', 'Enter');
 	await expect(episodes).toContainText('28 / 28');
 	await page.getByRole('button', { name: 'Mark as watched' }).click();
-	await expect(statusLabel(page)).toHaveText('Watched');
+	await expect(page.getByRole('button', { name: 'Status: Watched', exact: true })).toBeVisible();
 
 	await addByPick(page, '/add/manga', 'Vagabond', /Vagabond/);
 	const chapters = group(page, 'Chapters');
@@ -67,17 +66,17 @@ async function brand(page: Page) {
 	await expect(page.getByLabel('Name', { exact: true })).toHaveValue('Maison Example');
 	await page.getByRole('button', { name: 'Save' }).click();
 	await expect(page).toHaveURL(/\/entries\/\d+$/);
-	await expect(page.locator('[data-cover-id] img')).toHaveAttribute('src', /^\/images\/\d+$/);
+	await expect(cover(page, 'Maison Example')).toHaveAttribute('src', /^\/images\/\d+$/);
 
 	await open(page, '/add/brand');
 	await page.getByLabel('Page URL').fill('https://blocked.example/');
 	await page.getByLabel('Page URL').blur();
 	await expect(page.getByText('No preview found')).toBeVisible();
 	await page.getByLabel('Name', { exact: true }).fill('Blocked Label');
-	await page.locator('input[type=file]').setInputFiles(photo('fashion-look.jpg'));
+	await page.getByLabel('Photo file').setInputFiles(photo('fashion-look.jpg'));
 	await page.getByRole('button', { name: 'Save' }).click();
 	await expect(page).toHaveURL(/\/entries\/\d+$/);
-	await expect(page.locator('[data-cover-id] img')).toHaveAttribute('src', /^\/images\/\d+$/);
+	await expect(cover(page, 'Blocked Label')).toHaveAttribute('src', /^\/images\/\d+$/);
 }
 
 async function wardrobe(page: Page, request: APIRequestContext) {
@@ -85,14 +84,14 @@ async function wardrobe(page: Page, request: APIRequestContext) {
 		entries: [id]
 	} = await seed(request, { entries: [{ type: 'piece', title: 'Wool Coat', status: 'wishlist' }] });
 	await open(page, '/fashion/wardrobe');
-	await expect(page.locator('[data-card]')).toHaveCount(0);
+	await expect(cards(page)).toHaveCount(0);
 
 	await open(page, `/entries/${id}`);
 	await statusPill(page).click();
 	await page.getByRole('menuitemradio', { name: 'Owned' }).click();
-	await expect(statusLabel(page)).toHaveText('Owned');
+	await expect(page.getByRole('button', { name: 'Status: Owned', exact: true })).toBeVisible();
 	await open(page, '/fashion/wardrobe');
-	await expect(page.locator('[data-card-title]')).toHaveText(['Wool Coat']);
+	await expect(cardTitles(page)).toHaveText(['Wool Coat']);
 }
 
 async function organise(page: Page, request: APIRequestContext) {
@@ -124,12 +123,12 @@ async function organise(page: Page, request: APIRequestContext) {
 	await expect(menu.getByRole('menuitemcheckbox', { name: 'Late Night' })).toHaveAttribute('aria-checked', 'true');
 
 	await open(page, '/collections');
-	const card = page.locator('[data-collection-card]', { hasText: 'Late Night' });
-	await expect(card.locator('[data-count]')).toHaveText('2');
-	await expect(card.locator('img')).toHaveCount(2);
+	const card = cards(page).filter({ hasText: 'Late Night' });
+	await expect(card.getByLabel('2 entries', { exact: true })).toHaveText('2');
+	await expect(card.getByRole('presentation')).toHaveCount(2);
 	await card.getByRole('link').first().click();
 	await expect(page.getByRole('heading', { level: 1, name: 'Late Night' })).toBeVisible();
-	await expect(page.locator('[data-card-title]')).toHaveText(['Blonde', 'Piranesi']);
+	await expect(cardTitles(page)).toHaveText(['Blonde', 'Piranesi']);
 }
 
 async function homeAndWorlds(page: Page, request: APIRequestContext) {
@@ -142,21 +141,20 @@ async function homeAndWorlds(page: Page, request: APIRequestContext) {
 		]
 	});
 	await open(page, '/');
-	await expect(page.locator('[data-hero] [data-hero-image]')).toHaveAttribute('src', /^\/images\/\d+$/);
-	await expect(page.locator('[data-coverflow-card]')).toHaveCount(3);
+	await expect(page.locator('[data-hero-image]')).toHaveAttribute('src', /^\/images\/\d+$/);
+	await expect(page.getByRole('group', { name: 'Latest entries' }).getByRole('article')).toHaveCount(3);
 	await expect(page.getByRole('region', { name: 'In progress', exact: true })).toBeVisible();
-	await expect(page.locator('[data-shelf^="recent-"]')).not.toHaveCount(0);
+	await expect(page.getByRole('region', { name: /^Recently added/ })).not.toHaveCount(0);
 
 	for (const domain of ['music', 'animanga', 'books', 'fashion'] as const) {
 		await open(page, `/${domain}`);
-		const { scheme, accent } = WORLDS[domain];
-		await expect(page.locator('[data-world]'), domain).toHaveAttribute('data-scheme', scheme);
-		await expect(page.locator('[data-world]'), domain).toHaveAttribute('data-accent', accent);
+		const { scheme } = WORLDS[domain];
+		await expectWorld(page, domain);
 		expect(await page.evaluate(() => getComputedStyle(document.body).backgroundColor), domain).toBe(rgb(schemes[scheme].ground));
 	}
 }
 
-const cells = (page: Page) => page.locator('ul li').filter({ has: page.locator('[data-card]') });
+const cells = (page: Page) => page.getByRole('listitem').filter({ has: cards(page) });
 const opacity = (cell: ReturnType<typeof cells>) => cell.evaluate((el) => Number(getComputedStyle(el).opacity));
 
 async function manyAlbums(request: APIRequestContext) {
@@ -183,16 +181,17 @@ async function morphAndReveal(page: Page, request: APIRequestContext) {
 	await expect.poll(() => opacity(last)).toBe(1);
 
 	await page.evaluate(() => scrollTo(0, 0));
-	await page.locator('[data-card]').filter({ hasText: 'Album 01' }).getByRole('link', { name: 'Album 01' }).click();
+	await cardOf(page, 'Album 01').getByRole('link', { name: 'Album 01' }).click();
 	await expect(page).toHaveURL(`/entries/${id}`);
-	await expect(page.locator('.detail [data-cover-id]')).toHaveAttribute('data-cover-id', String(id));
+	await expect(page.getByRole('region', { name: 'Album 01', exact: true })).toBeVisible();
+	await expect(page.getByRole('main').getByRole('img', { name: 'Album 01', exact: true })).toHaveCount(1);
 	expect(await page.evaluate(() => window.__journeyMorphs)).toBe(1);
 
 	await page.emulateMedia({ reducedMotion: 'reduce' });
 	await open(page, '/music/albums');
 	const states = await cells(page).evaluateAll((els) => els.map((el) => Number(getComputedStyle(el).opacity)));
 	expect(states.every((o) => o === 1)).toBe(true);
-	await page.locator('[data-card]').filter({ hasText: 'Album 01' }).getByRole('link', { name: 'Album 01' }).click();
+	await cardOf(page, 'Album 01').getByRole('link', { name: 'Album 01' }).click();
 	await expect(page.getByRole('heading', { level: 1, name: 'Album 01' })).toBeVisible();
 }
 
@@ -244,6 +243,6 @@ test('Done: the whole journey under reduced motion', async ({ page, request }) =
 	await open(page, '/music/albums');
 	const states = await cells(page).evaluateAll((els) => els.map((el) => Number(getComputedStyle(el).opacity)));
 	expect(states.every((o) => o === 1)).toBe(true);
-	await page.locator('[data-card]').filter({ hasText: 'Album 01' }).getByRole('link', { name: 'Album 01' }).click();
+	await cardOf(page, 'Album 01').getByRole('link', { name: 'Album 01' }).click();
 	await expect(page.getByRole('heading', { level: 1, name: 'Album 01' })).toBeVisible();
 });

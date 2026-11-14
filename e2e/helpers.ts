@@ -1,5 +1,7 @@
 import { resolve } from 'node:path';
 import { expect, type APIRequestContext, type Locator, type Page } from '@playwright/test';
+import { accents, schemes } from '../src/lib/styles/tokens.ts';
+import { WORLDS } from '../src/lib/styles/worlds.ts';
 import type { SeedEntry, SeedInput, SeedResult } from '../src/lib/server/testing.ts';
 
 export type { SeedEntry, SeedInput, SeedResult };
@@ -69,4 +71,42 @@ export async function editProgress(
 	await input.fill(text);
 	if (end === 'blur') await input.evaluate((el) => (el as HTMLInputElement).blur());
 	else await input.press(end);
+}
+
+export const cards = (scope: Page | Locator): Locator => scope.getByRole('article');
+
+export const cardTitles = (scope: Page | Locator): Locator => cards(scope).getByRole('heading', { level: 3 });
+
+export const cardOf = (scope: Page | Locator, title: string): Locator => cards(scope).filter({ hasText: title });
+
+export const shelf = (page: Page, name: string): Locator => page.getByRole('region', { name, exact: true });
+
+// The world's scheme and accent reach every element as inherited custom properties, so the page heading shows them.
+export async function expectWorld(page: Page, world: keyof typeof WORLDS, label?: string): Promise<void> {
+	const { scheme, accent } = WORLDS[world];
+	const tokens = await page.getByRole('heading', { level: 1 }).evaluate((el) => {
+		const style = getComputedStyle(el);
+		return { ground: style.getPropertyValue('--ground').trim(), accent: style.getPropertyValue('--accent').trim() };
+	});
+	expect(tokens.ground.toLowerCase(), label).toBe(schemes[scheme].ground.toLowerCase());
+	expect(tokens.accent.toLowerCase(), label).toBe(accents[accent][scheme].accent.toLowerCase());
+}
+
+// Exactly the link named `label` carries aria-current in `nav`; null means none does.
+export async function expectCurrent(nav: Locator, label: string | null, message?: string): Promise<void> {
+	await expect(nav.getByRole('link').first()).toBeVisible();
+	for (const link of await nav.getByRole('link').all()) {
+		const name = ((await link.textContent()) ?? '').trim();
+		expect(await link.getAttribute('aria-current'), `${message ?? ''} ${name}`.trim()).toBe(name === label ? 'page' : null);
+	}
+}
+
+// The cover on an entry's page: a photo (has src) or the placeholder (has none).
+export const cover = (page: Page, title: string): Locator => page.getByRole('img', { name: title, exact: true });
+
+// Click the left or right half of a star (1 to 5) in the rating slider.
+export async function rate(slider: Locator, star: number, half: 'left' | 'right'): Promise<void> {
+	const box = (await slider.boundingBox())!;
+	const width = box.width / 5;
+	await slider.click({ position: { x: (star - 1) * width + (half === 'left' ? 0.15 : 0.85) * width, y: box.height / 2 } });
 }

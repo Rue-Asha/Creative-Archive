@@ -6,23 +6,23 @@ test.beforeEach(async ({ page, request }) => {
 	await reset(request);
 });
 
-const chevron = (wrapper: Locator) =>
-	wrapper.evaluate((el) => {
-		const after = getComputedStyle(el, '::after');
+// the chevron is drawn on the box that wraps the select
+const chevron = (select: Locator) =>
+	select.evaluate((el) => {
+		const after = getComputedStyle(el.parentElement!, '::after');
 		return { content: after.content, image: after.backgroundImage, mask: after.maskImage || after.webkitMaskImage };
 	});
 
 test('Scenario: Form selects match the filter select', async ({ page, request }) => {
 	await seed(request, { entries: [{ type: 'album', title: 'Heard', status: 'done' }] });
 	await open(page, '/music/albums');
-	const sort = page.getByRole('toolbar', { name: 'Filters' }).locator('.select', { has: page.getByRole('combobox', { name: 'Sort' }) });
-	const filterSelect = sort.locator('select');
-	const filter = { appearance: await filterSelect.evaluate((el) => getComputedStyle(el).appearance), chevron: await chevron(sort) };
+	const sort = page.getByRole('toolbar', { name: 'Filters' }).getByRole('combobox', { name: 'Sort' });
+	const filter = { appearance: await sort.evaluate((el) => getComputedStyle(el).appearance), chevron: await chevron(sort) };
 
 	await open(page, '/add/piece?manual=1');
-	const status = page.locator('.select', { has: page.getByLabel('Status', { exact: true }) });
+	const status = page.getByLabel('Status', { exact: true });
 	await expect(status).toHaveCount(1);
-	const form = { appearance: await status.locator('select').evaluate((el) => getComputedStyle(el).appearance), chevron: await chevron(status) };
+	const form = { appearance: await status.evaluate((el) => getComputedStyle(el).appearance), chevron: await chevron(status) };
 
 	expect(filter.appearance).toBe('none');
 	expect(form.appearance).toBe('none');
@@ -44,7 +44,7 @@ test('Scenario: Artist and tag tokens share one tone', async ({ page, request })
 			const s = getComputedStyle(node);
 			return { background: s.backgroundColor, color: s.color, radius: s.borderRadius, weight: s.fontWeight };
 		});
-	const artist = await tone(page.locator('[data-linked]'));
-	const tag = await tone(page.getByRole('list', { name: 'Selected tags' }).locator('li.tag'));
+	const artist = await tone(page.getByRole('group', { name: 'Artist', exact: true }));
+	const tag = await tone(page.getByRole('list', { name: 'Selected tags' }).getByRole('listitem').filter({ hasText: 'Soul' }));
 	expect(artist).toEqual(tag);
 });

@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { calm, open, reset, seed } from './helpers.ts';
+import { calm, cardTitles, open, reset, seed } from './helpers.ts';
 
 test.beforeEach(async ({ page, request }) => {
 	await calm(page);
@@ -49,7 +49,7 @@ test('Scenario: Artist lists linked albums and songs', async ({ page, request })
 	await open(page, `/entries/${artist}`);
 	const works = page.getByRole('region', { name: 'Works' });
 
-	await expect(works.locator('[data-card-title]')).toHaveText(['Channel Orange', 'Blonde', 'Nikes']);
+	await expect(cardTitles(works)).toHaveText(['Channel Orange', 'Blonde', 'Nikes']);
 	await expect(page.getByText('Not His Album')).toHaveCount(0);
 	await expect(page.getByText('Somebody Elses')).toHaveCount(0);
 });

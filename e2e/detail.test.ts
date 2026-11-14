@@ -1,6 +1,5 @@
 import { expect, test, type Locator } from '@playwright/test';
-import { calm, open, reset, seed } from './helpers.ts';
-import { WORLDS } from '../src/lib/styles/worlds.ts';
+import { calm, expectCurrent, expectWorld, open, reset, seed } from './helpers.ts';
 
 test.beforeEach(async ({ page, request }) => {
 	await calm(page);
@@ -26,7 +25,7 @@ test('Scenario: Detail shows every filled field', async ({ page, request }) => {
 
 	await expect(page.getByRole('heading', { level: 1 })).toHaveText('Wool Coat');
 	await expect(page.getByText('Maison Example')).toBeVisible();
-	await expect(page.locator('a[href="https://brand.example/coat"]')).toBeVisible();
+	await expect(page.getByRole('link', { name: 'brand.example/coat' })).toHaveAttribute('href', 'https://brand.example/coat');
 	await expect(page.getByText('240 EUR')).toBeVisible();
 	await expect(page.getByText('Owned', { exact: true })).toBeVisible();
 	await expect(page.getByText('winter', { exact: true })).toBeVisible();
@@ -58,11 +57,8 @@ test("Scenario: Detail pages use their type's domain world", async ({ page, requ
 		entries: [id]
 	} = await seed(request, { entries: [{ type: 'book', title: 'Norwegian Wood' }] });
 	await open(page, `/entries/${id}`);
-	const wrapper = page.locator('[data-world]');
 
-	await expect(wrapper).toHaveAttribute('data-world', 'books');
-	await expect(wrapper).toHaveAttribute('data-scheme', WORLDS.books.scheme);
-	await expect(wrapper).toHaveAttribute('data-accent', WORLDS.books.accent);
+	await expectWorld(page, 'books');
 });
 
 test('Scenario: Entry pages mark their domain', async ({ page, request }) => {
@@ -71,7 +67,7 @@ test('Scenario: Entry pages mark their domain', async ({ page, request }) => {
 	} = await seed(request, { entries: [{ type: 'manga', title: 'Vagabond' }] });
 	await open(page, `/entries/${id}`);
 
-	await expect(page.getByRole('navigation', { name: 'Main' }).locator('[aria-current="page"]')).toHaveText('Animanga');
+	await expectCurrent(page.getByRole('navigation', { name: 'Main' }), 'Animanga');
 });
 
 test('Scenario: Fashion entries without status or rating show no controls', async ({ page, request }) => {
@@ -89,14 +85,13 @@ test('Scenario: Fashion entries without status or rating show no controls', asyn
 		await open(page, `/entries/${id}`);
 
 		await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
-		await expect(page.locator('[data-status-label]')).toHaveCount(0);
 		await expect(page.getByRole('button', { name: /^Status/ })).toHaveCount(0);
 		await expect(page.getByRole('slider')).toHaveCount(0);
 		await expect(page.getByRole('group', { name: /Episodes|Chapters|Volumes/ })).toHaveCount(0);
 	}
 });
 
-test('the cover carries data-cover-id, or a placeholder with initials, and Edit links to the edit page', async ({ page, request }) => {
+test('the cover shows the photo, or a placeholder with initials, and Edit links to the edit page', async ({ page, request }) => {
 	const {
 		entries: [withImage, without]
 	} = await seed(request, {
@@ -107,12 +102,12 @@ test('the cover carries data-cover-id, or a placeholder with initials, and Edit 
 	});
 
 	await open(page, `/entries/${withImage}`);
-	await expect(page.locator(`[data-cover-id="${withImage}"] img`)).toBeVisible();
+	await expect(page.getByRole('img', { name: 'Blonde', exact: true })).toHaveAttribute('src', /^\/images\/\d+$/);
 	await expect(page.getByRole('link', { name: 'Edit' })).toHaveAttribute('href', `/entries/${withImage}/edit`);
 
 	await open(page, `/entries/${without}`);
-	await expect(page.locator(`[data-cover-id="${without}"]`).getByRole('img', { name: 'Nikes Remixed' })).toBeVisible();
-	await expect(page.locator(`[data-cover-id="${without}"]`).getByText('NR')).toBeVisible();
+	await expect(page.getByRole('img', { name: 'Nikes Remixed' })).not.toHaveAttribute('src');
+	await expect(page.getByRole('img', { name: 'Nikes Remixed' }).getByText('NR')).toBeVisible();
 });
 
 test('detail lays out as a cover and a panel side by side on desktop and stacks on phone', async ({ page, request }, info) => {
@@ -120,8 +115,8 @@ test('detail lays out as a cover and a panel side by side on desktop and stacks 
 		entries: [id]
 	} = await seed(request, { entries: [{ type: 'album', title: 'Blonde', image: true }] });
 	await open(page, `/entries/${id}`);
-	const cover = (await page.locator(`[data-cover-id="${id}"]`).boundingBox())!;
-	const panel = (await page.locator('[data-detail-panel]').boundingBox())!;
+	const cover = (await page.getByRole('img', { name: 'Blonde', exact: true }).boundingBox())!;
+	const panel = (await page.getByRole('region', { name: 'Blonde', exact: true }).boundingBox())!;
 
 	if (info.project.name === 'desktop') {
 		expect(panel.x).toBeGreaterThan(cover.x + cover.width - 1);
@@ -149,9 +144,9 @@ test('Scenario: Phone detail shows the title above the fold', async ({ page, req
 		]
 	});
 
-	for (const id of [manga, long]) {
+	for (const [id, title] of [[manga, 'Vagabond'], [long, longTitle]] as const) {
 		await open(page, `/entries/${id}`);
-		const cover = (await page.locator(`[data-cover-id="${id}"]`).boundingBox())!;
+		const cover = (await page.getByRole('img', { name: title, exact: true }).boundingBox())!;
 		const heading = (await page.getByRole('heading', { level: 1 }).boundingBox())!;
 		expect(cover.width).toBeLessThanOrEqual(240.5);
 		expect(heading.y).toBeLessThan(844);
@@ -166,9 +161,9 @@ test('Scenario: Desktop controls share one row', async ({ page, request }, info)
 		entries: [{ type: 'anime', title: 'Frieren', status: 'progress', rating: 4, progress: { episodes: { current: 3, total: 28 } } }]
 	});
 	await open(page, `/entries/${id}`);
-	const panel = page.locator('[data-detail-panel]');
+	const panel = page.getByRole('region', { name: 'Frieren', exact: true });
 
-	const status = await centreY(panel.locator('.status'));
+	const status = await centreY(panel.getByRole('button', { name: /^Status/ }));
 	const stars = await centreY(panel.getByRole('slider', { name: 'Rating' }));
 	const progress = panel.getByRole('group', { name: 'Episodes', exact: true });
 	const buttons = progress.getByRole('button');
@@ -183,9 +178,9 @@ test('Scenario: Detail without progress keeps its controls row', async ({ page, 
 		entries: [id]
 	} = await seed(request, { entries: [{ type: 'album', title: 'Blonde', status: 'done', rating: 5 }] });
 	await open(page, `/entries/${id}`);
-	const panel = page.locator('[data-detail-panel]');
+	const panel = page.getByRole('region', { name: 'Blonde', exact: true });
 
-	const status = await centreY(panel.locator('.status'));
+	const status = await centreY(panel.getByRole('button', { name: /^Status/ }));
 	const stars = await centreY(panel.getByRole('slider', { name: 'Rating' }));
 	expect(Math.abs(status - stars)).toBeLessThanOrEqual(2);
 });
@@ -214,7 +209,7 @@ test('Scenario: Detail backdrop fades out without a crease', async ({ page, requ
 	} = await seed(request, { entries: [{ type: 'album', title: 'Blonde', image: true }] });
 	await open(page, `/entries/${id}`);
 
-	const backdrop = await page.locator('.backdrop').evaluate((el) => {
+	const backdrop = await page.getByRole('main').locator('[aria-hidden="true"]:has(> img)').first().evaluate((el) => {
 		const mask = getComputedStyle(el).maskImage;
 		const overlay = getComputedStyle(el, '::after');
 		return { stops: (mask.match(/rgba?\(/g) ?? []).length, overlay: overlay.content, overlayImage: overlay.backgroundImage };

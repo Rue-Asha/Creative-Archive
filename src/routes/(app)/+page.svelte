@@ -18,7 +18,7 @@
 <svelte:head><title>Creative Archive</title></svelte:head>
 
 <div class="column home">
-	<div class="frame">
+	<div class="frame" data-column>
 		<PhotoHero image={data.hero} world="home">
 			<div class="hero-body" class:solo={data.coverflow.length === 0}>
 				<div class="copy" data-page-header>

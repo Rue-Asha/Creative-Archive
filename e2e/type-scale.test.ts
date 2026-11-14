@@ -1,5 +1,5 @@
-import { expect, test, type Page } from '@playwright/test';
-import { calm, open, progressValue, reset, seed } from './helpers.ts';
+import { expect, test, type Locator, type Page } from '@playwright/test';
+import { calm, open, progressValue, reset, seed, shelf } from './helpers.ts';
 
 test.beforeEach(async ({ page, request }) => {
 	await calm(page);
@@ -7,8 +7,8 @@ test.beforeEach(async ({ page, request }) => {
 });
 
 const px = (value: string) => parseFloat(value);
-const sizeOf = (page: Page, selector: string) => page.locator(selector).first().evaluate((el) => getComputedStyle(el).fontSize);
-const spacingOf = (page: Page, selector: string) => page.locator(selector).first().evaluate((el) => getComputedStyle(el).letterSpacing);
+const sizeOf = (locator: Locator) => locator.first().evaluate((el) => getComputedStyle(el).fontSize);
+const spacingOf = (locator: Locator) => locator.first().evaluate((el) => getComputedStyle(el).letterSpacing);
 
 async function eyebrowToken(page: Page) {
 	return page.evaluate(() => {
@@ -29,7 +29,7 @@ const homeData = {
 test('Scenario: Section headings share one size', async ({ page, request }, info) => {
 	await seed(request, homeData);
 	await open(page, '/');
-	const headings = page.locator('[data-section-heading]');
+	const headings = page.getByRole('heading', { level: 2 });
 	await expect(headings.first()).toBeVisible();
 	const sizes = await headings.evaluateAll((els) => els.map((el) => getComputedStyle(el).fontSize));
 
@@ -41,12 +41,12 @@ test('Scenario: Shelf heading fits one line on phone', async ({ page, request },
 	test.skip(info.project.name !== 'phone', 'the wrap only happens on the phone');
 	await seed(request, homeData);
 	await open(page, '/');
-	const shelf = page.locator('[data-shelf="recent-music"]');
-	const heading = shelf.locator('[data-section-heading]');
+	const recent = shelf(page, 'Recently added · Music');
+	const heading = recent.getByRole('heading', { level: 2 });
 	await expect(heading).toContainText('Music');
 	const box = (await heading.boundingBox())!;
 	const lineHeight = px(await heading.evaluate((el) => getComputedStyle(el).lineHeight));
-	const count = (await shelf.locator('.count').boundingBox())!;
+	const count = (await recent.getByText(/^\d+$/).boundingBox())!;
 
 	expect(box.height).toBeLessThanOrEqual(lineHeight * 1.1);
 	expect(count.y + count.height / 2).toBeGreaterThan(box.y);
@@ -64,7 +64,10 @@ test('Scenario: Inputs do not zoom on phone', async ({ page, request }, info) =>
 	});
 	const small = async (label: string) => {
 		const sizes = await page
-			.locator('input:not([type="hidden"]), select, textarea')
+			.getByRole('textbox')
+			.or(page.getByRole('searchbox'))
+			.or(page.getByRole('combobox'))
+			.or(page.getByRole('spinbutton'))
 			.evaluateAll((els) =>
 				els.filter((el) => (el as HTMLElement).offsetParent !== null).map((el) => parseFloat(getComputedStyle(el).fontSize))
 			);
@@ -104,27 +107,31 @@ test('Scenario: Caps labels share the eyebrow style', async ({ page, request }) 
 	const {
 		entries: [anime]
 	} = await seed(request, { entries: [{ type: 'anime', title: 'Frieren', status: 'progress', progress: { episodes: { current: 3, total: 28 } } }] });
-	await open(page, '/__mockups/components');
+	await open(page, '/animanga');
 	const token = await eyebrowToken(page);
-	const eyebrow = '[data-pane="light"] .eyebrow';
-	const counter = '[data-pane="light"] .counter';
-	expect(await sizeOf(page, eyebrow)).toBe(token.fontSize);
-	expect(await spacingOf(page, eyebrow)).toBe(token.letterSpacing);
-	expect(await sizeOf(page, counter)).toBe(token.fontSize);
-	expect(await spacingOf(page, counter)).toBe(token.letterSpacing);
+	const eyebrow = page.getByText('Domain', { exact: true });
+	expect(await sizeOf(eyebrow)).toBe(token.fontSize);
+	expect(await spacingOf(eyebrow)).toBe(token.letterSpacing);
+
+	await seed(request, { entries: [{ type: 'book', title: 'Covered', image: true }] });
+	await open(page, '/');
+	const counter = page.getByLabel(/^\d+ of \d+$/);
+	expect(await sizeOf(counter)).toBe(token.fontSize);
+	expect(await spacingOf(counter)).toBe(token.letterSpacing);
 
 	await open(page, '/add/anime?manual=1');
 	await page.getByLabel('Add a tag').fill('Brand new tag');
 	await page.getByLabel('Add a tag').press('Enter');
-	const badge = '.badge';
-	await expect(page.locator(badge).first()).toBeVisible();
-	expect(await sizeOf(page, badge)).toBe(token.fontSize);
-	expect(await spacingOf(page, badge)).toBe(token.letterSpacing);
+	const badge = page.getByText('new', { exact: true });
+	await expect(badge).toBeVisible();
+	expect(await sizeOf(badge)).toBe(token.fontSize);
+	expect(await spacingOf(badge)).toBe(token.letterSpacing);
 
 	await open(page, `/entries/${anime}`);
-	await expect(page.locator('.progress-label').first()).toBeVisible();
-	expect(await sizeOf(page, '.progress-label')).toBe(token.fontSize);
-	expect(await spacingOf(page, '.progress-label')).toBe(token.letterSpacing);
+	const label = page.getByText('Episodes', { exact: true });
+	await expect(label).toBeVisible();
+	expect(await sizeOf(label)).toBe(token.fontSize);
+	expect(await spacingOf(label)).toBe(token.letterSpacing);
 });
 
 test('Scenario: Phone tab bar labels have room', async ({ page }, info) => {
@@ -133,19 +140,19 @@ test('Scenario: Phone tab bar labels have room', async ({ page }, info) => {
 		await open(page, path);
 		const token = await eyebrowToken(page);
 		const nav = page.getByRole('navigation', { name: 'Main' });
-		await expect(nav.locator('.pill')).toBeVisible();
 		const m = await nav.evaluate((el) => {
 			const rect = (node: Element | Range) => node.getBoundingClientRect();
-			const pill = rect(el.querySelector('.pill')!);
+			const links = [...el.querySelectorAll('a')];
+			const pill = rect(el.querySelector('a[aria-current="page"]')!);
 			const active = el.querySelector('a[aria-current="page"] span')!;
 			const range = document.createRange();
 			range.selectNodeContents(active);
 			const text = rect(range);
-			const collections = rect(el.querySelector('a[href="/collections"]')!);
+			const collections = rect(links.find((a) => a.textContent?.trim() === 'Collections')!);
 			const bar = rect(el);
 			return {
-				sizes: [...el.querySelectorAll('a span')].map((s) => getComputedStyle(s).fontSize),
-				overflow: [...el.querySelectorAll('a span')].filter((s) => s.scrollWidth > s.clientWidth).map((s) => s.textContent),
+				sizes: links.flatMap((a) => [...a.querySelectorAll('span')]).map((s) => getComputedStyle(s).fontSize),
+				overflow: links.flatMap((a) => [...a.querySelectorAll('span')]).filter((s) => s.scrollWidth > s.clientWidth).map((s) => s.textContent),
 				left: text.left - pill.left,
 				right: pill.right - text.right,
 				collectionsLeft: collections.left - bar.left,

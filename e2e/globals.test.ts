@@ -1,5 +1,5 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
-import { calm, open, reset, seed } from './helpers.ts';
+import { calm, cardOf, cardTitles, cards, open, reset, seed, shelf } from './helpers.ts';
 
 test.beforeEach(async ({ page, request }) => {
 	await calm(page);
@@ -10,24 +10,28 @@ test('Scenario: Ambient is a fixed layer', async ({ page }) => {
 	await open(page, '/');
 	await page.evaluate(() => window.scrollTo(0, 2000));
 
-	const world = await page.locator('[data-world]').evaluate((el) => {
-		const own = getComputedStyle(el);
-		const layer = getComputedStyle(el, '::before');
-		return {
-			attachment: own.backgroundAttachment,
-			position: layer.position,
-			inset: [layer.top, layer.right, layer.bottom, layer.left],
-			z: layer.zIndex,
-			image: layer.backgroundImage,
-			isolation: own.isolation
-		};
+	// the world wrapper is the ancestor of the page that paints the fixed ::before layer
+	const world = await page.getByRole('main').evaluate((main) => {
+		for (let el = main.parentElement; el; el = el.parentElement) {
+			const layer = getComputedStyle(el, '::before');
+			if (layer.position !== 'fixed') continue;
+			const own = getComputedStyle(el);
+			return {
+				attachment: own.backgroundAttachment,
+				inset: [layer.top, layer.right, layer.bottom, layer.left],
+				z: layer.zIndex,
+				image: layer.backgroundImage,
+				isolation: own.isolation
+			};
+		}
+		return null;
 	});
-	expect(world.attachment).not.toContain('fixed');
-	expect(world.position).toBe('fixed');
-	expect(world.inset).toEqual(['0px', '0px', '0px', '0px']);
-	expect(Number(world.z)).toBeLessThan(0);
-	expect(world.image).toContain('radial-gradient');
-	expect(world.isolation).toBe('isolate');
+	expect(world).not.toBeNull();
+	expect(world!.attachment).not.toContain('fixed');
+	expect(world!.inset).toEqual(['0px', '0px', '0px', '0px']);
+	expect(Number(world!.z)).toBeLessThan(0);
+	expect(world!.image).toContain('radial-gradient');
+	expect(world!.isolation).toBe('isolate');
 });
 
 const cursor = (locator: Locator) => locator.first().evaluate((el) => getComputedStyle(el).cursor);
@@ -48,19 +52,25 @@ test('Scenario: Chrome text shows the default cursor', async ({ page, request },
 		entries: [{ type: 'anime', title: 'Frieren', status: 'progress', details: { year: 2023 }, progress: { episodes: { current: 3, total: 28 } } }]
 	});
 
+	const nav = page.getByRole('navigation', { name: 'Main' });
+	const main = page.getByRole('main');
+	for (const [path, eyebrow] of [['/animanga', 'Domain'], ['/', 'Music'], ['/animanga/anime', 'Animanga']] as const) {
+		await open(page, path);
+		expect(await cursor(main.getByText(eyebrow, { exact: true })), `${path} eyebrow`).toBe('default');
+	}
 	for (const path of ['/', '/animanga/anime']) {
 		await open(page, path);
-		expect(await cursor(page.locator('.eyebrow')), `${path} eyebrow`).toBe('default');
-		expect(await cursor(page.locator('.topbar nav a span')), `${path} nav label`).toBe('pointer');
+		expect(await cursor(nav.getByText('Music', { exact: true })), `${path} nav label`).toBe('pointer');
 	}
 	await open(page, '/');
-	expect(await cursor(page.locator('[data-shelf] .count')), 'shelf count').toBe('default');
-	expect(await cursor(page.locator('[data-shelf-row] [data-card-chip]')), 'shelf card chip').toBe('grab');
-	expect(await cursor(page.locator('[data-shelf-row] [data-card] .meta')), 'shelf card meta').toBe('grab');
+	const frieren = cardOf(shelf(page, 'In progress'), 'Frieren');
+	expect(await cursor(shelf(page, 'In progress').getByText(/^\d+$/)), 'shelf count').toBe('default');
+	expect(await cursor(frieren.getByText('Watching', { exact: true })), 'shelf card chip').toBe('grab');
+	expect(await cursor(frieren.getByText('2023', { exact: true })), 'shelf card meta').toBe('grab');
 	await open(page, '/animanga/anime');
-	await expect(page.locator('[data-shelf-row]')).toHaveCount(0);
-	expect(await cursor(page.locator('[data-card-chip]')), 'grid card chip').toBe('default');
-	expect(await cursor(page.locator('[data-card] .meta')), 'grid card meta').toBe('default');
+	await expect(page.getByRole('heading', { level: 2 })).toHaveCount(0);
+	expect(await cursor(cards(page).getByText('Watching', { exact: true })), 'grid card chip').toBe('default');
+	expect(await cursor(cards(page).getByText('2023', { exact: true })), 'grid card meta').toBe('default');
 });
 
 test('Scenario: Links and buttons keep the pointer', async ({ page, request }, info) => {
@@ -70,8 +80,8 @@ test('Scenario: Links and buttons keep the pointer', async ({ page, request }, i
 
 	for (const path of ['/', '/animanga/anime']) {
 		await open(page, path);
-		expect(await cursor(page.locator('.topbar nav a')), `${path} nav link`).toBe('pointer');
-		expect(await cursor(page.locator('[data-card-title] a')), `${path} card title link`).toBe('pointer');
+		expect(await cursor(page.getByRole('navigation', { name: 'Main' }).getByRole('link')), `${path} nav link`).toBe('pointer');
+		expect(await cursor(cardTitles(page).getByRole('link')), `${path} card title link`).toBe('pointer');
 	}
 	await open(page, '/');
 	expect(await cursor(page.getByRole('button', { name: 'Scroll right' }).and(page.locator(':enabled'))), 'shelf arrow').toBe('pointer');
@@ -91,8 +101,8 @@ test('Scenario: Prose keeps the text cursor and stays selectable', async ({ page
 		[`/collections/${collection}`, 'Quiet records for cold days.']
 	]) {
 		await open(page, path);
-		const prose = page.locator('[data-prose]');
-		await expect(prose, path).toHaveText(text);
+		const prose = page.getByText(text, { exact: true });
+		await expect(prose, path).toBeVisible();
 		const style = await prose.evaluate((el) => {
 			const s = getComputedStyle(el);
 			return { cursor: s.cursor, select: s.userSelect };
@@ -121,7 +131,7 @@ test('Scenario: Focus ring follows the element\'s own radius', async ({ page, re
 
 	const targets: [string, string, (page: Page) => Locator][] = [
 		['star rating', `/entries/${album}`, (p) => p.getByRole('slider', { name: 'Rating', exact: true })],
-		['nav link', '/', (p) => p.locator('.topbar nav a').first()],
+		['nav link', '/', (p) => p.getByRole('navigation', { name: 'Main' }).getByRole('link').first()],
 		['filter chip', '/music/albums', (p) => p.getByRole('toolbar', { name: 'Filters' }).getByRole('button', { name: 'All', exact: true })]
 	];
 
@@ -145,12 +155,12 @@ test('Scenario: Focused card shows one ring on its corners', async ({ page, requ
 	await seed(request, { entries: [{ type: 'album', title: 'Blonde' }] });
 	await open(page, '/music/albums');
 
-	const link = page.locator('[data-card-title] a');
+	const link = cardTitles(page).getByRole('link');
 	await link.focus();
 	await page.keyboard.press('Shift');
-	const cardShadow = () => page.locator('[data-card]').evaluate((el) => getComputedStyle(el).boxShadow);
+	const cardShadow = () => cards(page).evaluate((el) => getComputedStyle(el).boxShadow);
 	await expect.poll(cardShadow).toContain('rgb(243, 241, 236)');
-	expect(await page.locator('[data-card]').evaluate((el) => getComputedStyle(el).borderRadius)).toBe('24px');
+	expect(await cards(page).evaluate((el) => getComputedStyle(el).borderRadius)).toBe('24px');
 	expect((await ring(link)).style).toBe('none');
 	expect(await link.evaluate((el) => getComputedStyle(el).boxShadow)).toBe('none');
 });

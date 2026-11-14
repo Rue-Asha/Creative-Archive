@@ -1,7 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { calm, open, reset, seed } from './helpers.ts';
-
-const shelf = (page: Page, name: string) => page.getByRole('region', { name, exact: true });
+import { calm, cardTitles, cards, open, reset, seed, shelf } from './helpers.ts';
 const toggle = (page: Page, name: 'Grid' | 'Shelves') =>
 	page.getByRole('toolbar', { name: 'Filters' }).getByRole('button', { name, exact: true });
 
@@ -26,18 +24,17 @@ test('Scenario: Shelves view groups media by status', async ({ page, request }) 
 	await toggle(page, 'Shelves').click();
 
 	await expect(page).toHaveURL(/view=shelves/);
-	const shelves = page.locator('[data-shelf]');
-	await expect(shelves).toHaveCount(3);
-	await expect(shelves.locator('h2')).toHaveText(['Reading', 'Want to read', 'Read']);
-	await expect(shelf(page, 'Reading').locator('[data-card-title]')).toHaveText(['Ongoing']);
-	await expect(shelf(page, 'Want to read').locator('[data-card-title]')).toHaveText(['Planned']);
-	await expect(shelf(page, 'Read').locator('[data-card-title]')).toHaveText(['Finished']);
+	const headings = page.getByRole('heading', { level: 2 });
+	await expect(headings).toHaveText(['Reading', 'Want to read', 'Read']);
+	await expect(cardTitles(shelf(page, 'Reading'))).toHaveText(['Ongoing']);
+	await expect(cardTitles(shelf(page, 'Want to read'))).toHaveText(['Planned']);
+	await expect(cardTitles(shelf(page, 'Read'))).toHaveText(['Finished']);
 	await expect(shelf(page, 'Dropped')).toHaveCount(0);
 
 	await toggle(page, 'Grid').click();
 	await expect(page).not.toHaveURL(/view=/);
-	await expect(page.locator('[data-shelf]')).toHaveCount(0);
-	await expect(page.locator('[data-card]')).toHaveCount(3);
+	await expect(page.getByRole('heading', { level: 2 })).toHaveCount(0);
+	await expect(cards(page)).toHaveCount(3);
 });
 
 test('Scenario: Shelf headers stick on desktop', async ({ page, request }, info) => {
@@ -47,7 +44,12 @@ test('Scenario: Shelf headers stick on desktop', async ({ page, request }, info)
 	await seed(request, { entries: [{ type: 'manga', title: 'Planned', status: 'want' }, { type: 'manga', title: 'Ongoing', status: 'progress' }] });
 	await open(page, '/animanga/manga?view=shelves');
 
-	const positions = await page.locator('[data-shelf-head]').evaluateAll((els) => els.map((el) => getComputedStyle(el).position));
+	const positions = await page.getByRole('heading', { level: 2 }).evaluateAll((els) =>
+		els.map((el) => {
+			for (let node: Element | null = el; node; node = node.parentElement) if (getComputedStyle(node).position === 'sticky') return 'sticky';
+			return getComputedStyle(el).position;
+		})
+	);
 	expect(positions).toEqual(['sticky', 'sticky']);
 });
 
@@ -58,7 +60,12 @@ test('Scenario: Shelf headers do not stick on phone', async ({ page, request }, 
 	await seed(request, { entries: [{ type: 'manga', title: 'Planned', status: 'want' }, { type: 'manga', title: 'Ongoing', status: 'progress' }] });
 	await open(page, '/animanga/manga?view=shelves');
 
-	const positions = await page.locator('[data-shelf-head]').evaluateAll((els) => els.map((el) => getComputedStyle(el).position));
+	const positions = await page.getByRole('heading', { level: 2 }).evaluateAll((els) =>
+		els.map((el) => {
+			for (let node: Element | null = el; node; node = node.parentElement) if (getComputedStyle(node).position === 'sticky') return 'sticky';
+			return getComputedStyle(el).position;
+		})
+	);
 	expect(positions).toHaveLength(2);
 	for (const position of positions) expect(position).not.toBe('sticky');
 });
@@ -96,8 +103,8 @@ test('Scenario: Shelf rows drag-scroll with inertia on desktop', async ({ page, 
 	test.skip(info.project.name !== 'desktop', 'drag-scroll is mouse-only');
 	await shelfWithManyCards(request);
 	await open(page, '/animanga/manga?view=shelves');
-	const row = shelf(page, 'Want to read').locator('[data-shelf-row]');
-	await expect(row.locator('[data-card]')).toHaveCount(20);
+	const row = shelf(page, 'Want to read').getByRole('list');
+	await expect(cards(row)).toHaveCount(20);
 
 	const before = await drag(page, row);
 	await expect.poll(() => row.evaluate((el) => el.scrollLeft)).toBeGreaterThan(before);
@@ -109,7 +116,7 @@ test('Scenario: Reduced motion drag-scroll stops on release', async ({ page, req
 	await calm(page);
 	await shelfWithManyCards(request);
 	await open(page, '/animanga/manga?view=shelves');
-	const row = shelf(page, 'Want to read').locator('[data-shelf-row]');
+	const row = shelf(page, 'Want to read').getByRole('list');
 
 	const before = await drag(page, row);
 	await page.waitForTimeout(400);

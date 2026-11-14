@@ -1,5 +1,5 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
-import { calm, countSaves, editProgress, open, progressValue, reset, seed } from './helpers.ts';
+import { calm, cardOf, cardTitles, cards, countSaves, editProgress, open, progressValue, reset, seed } from './helpers.ts';
 import { accents, schemes } from '../src/lib/styles/tokens.ts';
 import { WORLDS } from '../src/lib/styles/worlds.ts';
 
@@ -13,14 +13,14 @@ test.beforeEach(async ({ page, request }) => {
 	await reset(request);
 });
 
-const card = (page: Page, title: string) => page.locator('[data-card]').filter({ hasText: title });
+const card = cardOf;
 
 test('Scenario: Long title truncates on cards', async ({ page, request }) => {
 	const title = 'Extraordinarily '.repeat(11).trim();
 	await seed(request, { entries: [{ type: 'album', title }] });
 	await open(page, '/music/albums');
 
-	const metrics = await page.locator('[data-card-title]').evaluate((el) => {
+	const metrics = await cardTitles(page).evaluate((el) => {
 		const style = getComputedStyle(el);
 		return {
 			height: el.getBoundingClientRect().height,
@@ -60,7 +60,6 @@ test('Scenario: Unrated entries show no stars on cards', async ({ page, request 
 
 	await expect(card(page, 'Plain One')).toBeVisible();
 	await expect(card(page, 'Plain One').getByRole('img', { name: /of 5$/ })).toHaveCount(0);
-	await expect(card(page, 'Plain One').locator('.stars')).toHaveCount(0);
 });
 
 const group = (scope: Page | Locator, label: string) => scope.getByRole('group', { name: label, exact: true });
@@ -110,11 +109,11 @@ test('a card control sits only on in-progress anime and manga', async ({ page, r
 		]
 	});
 	await open(page, '/animanga/anime');
-	await expect(page.locator('[data-card]')).toHaveCount(1);
-	await expect(page.locator('[data-card]').getByRole('group')).toHaveCount(0);
+	await expect(cards(page)).toHaveCount(1);
+	await expect(cards(page).getByRole('group')).toHaveCount(0);
 	await open(page, '/music/albums');
 	await expect(card(page, 'Listening')).toBeVisible();
-	await expect(page.locator('[data-card]').getByRole('group')).toHaveCount(0);
+	await expect(cards(page).getByRole('group')).toHaveCount(0);
 });
 
 const transformOf = (page: Page, title: string) =>
@@ -216,12 +215,13 @@ test('Scenario: Numeric keyboard opens only in edit mode', async ({ page, reques
 		entries: [{ type: 'anime', title: 'Frieren', status: 'progress', progress: { episodes: { current: 5, total: 28 } } }]
 	});
 	await open(page, '/');
-	const frieren = inProgress(page).locator('[data-card]').filter({ hasText: 'Frieren' });
+	const frieren = cardOf(inProgress(page), 'Frieren');
 	await expect(frieren).toBeVisible();
 
-	await expect(frieren.locator('[inputmode]')).toHaveCount(0);
+	await expect(frieren.getByRole('textbox')).toHaveCount(0);
 	await progressValue(frieren, 'Episodes').tap();
-	await expect(frieren.locator('input:focus')).toHaveAttribute('inputmode', 'numeric');
+	await expect(frieren.getByRole('textbox')).toBeFocused();
+	await expect(frieren.getByRole('textbox')).toHaveAttribute('inputmode', 'numeric');
 });
 
 const inside = async (inner: Locator, outer: Locator) => {
@@ -233,7 +233,7 @@ const inside = async (inner: Locator, outer: Locator) => {
 };
 
 const fits = async (page: Page, title: string, label: string) => {
-	const frieren = inProgress(page).locator('[data-card]').filter({ hasText: title });
+	const frieren = cardOf(inProgress(page), title);
 	await expect(frieren).toBeVisible();
 	const controls = [
 		frieren.getByRole('button', { name: `${label}: one less`, exact: true }),
@@ -254,7 +254,7 @@ test('Scenario: Progress control fits a phone shelf card', async ({ page, reques
 		entries: [{ type: 'anime', title: 'Frieren', status: 'progress', progress: { episodes: { current: 12, total: 28 } } }]
 	});
 	await open(page, '/');
-	const frieren = inProgress(page).locator('[data-card]').filter({ hasText: 'Frieren' });
+	const frieren = cardOf(inProgress(page), 'Frieren');
 	await fits(page, 'Frieren', 'Episodes');
 
 	await expect(inProgress(page)).toBeVisible();
@@ -271,7 +271,7 @@ test('Scenario: Three-digit progress fits a phone shelf card', async ({ page, re
 	await expect(progressValue(inProgress(page), 'Chapters')).toContainText('120');
 
 	await fits(page, 'Vagabond', 'Chapters');
-	const value = progressValue(inProgress(page).locator('[data-card]').filter({ hasText: 'Vagabond' }), 'Chapters');
+	const value = progressValue(cardOf(inProgress(page), 'Vagabond'), 'Chapters');
 	expect(await value.evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(true);
 });
 

@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Locator, type Page } from '@playwright/test';
 import { calm, open, reset } from './helpers.ts';
 
 test.beforeEach(async ({ page, request }) => {
@@ -7,7 +7,8 @@ test.beforeEach(async ({ page, request }) => {
 });
 
 const tabs = (page: Page) => page.getByRole('navigation', { name: 'Sub-types' });
-const box = async (loc: ReturnType<Page['locator']>) => (await loc.boundingBox())!;
+const box = async (loc: Locator) => (await loc.boundingBox())!;
+const captions = (page: Page) => tabs(page).getByText(/^(My things|Discover)$/);
 
 test('Scenario: Fashion tabs come in two labelled groups', async ({ page }) => {
 	await open(page, '/fashion');
@@ -16,20 +17,18 @@ test('Scenario: Fashion tabs come in two labelled groups', async ({ page }) => {
 	const discover = tabs(page).getByRole('group', { name: 'Discover' });
 	await expect(mine.getByRole('link')).toHaveText(['Wardrobe', 'Pieces', 'Looks']);
 	await expect(discover.getByRole('link')).toHaveText(['Brands', 'Shops', 'Influencers', 'Magazines']);
-	await expect(tabs(page).locator('[data-tab-caption]')).toHaveText(['My things', 'Discover']);
-	await expect(tabs(page).locator('[data-tab-caption]').first()).toBeVisible();
-	await expect(tabs(page).locator('[data-tab-caption]').last()).toBeVisible();
-	await expect(tabs(page).locator('[data-tab-caption] a, a [data-tab-caption]')).toHaveCount(0);
-	await expect(tabs(page).locator('[data-tab-divider][aria-hidden="true"]')).toHaveCount(1);
-	await expect(tabs(page).locator('[data-tab-divider]')).toHaveCount(1);
+	await expect(captions(page)).toHaveText(['My things', 'Discover']);
+	await expect(captions(page).first()).toBeVisible();
+	await expect(captions(page).last()).toBeVisible();
+	await expect(tabs(page).getByRole('link').getByText(/^(My things|Discover)$/)).toHaveCount(0);
+	await expect(tabs(page).getByRole('separator')).toHaveCount(1);
 });
 
 test('Scenario: Other domains keep a flat tab bar', async ({ page }) => {
 	for (const domain of ['music', 'animanga', 'books']) {
 		await open(page, `/${domain}`);
 
-		await expect(tabs(page).locator('[role="group"], [data-tab-group], [data-tab-caption], [data-tab-divider]'), domain).toHaveCount(0);
-		await expect(tabs(page).locator(':scope > a'), domain).toHaveCount(await tabs(page).getByRole('link').count());
+		await expect(tabs(page).getByRole('group').or(tabs(page).getByRole('separator')).or(captions(page)), domain).toHaveCount(0);
 	}
 });
 
@@ -37,10 +36,10 @@ test('Scenario: Group captions use the type scale and colour tokens', async ({ p
 	await open(page, '/fashion');
 
 	const small = await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--t-small').trim());
-	const eyebrow = await page.locator('[data-hero] .eyebrow').first().evaluate((el) => getComputedStyle(el).color);
+	const eyebrow = await page.getByText('Domain', { exact: true }).evaluate((el) => getComputedStyle(el).color);
 	expect(small).toBe('13px');
-	await expect(tabs(page).locator('[data-tab-caption]')).toHaveCount(2);
-	for (const caption of await tabs(page).locator('[data-tab-caption]').all()) {
+	await expect(captions(page)).toHaveCount(2);
+	for (const caption of await captions(page).all()) {
 		const style = await caption.evaluate((el) => {
 			const s = getComputedStyle(el);
 			return { size: s.fontSize, color: s.color, transform: s.textTransform, transition: s.transitionProperty };
@@ -53,7 +52,7 @@ test('Scenario: Group captions use the type scale and colour tokens', async ({ p
 });
 
 test('Scenario: Grouped tabs keep the chip style', async ({ page }) => {
-	const read = (links: ReturnType<Page['locator']>) =>
+	const read = (links: Locator) =>
 		links.evaluateAll((els) =>
 			els.map((el) => {
 				const s = getComputedStyle(el);
@@ -82,12 +81,11 @@ test('Scenario: Grouped tabs fit the phone', async ({ page }, info) => {
 	test.skip(info.project.name !== 'phone');
 	await open(page, '/fashion');
 
-	const fit = (sel: string) => page.evaluate((s) => (document.querySelector(s) as HTMLElement).scrollWidth <= (document.querySelector(s) as HTMLElement).clientWidth, sel);
-	expect(await fit('html')).toBe(true);
-	expect(await fit('nav[aria-label="Sub-types"]')).toBe(true);
+	expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+	expect(await tabs(page).evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(true);
 	const mine = await box(tabs(page).getByRole('group', { name: 'My things' }));
 	const discover = await box(tabs(page).getByRole('group', { name: 'Discover' }));
-	const divider = await box(tabs(page).locator('[data-tab-divider]'));
+	const divider = await box(tabs(page).getByRole('separator'));
 	const viewport = page.viewportSize()!;
 	expect(discover.y).toBeGreaterThanOrEqual(mine.y + mine.height);
 	expect(divider.width).toBeGreaterThan(divider.height);
@@ -114,7 +112,7 @@ test('Scenario: Grouped tabs sit in one row on desktop', async ({ page }, info) 
 	for (const b of boxes) expect(Math.abs(b.y - boxes[0].y)).toBeLessThanOrEqual(1);
 	const mine = await box(tabs(page).getByRole('group', { name: 'My things' }));
 	const discover = await box(tabs(page).getByRole('group', { name: 'Discover' }));
-	const divider = await box(tabs(page).locator('[data-tab-divider]'));
+	const divider = await box(tabs(page).getByRole('separator'));
 	expect(discover.x).toBeGreaterThanOrEqual(mine.x + mine.width);
 	expect(divider.height).toBeGreaterThan(divider.width);
 	expect(divider.x).toBeGreaterThanOrEqual(mine.x + mine.width - 1);

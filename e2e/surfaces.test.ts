@@ -1,10 +1,10 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Locator, type Page } from '@playwright/test';
 import { calm, open, reset, seed } from './helpers.ts';
 
 // Splits a computed CSS image value into its gradient layers and counts each layer's colour stops, with the
 // positions of those that name one.
-const gradients = (page: Page, selector: string, property: 'maskImage' | 'backgroundImage') =>
-	page.locator(selector).first().evaluate((el, prop) => {
+const gradients = (locator: Locator, property: 'maskImage' | 'backgroundImage') =>
+	locator.evaluate((el, prop) => {
 		const value = getComputedStyle(el)[prop];
 		const top = (text: string) => {
 			const parts: string[] = [];
@@ -44,18 +44,26 @@ const noHardStep = (layers: { layer: string; positions: number[] }[]) => {
 	for (const { layer, positions } of layers) positions.slice(1).forEach((p, i) => expect(p, layer).toBeGreaterThan(positions[i]));
 };
 
+// the hero's photo box and its scrim are the two aria-hidden layers next to the hero's content
+const heroLayers = (page: Page) => {
+	const hero = page.locator('[data-hero-image]').locator('xpath=ancestor::header[1]');
+	const layers = hero.locator(':scope > [aria-hidden="true"]');
+	return { photo: layers.nth(0), scrim: layers.nth(1) };
+};
+
 test('Scenario: Hero photo fades through the eased mask', async ({ page, request }) => {
 	await calm(page);
 	await reset(request);
 	await seed(request, { heroes: ['music'] });
 	await open(page, '/music');
 
-	await expect(page.locator('[data-hero] [data-hero-image]')).toHaveCount(1);
-	fiveStops(await gradients(page, '[data-hero] .photo', 'maskImage'));
-	fiveStops(await gradients(page, '[data-hero] .scrim', 'maskImage'));
-	const scrim = await gradients(page, '[data-hero] .scrim', 'backgroundImage');
-	fiveStops(scrim);
-	noHardStep(scrim);
+	await expect(page.locator('[data-hero-image]')).toHaveCount(1);
+	const { photo, scrim } = heroLayers(page);
+	fiveStops(await gradients(photo, 'maskImage'));
+	fiveStops(await gradients(scrim, 'maskImage'));
+	const ramp = await gradients(scrim, 'backgroundImage');
+	fiveStops(ramp);
+	noHardStep(ramp);
 });
 
 test('Scenario: Framed Home hero fades the same way', async ({ page, request }) => {
@@ -64,7 +72,7 @@ test('Scenario: Framed Home hero fades the same way', async ({ page, request }) 
 	await seed(request, { heroes: ['home'] });
 	await open(page, '/');
 
-	fiveStops(await gradients(page, '.frame [data-hero] .photo', 'maskImage'));
+	fiveStops(await gradients(heroLayers(page).photo, 'maskImage'));
 });
 
 test('Scenario: Hero without photo blends in oklab', async ({ page, request }) => {
@@ -72,18 +80,21 @@ test('Scenario: Hero without photo blends in oklab', async ({ page, request }) =
 	await reset(request);
 	await open(page, '/books');
 
-	const layers = await gradients(page, '[data-hero] [data-hero-gradient]', 'backgroundImage');
+	const gradient = page.locator('[data-hero-gradient]');
+	const layers = await gradients(gradient, 'backgroundImage');
 	// the ambient radial is already resolved to oklab() stops, so only the linear layer names its space
 	const linear = layers.filter(({ layer }) => layer.startsWith('linear-gradient'));
 	expect(linear.length).toBeGreaterThan(0);
 	for (const { layer } of linear) expect(layer).toContain('in oklab');
-	const image = await page.locator('[data-hero-gradient]').evaluate((el) => getComputedStyle(el).backgroundImage);
+	const image = await gradient.evaluate((el) => getComputedStyle(el).backgroundImage);
 	expect(image).toContain('url(');
 });
 
-const glowOf = (page: Page, scope: string) => page.locator(`${scope} .glow`);
+// a glow is the aria-hidden box that holds the one blurred cover
+const glowOf = (scope: Locator) => scope.locator('[aria-hidden="true"]:has(> img)');
+const firstShelf = (page: Page) => page.getByRole('region').filter({ has: page.getByRole('article') }).first();
 
-async function glowStyle(glow: ReturnType<typeof glowOf>) {
+async function glowStyle(glow: Locator) {
 	return glow.first().evaluate((el) => {
 		const style = getComputedStyle(el);
 		const saturate = /saturate\(([\d.]+)\)/.exec(style.filter);
@@ -102,8 +113,8 @@ test('Scenario: Shelf glow comes from one cover', async ({ page, request }) => {
 	await seed(request, { entries: covers(3) });
 	await open(page, '/music');
 
-	const glow = glowOf(page, '[data-shelf]');
-	await expect(page.locator('[data-shelf]').first()).toBeVisible();
+	const glow = glowOf(firstShelf(page));
+	await expect(firstShelf(page)).toBeVisible();
 	await expect(glow.first().locator('img')).toHaveCount(1);
 	const style = await glowStyle(glow);
 	expect(style.saturate).toBeLessThanOrEqual(1.2);
@@ -117,13 +128,13 @@ test('Scenario: Shelf glow is centred', async ({ page, request }, info) => {
 	await seed(request, { entries: covers(1) });
 	await open(page, '/music');
 
-	const section = page.locator('[data-shelf]').first();
-	const sectionBox = (await section.boundingBox())!;
-	const glowBox = (await glowOf(page, '[data-shelf]').first().boundingBox())!;
+	const sectionBox = (await firstShelf(page).boundingBox())!;
+	const glow = glowOf(firstShelf(page)).first();
+	const glowBox = (await glow.boundingBox())!;
 	const centre = (box: { x: number; width: number }) => box.x + box.width / 2;
 	expect(Math.abs(centre(glowBox) - centre(sectionBox))).toBeLessThanOrEqual(2);
 	// the light itself, not only its box: the one cover fills the whole box
-	const imageBox = (await glowOf(page, '[data-shelf]').first().locator('img').boundingBox())!;
+	const imageBox = (await glow.locator('img').boundingBox())!;
 	expect(Math.abs(centre(imageBox) - centre(sectionBox))).toBeLessThanOrEqual(2);
 });
 
@@ -134,8 +145,8 @@ test('Scenario: Shelf glow has room to fade vertically', async ({ page, request 
 	await seed(request, { entries: covers(3) });
 	await open(page, '/music');
 
-	const sectionBox = (await page.locator('[data-shelf]').first().boundingBox())!;
-	const glowBox = (await glowOf(page, '[data-shelf]').first().boundingBox())!;
+	const sectionBox = (await firstShelf(page).boundingBox())!;
+	const glowBox = (await glowOf(firstShelf(page)).first().boundingBox())!;
 	const room = sectionBox.height * 0.15;
 	expect(sectionBox.y - glowBox.y).toBeGreaterThanOrEqual(room);
 	expect(glowBox.y + glowBox.height - (sectionBox.y + sectionBox.height)).toBeGreaterThanOrEqual(room);
@@ -147,8 +158,8 @@ test('Scenario: No glow without covers', async ({ page, request }) => {
 	await seed(request, { entries: [{ type: 'album', title: 'Plain', status: 'want' }] });
 	await open(page, '/music');
 
-	await expect(page.locator('[data-shelf]').first()).toBeVisible();
-	await expect(glowOf(page, '[data-shelf]')).toHaveCount(0);
+	await expect(firstShelf(page)).toBeVisible();
+	await expect(glowOf(firstShelf(page))).toHaveCount(0);
 });
 
 test('Scenario: Bento and list glows match the shelf glow', async ({ page, request }) => {
@@ -163,14 +174,14 @@ test('Scenario: Bento and list glows match the shelf glow', async ({ page, reque
 	});
 	await open(page, '/');
 
-	const bento = glowOf(page, '[aria-label="Collections"]');
+	const bento = glowOf(page.getByRole('region', { name: 'Collections', exact: true }));
 	await expect(bento.first().locator('img')).toHaveCount(1);
 	const bentoStyle = await glowStyle(bento);
 	expect(bentoStyle.saturate).toBeLessThanOrEqual(1.2);
 	expect(stops(bentoStyle.mask)).toBeGreaterThanOrEqual(5);
 
 	await open(page, '/music/albums');
-	const list = glowOf(page, '[aria-label$=" list"]');
+	const list = glowOf(page.getByRole('region', { name: / list$/ }));
 	await expect(list.first().locator('img')).toHaveCount(1);
 	const listStyle = await glowStyle(list);
 	expect(listStyle.saturate).toBeLessThanOrEqual(1.2);
@@ -184,8 +195,8 @@ test('Scenario: Sticky shelf head keeps the heading on the column edge', async (
 	await seed(request, { entries: [{ type: 'manga', title: 'Planned', status: 'want' }] });
 	await open(page, '/animanga/manga?view=shelves');
 
-	const head = page.locator('[data-shelf-head]').first();
-	const heading = (await head.locator('h2').boundingBox())!;
+	const head = page.locator('main [data-column]').filter({ has: page.getByRole('heading', { level: 2 }) }).first();
+	const heading = (await head.getByRole('heading', { level: 2 }).boundingBox())!;
 	expect(Math.abs(heading.x - (1280 - 1200) / 2)).toBeLessThanOrEqual(1);
 	const bar = await head.evaluate((el) => {
 		const style = getComputedStyle(el, '::before');

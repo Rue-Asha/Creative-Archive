@@ -17,8 +17,6 @@ const TABS = {
 
 const slugs = { Albums: 'albums', Artists: 'artists', Songs: 'songs', Anime: 'anime', Manga: 'manga', Books: 'books', Brands: 'brands', Shops: 'shops', Influencers: 'influencers', Magazines: 'magazines', Pieces: 'pieces', Wardrobe: 'wardrobe', Looks: 'looks' } as const;
 
-const hero = (page: Page) => page.locator('[data-hero]');
-
 test.beforeEach(async ({ page, request }) => {
 	await calm(page);
 	await reset(request);
@@ -27,19 +25,19 @@ test.beforeEach(async ({ page, request }) => {
 test('Scenario: Domain page shows its hero photo', async ({ page, request }) => {
 	await seed(request, { heroes: ['music'] });
 	await open(page, '/settings');
-	const id = await page.getByRole('region', { name: 'Music' }).locator('img').getAttribute('src');
+	const id = await page.getByRole('region', { name: 'Music' }).getByRole('presentation').getAttribute('src');
 
 	await open(page, '/music');
 
-	await expect(hero(page).locator('img')).toHaveAttribute('src', id!);
+	await expect(page.locator('[data-hero-image]')).toHaveAttribute('src', id!);
 });
 
 test('Scenario: Domain without hero photo shows the theme gradient', async ({ page }) => {
 	await open(page, '/books');
 
-	const gradient = hero(page).locator('[data-hero-gradient]');
+	const gradient = page.locator('[data-hero-gradient]');
 	await expect(gradient).toBeVisible();
-	await expect(hero(page).locator('img')).toHaveCount(0);
+	await expect(page.locator('[data-hero-image]')).toHaveCount(0);
 	const { scheme, accent } = WORLDS.books;
 	const soft = rgb(accents[accent][scheme]['accent-soft']);
 	const surface = rgb(schemes[scheme]['surface-2']);

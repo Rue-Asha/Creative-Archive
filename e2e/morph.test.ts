@@ -1,10 +1,9 @@
 import { expect, test, type Page } from '@playwright/test';
-import { calm, open, reset, seed } from './helpers.ts';
+import { calm, cardOf, cards, open, reset, seed, shelf } from './helpers.ts';
 
 interface Named {
 	name: string;
 	card: boolean;
-	coverId: string | null;
 }
 
 interface Rest {
@@ -41,8 +40,7 @@ async function watchMorph(page: Page) {
 		const named = (): Named[] =>
 			covers().map((el) => ({
 				name: getComputedStyle(el).viewTransitionName,
-				card: el.closest('[data-card]') !== null,
-				coverId: el.getAttribute('data-cover-id')
+				card: el.closest('article') !== null
 			}));
 		const halfway = (name: string): Halfway => {
 			const pseudo = (part: string) => getComputedStyle(document.documentElement, `::view-transition-${part}(${name})`);
@@ -62,7 +60,7 @@ async function watchMorph(page: Page) {
 			window.__morphLog.calls++;
 			window.__morphLog.old = named();
 			for (const el of covers()) {
-				const card = el.closest('[data-card]');
+				const card = el.closest('article');
 				const img = el.querySelector('img');
 				if (card && img) window.__morphLog.rest.push({ card: getComputedStyle(card).transform, image: getComputedStyle(img).transform });
 			}
@@ -107,31 +105,31 @@ test('Scenario: Card to detail morphs the cover', async ({ page, request }) => {
 	const id = await seeded(request);
 	await watchMorph(page);
 	await open(page, '/music/albums');
-	await page.locator('[data-card]').filter({ hasText: 'Blonde' }).getByRole('link', { name: 'Blonde' }).click();
+	await cardOf(page, 'Blonde').getByRole('link', { name: 'Blonde' }).click();
 
 	await expect(page).toHaveURL(`/entries/${id}`);
 	await expect(page.getByRole('heading', { level: 1, name: 'Blonde' })).toBeVisible();
 	const seen = await log(page);
 	expect(seen.calls).toBe(1);
-	expect(seen.old).toEqual([{ name: `cover-${id}`, card: true, coverId: String(id) }]);
-	expect(seen.during).toEqual([{ name: `cover-${id}`, card: false, coverId: String(id) }]);
+	expect(seen.old).toEqual([{ name: `cover-${id}`, card: true }]);
+	expect(seen.during).toEqual([{ name: `cover-${id}`, card: false }]);
 });
 
 test('Scenario: Back from detail reverses the morph', async ({ page, request }) => {
 	const id = await seeded(request);
 	await watchMorph(page);
 	await open(page, '/music/albums');
-	await page.locator('[data-card]').filter({ hasText: 'Blonde' }).getByRole('link', { name: 'Blonde' }).click();
+	await cardOf(page, 'Blonde').getByRole('link', { name: 'Blonde' }).click();
 	await expect(page.getByRole('heading', { level: 1, name: 'Blonde' })).toBeVisible();
 	await page.evaluate(() => (window.__morphLog = { calls: 0, finished: 0, old: [], during: [], rest: [], halfway: [] }));
 	await page.goBack();
 
 	await expect(page).toHaveURL('/music/albums');
-	await expect(page.locator('[data-card]')).toHaveCount(2);
+	await expect(cards(page)).toHaveCount(2);
 	const seen = await log(page);
 	expect(seen.calls).toBe(1);
-	expect(seen.old).toEqual([{ name: `cover-${id}`, card: false, coverId: String(id) }]);
-	expect(seen.during).toEqual([{ name: `cover-${id}`, card: true, coverId: String(id) }]);
+	expect(seen.old).toEqual([{ name: `cover-${id}`, card: false }]);
+	expect(seen.during).toEqual([{ name: `cover-${id}`, card: true }]);
 });
 
 test('Scenario: Reduced motion skips the morph', async ({ page, request }) => {
@@ -139,7 +137,7 @@ test('Scenario: Reduced motion skips the morph', async ({ page, request }) => {
 	await seeded(request);
 	await watchMorph(page);
 	await open(page, '/music/albums');
-	await page.locator('[data-card]').filter({ hasText: 'Blonde' }).getByRole('link', { name: 'Blonde' }).click();
+	await cardOf(page, 'Blonde').getByRole('link', { name: 'Blonde' }).click();
 
 	await expect(page.getByRole('heading', { level: 1, name: 'Blonde' })).toBeVisible();
 	expect((await log(page)).calls).toBe(0);
@@ -153,7 +151,7 @@ test('Scenario: Morphing cover keeps its rounded corners', async ({ page, reques
 	const id = await seeded(request);
 	await watchMorph(page);
 	await open(page, '/music/albums');
-	await page.locator('[data-card]').filter({ hasText: 'Blonde' }).getByRole('link', { name: 'Blonde' }).click();
+	await cardOf(page, 'Blonde').getByRole('link', { name: 'Blonde' }).click();
 	await expect(page.getByRole('heading', { level: 1, name: 'Blonde' })).toBeVisible();
 	await expect.poll(async () => (await log(page)).finished).toBe(1);
 	await page.goBack();
@@ -161,7 +159,7 @@ test('Scenario: Morphing cover keeps its rounded corners', async ({ page, reques
 	await expect.poll(async () => (await log(page)).halfway.length).toBe(2);
 
 	const { halfway, during } = await log(page);
-	expect(during).toEqual([{ name: `cover-${id}`, card: true, coverId: String(id) }]);
+	expect(during).toEqual([{ name: `cover-${id}`, card: true }]);
 	for (const h of halfway) {
 		expect(h.radius).toBe('24px');
 		expect(['hidden', 'clip']).toContain(h.overflow);
@@ -172,7 +170,7 @@ test('Scenario: Morph carries the detail cover\'s shadow', async ({ page, reques
 	await seeded(request);
 	await watchMorph(page);
 	await open(page, '/music/albums');
-	await page.locator('[data-card]').filter({ hasText: 'Blonde' }).getByRole('link', { name: 'Blonde' }).click();
+	await cardOf(page, 'Blonde').getByRole('link', { name: 'Blonde' }).click();
 	await expect(page.getByRole('heading', { level: 1, name: 'Blonde' })).toBeVisible();
 	await expect.poll(async () => (await log(page)).halfway.length).toBe(1);
 
@@ -184,12 +182,12 @@ test('Scenario: Forward morph starts from the card at rest', async ({ page, requ
 	await seeded(request);
 	await watchMorph(page);
 	await open(page, '/music/albums');
-	const card = page.locator('[data-card]').filter({ hasText: 'Blonde' });
+	const card = cardOf(page, 'Blonde');
 	const box = (await card.boundingBox())!;
 	await page.mouse.move(box.x + box.width * 0.5, box.y + box.height * 0.5);
 	await page.mouse.move(box.x + box.width * 0.8, box.y + box.height * 0.2, { steps: 4 });
 	await expect.poll(() => card.evaluate((el) => getComputedStyle(el).transform)).toContain('matrix3d');
-	await expect.poll(() => card.locator('img').evaluate((el) => getComputedStyle(el).transform)).not.toBe('none');
+	await expect.poll(() => card.getByRole('presentation').evaluate((el) => getComputedStyle(el).transform)).not.toBe('none');
 	await card.getByRole('link', { name: 'Blonde' }).click();
 
 	await expect(page.getByRole('heading', { level: 1, name: 'Blonde' })).toBeVisible();
@@ -208,7 +206,7 @@ test('Scenario: Morph does not stretch between shapes', async ({ page, request }
 	});
 	await watchMorph(page);
 	await open(page, '/');
-	await page.locator('[data-shelf="progress"] [data-card]').filter({ hasText: 'Vagabond' }).getByRole('link', { name: 'Vagabond' }).click();
+	await cardOf(shelf(page, 'In progress'), 'Vagabond').getByRole('link', { name: 'Vagabond' }).click();
 	await expect(page).toHaveURL(`/entries/${id}`);
 	await expect.poll(async () => (await log(page)).halfway.length).toBe(1);
 

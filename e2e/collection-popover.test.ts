@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { calm, countSaves, open, reset, seed } from './helpers.ts';
+import { calm, cardTitles, cards, countSaves, open, reset, seed } from './helpers.ts';
 
 const popover = (page: Page) => page.getByRole('menu', { name: 'Add to collection' });
 const toggle = (page: Page) => page.getByRole('button', { name: 'Add to collection' });
@@ -25,7 +25,7 @@ test('Scenario: Add an entry from its detail page', async ({ page, request }) =>
 
 	await expect(item).toHaveAttribute('aria-checked', 'true');
 	await open(page, `/collections/${id}`);
-	await expect(page.locator('[data-card-title]')).toHaveText(['Blonde']);
+	await expect(cardTitles(page)).toHaveText(['Blonde']);
 });
 
 test('Scenario: Create a collection from the popover', async ({ page, request }) => {
@@ -40,8 +40,8 @@ test('Scenario: Create a collection from the popover', async ({ page, request })
 
 	await expect(popover(page).getByRole('menuitemcheckbox', { name: 'Late Night' })).toHaveAttribute('aria-checked', 'true');
 	await open(page, '/collections');
-	const card = page.locator('[data-collection-card]', { hasText: 'Late Night' });
-	await expect(card.locator('[data-count]')).toHaveText('1');
+	const card = cards(page).filter({ hasText: 'Late Night' });
+	await expect(card.getByLabel('1 entry', { exact: true })).toHaveText('1');
 });
 
 test('Scenario: Adding an entry twice from the popover keeps one', async ({ page, request }) => {
@@ -59,7 +59,7 @@ test('Scenario: Adding an entry twice from the popover keeps one', async ({ page
 	await toggle(page).click();
 	await expect(popover(page).getByRole('menuitemcheckbox', { name: 'Moodboard' })).toHaveAttribute('aria-checked', 'true');
 	await open(page, '/collections');
-	await expect(page.locator('[data-collection-card]', { hasText: 'Moodboard' }).locator('[data-count]')).toHaveText('1');
+	await expect(cards(page).filter({ hasText: 'Moodboard' }).getByLabel('1 entry', { exact: true })).toHaveText('1');
 });
 
 test('Scenario: Failed save in the popover shows a toast and reverts', async ({ page, request }) => {

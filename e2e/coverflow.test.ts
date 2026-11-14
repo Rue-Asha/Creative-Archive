@@ -1,9 +1,11 @@
 import { expect, test, type Page } from '@playwright/test';
 import { calm, open, reset, seed, type SeedEntry } from './helpers.ts';
 
-const flow = (page: Page) => page.locator('[data-coverflow]');
-const active = (page: Page) => flow(page).locator('[data-active]');
-const counter = (page: Page) => flow(page).locator('.counter');
+const flow = (page: Page) => page.getByRole('region', { name: 'Latest additions', exact: true });
+const stage = (page: Page) => flow(page).getByRole('group', { name: 'Latest entries', exact: true });
+const slides = (page: Page) => stage(page).getByRole('group');
+const active = (page: Page) => slides(page).and(page.locator('[aria-current="true"]'));
+const counter = (page: Page) => flow(page).getByLabel(/^\d+ of \d+$/);
 const next = (page: Page) => flow(page).getByRole('button', { name: 'Next entry' });
 const prev = (page: Page) => flow(page).getByRole('button', { name: 'Previous entry' });
 
@@ -17,8 +19,7 @@ const entries = (n: number, image = true): SeedEntry[] =>
 	}));
 
 const rotation = (page: Page, which: 'active' | number) =>
-	flow(page)
-		.locator('[data-coverflow-card]')
+	slides(page)
 		.nth(which === 'active' ? 0 : which)
 		.evaluate((el) => new DOMMatrix(getComputedStyle(el).transform).m13);
 
@@ -32,7 +33,7 @@ test('Scenario: Coverflow shows the most recent entries with images', async ({ p
 	await open(page, '/');
 
 	await expect(counter(page)).toHaveText(/^01\s*\/\s*20$/);
-	await expect(flow(page).locator('[data-coverflow-card]')).toHaveCount(20);
+	await expect(slides(page)).toHaveCount(20);
 	await expect(active(page)).toContainText('Entry 22');
 	await expect(flow(page).getByText('Entry 2', { exact: true })).toHaveCount(0);
 });
@@ -66,7 +67,7 @@ test('Scenario: Arrow keys step the coverflow on desktop', async ({ page, reques
 	await seed(request, { entries: entries(5) });
 	await open(page, '/');
 
-	await flow(page).locator('[data-coverflow-stage]').focus();
+	await stage(page).focus();
 	await page.keyboard.press('ArrowRight');
 	await expect(counter(page)).toHaveText(/^02\s*\/\s*05$/);
 	await page.keyboard.press('ArrowLeft');
@@ -126,7 +127,7 @@ test('a swipe does not swallow the next tap on a side card', async ({ page, requ
 	await expect(counter(page)).toHaveText(/^02\s*\/\s*05$/);
 	await settled(page);
 
-	const side = (await flow(page).locator('[data-coverflow-card]').nth(2).boundingBox())!;
+	const side = (await slides(page).nth(2).boundingBox())!;
 	// the centre of a side card sits under the centre one; its outer edge does not
 	await page.touchscreen.tap(Math.min(side.x + side.width - 10, 380), side.y + side.height / 2);
 
@@ -139,7 +140,7 @@ test('Scenario: Single entry coverflow has no arrows', async ({ page, request })
 	await seed(request, { entries: entries(1) });
 	await open(page, '/');
 
-	await expect(flow(page).locator('[data-coverflow-card]')).toHaveCount(1);
+	await expect(slides(page)).toHaveCount(1);
 	await expect(counter(page)).toHaveText(/^01\s*\/\s*01$/);
 	await expect(next(page)).toHaveCount(0);
 	await expect(prev(page)).toHaveCount(0);
@@ -150,7 +151,7 @@ test('Scenario: Coverflow is hidden without entries with images', async ({ page,
 	await seed(request, { entries: entries(3, false) });
 	await open(page, '/');
 
-	await expect(page.locator('[data-coverflow]')).toHaveCount(0);
+	await expect(flow(page)).toHaveCount(0);
 });
 
 test('Scenario: Reduced motion coverflow steps without tilt', async ({ page, request }) => {
@@ -162,12 +163,10 @@ test('Scenario: Reduced motion coverflow steps without tilt', async ({ page, req
 	await next(page).click();
 	await expect(counter(page)).toHaveText(/^02\s*\/\s*05$/);
 	await expect(active(page)).toContainText('Entry 4');
-	const transforms = await flow(page)
-		.locator('[data-coverflow-card]')
+	const transforms = await slides(page)
 		.evaluateAll((els) => els.map((el) => new DOMMatrix(getComputedStyle(el).transform).m13));
 	expect(transforms.every((m13) => m13 === 0)).toBe(true);
-	const running = await flow(page)
-		.locator('[data-coverflow-card]')
+	const running = await slides(page)
 		.evaluateAll((els) => els.flatMap((el) => el.getAnimations()).length);
 	expect(running).toBe(0);
 });

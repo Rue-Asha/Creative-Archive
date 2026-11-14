@@ -56,10 +56,10 @@
 	});
 </script>
 
-<GlassPanel as="section" strong data-detail-panel>
+<GlassPanel as="section" strong aria-labelledby="entry-title" data-detail-panel>
 	<div class="inner">
 		<Eyebrow parts={[DOMAIN_LABEL[config.domain], config.label]} tone="accent" />
-		<h1 class:long={entry.title.length > 60}>{entry.title}</h1>
+		<h1 id="entry-title" class:long={entry.title.length > 60}>{entry.title}</h1>
 		{#if config.artist && entry.artistName}
 			<p class="creator">
 				{#if entry.artistId !== null}<a href="/entries/{entry.artistId}">{entry.artistName}</a>{:else}{entry.artistName}{/if}

@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { calm, open, reset, seed } from './helpers.ts';
+import { calm, cardTitles, cards, open, reset, seed } from './helpers.ts';
 
 test.beforeEach(async ({ page, request }) => {
 	await calm(page);
@@ -12,13 +12,12 @@ test('Scenario: Create a collection from the index', async ({ page }) => {
 	await page.getByLabel('Name').fill('Autumn');
 	await page.getByRole('button', { name: 'Create' }).click();
 
-	const card = page.locator('[data-collection-card]', { hasText: 'Autumn' });
+	const card = cards(page).filter({ hasText: 'Autumn' });
 	await expect(card).toBeVisible();
-	await expect(card.locator('[data-count]')).toHaveText('0');
+	await expect(card.getByLabel('0 entries', { exact: true })).toHaveText('0');
 	const collage = card.getByRole('img', { name: /collage/i });
 	await expect(collage).toBeVisible();
-	await expect(collage.locator('span')).toHaveCount(3);
-	await expect(collage.locator('img')).toHaveCount(0);
+	await expect(collage.getByRole('presentation')).toHaveCount(0);
 	await expect(page.getByLabel('Name')).toHaveCount(0);
 });
 
@@ -29,9 +28,9 @@ test('Scenario: Index shows collage and count', async ({ page, request }) => {
 	});
 	await open(page, '/collections');
 
-	const card = page.locator('[data-collection-card]', { hasText: 'Moodboard' });
-	await expect(card.locator('img')).toHaveCount(3);
-	await expect(card.locator('[data-count]')).toHaveText('4');
+	const card = cards(page).filter({ hasText: 'Moodboard' });
+	await expect(card.getByRole('presentation')).toHaveCount(3);
+	await expect(card.getByLabel('4 entries', { exact: true })).toHaveText('4');
 });
 
 test('Scenario: Collection page shows mixed cards', async ({ page, request }) => {
@@ -47,10 +46,9 @@ test('Scenario: Collection page shows mixed cards', async ({ page, request }) =>
 	});
 	await open(page, `/collections/${id}`);
 
-	const cards = page.locator('[data-card]');
-	await expect(cards).toHaveCount(3);
-	await expect(cards.locator('[data-card-title]')).toHaveText(['Blonde', 'Berserk', 'Trench coat']);
-	await expect(page.locator('[data-type-chip]')).toHaveText(['Album', 'Manga', 'Piece']);
+	await expect(cards(page)).toHaveCount(3);
+	await expect(cardTitles(page)).toHaveText(['Blonde', 'Berserk', 'Trench coat']);
+	for (const [i, type] of ['Album', 'Manga', 'Piece'].entries()) await expect(page.getByRole('region', { name: 'Entries' }).getByRole('listitem').nth(i).getByText(type, { exact: true })).toBeVisible();
 });
 
 test('Scenario: Remove an entry from a collection', async ({ page, request }) => {
@@ -65,12 +63,12 @@ test('Scenario: Remove an entry from a collection', async ({ page, request }) =>
 		collections: [{ name: 'Moodboard', entries: [0, 1] }]
 	});
 	await open(page, `/collections/${id}`);
-	await expect(page.locator('[data-count]')).toHaveText('2');
+	await expect(page.getByLabel('2 entries', { exact: true })).toHaveText('2');
 	await page.getByRole('button', { name: 'Remove Blonde' }).click();
 
-	await expect(page.locator('[data-card]')).toHaveCount(1);
+	await expect(cards(page)).toHaveCount(1);
 	await expect(page.getByRole('link', { name: 'Blonde' })).toHaveCount(0);
-	await expect(page.locator('[data-count]')).toHaveText('1');
+	await expect(page.getByLabel('1 entry', { exact: true })).toHaveText('1');
 	expect((await request.get(`/entries/${album}`)).status()).toBe(200);
 });
 
@@ -85,8 +83,8 @@ test('Scenario: Rename a collection on its page', async ({ page, request }) => {
 
 	await expect(page.getByRole('heading', { level: 1 })).toHaveText('Archive Picks');
 	await open(page, '/collections');
-	await expect(page.locator('[data-collection-card]', { hasText: 'Archive Picks' })).toBeVisible();
-	await expect(page.locator('[data-collection-card]', { hasText: 'Moodboard' })).toHaveCount(0);
+	await expect(cards(page).filter({ hasText: 'Archive Picks' })).toBeVisible();
+	await expect(cards(page).filter({ hasText: 'Moodboard' })).toHaveCount(0);
 });
 
 test('Scenario: Deleting a collection asks first', async ({ page, request }) => {
@@ -109,7 +107,7 @@ test('Scenario: Deleting a collection asks first', async ({ page, request }) => 
 	await page.getByRole('dialog').getByRole('button', { name: 'Delete' }).click();
 
 	await expect(page).toHaveURL(/\/collections$/);
-	await expect(page.locator('[data-collection-card]', { hasText: 'Moodboard' })).toHaveCount(0);
+	await expect(cards(page).filter({ hasText: 'Moodboard' })).toHaveCount(0);
 	expect((await request.get(`/collections/${id}`)).status()).toBe(404);
 	expect((await request.get(`/entries/${entry}`)).status()).toBe(200);
 });

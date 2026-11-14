@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { calm, open, reset, seed } from './helpers.ts';
+import { calm, cardTitles, cards, open, reset, seed } from './helpers.ts';
 
 test.beforeEach(async ({ page, request }) => {
 	await calm(page);
@@ -9,7 +9,7 @@ test.beforeEach(async ({ page, request }) => {
 const bar = (page: Page) => page.getByRole('toolbar', { name: 'Filters' });
 const chip = (page: Page, name: string) => bar(page).getByRole('button', { name, exact: true });
 const select = (page: Page, name: string) => bar(page).getByRole('combobox', { name, exact: true });
-const titles = (page: Page) => page.locator('[data-card] [data-card-title]');
+const titles = cardTitles;
 
 test('Scenario: Filter media by status', async ({ page, request }) => {
 	await seed(request, {
@@ -156,7 +156,7 @@ test('Scenario: Filters matching nothing offer reset', async ({ page, request })
 	await select(page, 'Minimum rating').selectOption({ label: '5+' });
 
 	await expect(page.getByText('Nothing matches')).toBeVisible();
-	await expect(page.locator('[data-card]')).toHaveCount(0);
+	await expect(cards(page)).toHaveCount(0);
 	await page.getByRole('button', { name: 'Reset filters', exact: true }).click();
 
 	await expect(titles(page)).toHaveCount(2);

@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { calm, open, reset, seed } from './helpers.ts';
+import { calm, cardTitles, open, reset, seed, shelf } from './helpers.ts';
 
 test('Scenario: Home shows the hero photo and headline', async ({ page, request }) => {
 	await calm(page);
@@ -7,11 +7,11 @@ test('Scenario: Home shows the hero photo and headline', async ({ page, request 
 	await seed(request, { heroes: ['home'] });
 	await open(page, '/');
 
-	const src = await page.locator('[data-hero] [data-hero-image]').getAttribute('src');
+	const src = await page.locator('[data-hero-image]').getAttribute('src');
 	expect(src).toMatch(/^\/images\/\d+$/);
 	const headline = page.getByRole('heading', { level: 1 });
 	await expect(headline).toBeVisible();
-	await expect(headline.locator('em')).not.toHaveText('');
+	await expect(headline.getByText('love', { exact: true })).toBeVisible();
 	const font = await headline.evaluate((el) => getComputedStyle(el).fontFamily);
 	const display = await page.evaluate(() => getComputedStyle(document.body).getPropertyValue('--font-display').trim());
 	expect(font).toBe(display);
@@ -23,13 +23,10 @@ test('Scenario: Home without hero photo shows the world gradient', async ({ page
 	await reset(request);
 	await open(page, '/');
 
-	await expect(page.locator('[data-hero] [data-hero-gradient]')).toHaveCount(1);
-	await expect(page.locator('[data-hero] img')).toHaveCount(0);
+	await expect(page.locator('[data-hero-gradient]')).toHaveCount(1);
+	await expect(page.locator('[data-hero-image]')).toHaveCount(0);
 	await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
 });
-
-const shelf = (page: Page, key: string) => page.locator(`[data-shelf="${key}"]`);
-const titles = (page: Page, key: string) => shelf(page, key).locator('[data-card-title]');
 
 test('Scenario: In progress shelf lists media in progress', async ({ page, request }) => {
 	await calm(page);
@@ -45,7 +42,7 @@ test('Scenario: In progress shelf lists media in progress', async ({ page, reque
 
 	const progress = page.getByRole('region', { name: 'In progress', exact: true });
 	await expect(progress).toHaveCount(1);
-	await expect(progress.locator('[data-card-title]')).toHaveText(['Piranesi', 'Frieren']);
+	await expect(cardTitles(progress)).toHaveText(['Piranesi', 'Frieren']);
 });
 
 test('Scenario: Recently added shelves per domain', async ({ page, request }) => {
@@ -59,12 +56,12 @@ test('Scenario: Recently added shelves per domain', async ({ page, request }) =>
 	});
 	await open(page, '/');
 
-	await expect(shelf(page, 'recent-music').getByRole('heading', { level: 2 })).toHaveText(/Recently added\s*·?\s*Music/);
-	await expect(titles(page, 'recent-music')).toHaveText(['Blonde']);
-	await expect(shelf(page, 'recent-fashion').getByRole('heading', { level: 2 })).toHaveText(/Recently added\s*·?\s*Fashion/);
-	await expect(titles(page, 'recent-fashion')).toHaveText(['Wool coat']);
-	await expect(shelf(page, 'recent-animanga')).toHaveCount(0);
-	await expect(shelf(page, 'recent-books')).toHaveCount(0);
+	await expect(shelf(page, 'Recently added · Music').getByRole('heading', { level: 2 })).toHaveText(/Recently added\s*·?\s*Music/);
+	await expect(cardTitles(shelf(page, 'Recently added · Music'))).toHaveText(['Blonde']);
+	await expect(shelf(page, 'Recently added · Fashion').getByRole('heading', { level: 2 })).toHaveText(/Recently added\s*·?\s*Fashion/);
+	await expect(cardTitles(shelf(page, 'Recently added · Fashion'))).toHaveText(['Wool coat']);
+	await expect(shelf(page, 'Recently added · Animanga')).toHaveCount(0);
+	await expect(shelf(page, 'Recently added · Books')).toHaveCount(0);
 });
 
 test('Scenario: Collections bento shows collages', async ({ page, request }) => {
@@ -84,14 +81,14 @@ test('Scenario: Collections bento shows collages', async ({ page, request }) => 
 	await open(page, '/');
 
 	const bento = page.getByRole('region', { name: 'Collections', exact: true });
-	const cards = bento.locator('[data-bento-card]');
+	const cards = bento.getByRole('list').getByRole('link');
 	await expect(cards).toHaveCount(2);
 	await expect(cards.nth(0)).toHaveAttribute('href', `/collections/${collections[1]}`);
 	await expect(cards.nth(1)).toHaveAttribute('href', `/collections/${collections[0]}`);
 	await expect(cards.nth(0)).toContainText('Tokyo, someday');
 	await expect(cards.nth(0)).toContainText('1 entry');
 	await expect(cards.nth(1)).toContainText('3 entries');
-	await expect(cards.nth(1).getByRole('img', { name: 'Winter evenings collage' }).locator('img')).toHaveCount(3);
+	await expect(cards.nth(1).getByRole('img', { name: 'Winter evenings collage' }).getByRole('presentation')).toHaveCount(3);
 });
 
 test('Scenario: Empty archive shows a welcome per domain', async ({ page, request }) => {
@@ -99,22 +96,23 @@ test('Scenario: Empty archive shows a welcome per domain', async ({ page, reques
 	await reset(request);
 	await open(page, '/');
 
-	const welcome = page.locator('[data-welcome]');
+	const welcome = page.getByRole('region', { name: 'Your archive starts here' });
 	await expect(welcome.getByRole('link', { name: /^Add your first/ })).toHaveCount(4);
-	for (const [domain, type] of [['music', 'album'], ['animanga', 'anime'], ['books', 'book'], ['fashion', 'piece']]) {
-		await expect(welcome.locator(`[data-welcome-domain="${domain}"] a`)).toHaveAttribute('href', `/add/${type}`);
+	for (const [domain, type] of [['Music', 'album'], ['Animanga', 'anime'], ['Books', 'book'], ['Fashion', 'piece']]) {
+		const item = welcome.getByRole('listitem').filter({ has: page.getByRole('heading', { name: domain, exact: true }) });
+		await expect(item.getByRole('link')).toHaveAttribute('href', `/add/${type}`);
 	}
-	await expect(page.locator('[data-shelf]')).toHaveCount(0);
-	await expect(page.locator('[data-coverflow]')).toHaveCount(0);
+	await expect(page.getByRole('region', { name: /^(In progress|Recently added)/ })).toHaveCount(0);
+	await expect(page.getByRole('group', { name: 'Latest entries' })).toHaveCount(0);
 	await expect(page.getByRole('region', { name: 'Collections', exact: true })).toHaveCount(0);
 });
 
 // Collections list newest first, so they are seeded in reverse to show up in the order the scenarios name them.
-const tileBoxes = (page: Page) =>
-	page.getByRole('region', { name: 'Collections', exact: true }).locator('[data-bento-card]').evaluateAll((els) =>
-		els.map((el) => {
-			const box = el.getBoundingClientRect();
-			return { name: el.querySelector('h3')!.textContent, width: Math.round(box.width), height: Math.round(box.height) };
+const tileBoxes = async (page: Page) =>
+	Promise.all(
+		(await page.getByRole('region', { name: 'Collections', exact: true }).getByRole('list').getByRole('link').all()).map(async (tile) => {
+			const box = (await tile.boundingBox())!;
+			return { name: await tile.getByRole('heading', { level: 3 }).textContent(), width: Math.round(box.width), height: Math.round(box.height) };
 		})
 	);
 
@@ -172,6 +170,6 @@ test('Scenario: Home without collections shows no bento', async ({ page, request
 	await seed(request, { entries: [{ type: 'album', title: 'Blonde', image: true }] });
 	await open(page, '/');
 
-	await expect(page.locator('[data-shelf]').first()).toBeVisible();
+	await expect(shelf(page, 'Recently added · Music')).toBeVisible();
 	await expect(page.getByRole('region', { name: 'Collections', exact: true })).toHaveCount(0);
 });
