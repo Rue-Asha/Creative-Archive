@@ -47,8 +47,8 @@ test('Scenario: Entry without image shows a tinted placeholder with initials', a
 	await expect(card(page, 'Kitchen Confidential').locator('img')).toHaveCount(0);
 });
 
-test('Scenario: Rated entries show stars on cards', async ({ page, request }) => {
-	await seed(request, { entries: [{ type: 'album', title: 'Rated One', rating: 3.5 }] });
+test('Scenario: Rated entries show their rating on cards', async ({ page, request }) => {
+	await seed(request, { entries: [{ type: 'album', title: 'Rated One', rating: 7 }] });
 	await open(page, '/music/albums');
 
 	await expect(card(page, 'Rated One').getByRole('img', { name: '3.5 of 5' })).toBeVisible();

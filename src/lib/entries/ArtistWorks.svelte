@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { TYPES } from '#lib/entries/config.ts';
+	import { starsFromRating } from '#lib/entries/derive.ts';
 	import type { Entry } from '#lib/types.ts';
 	import Card from '#lib/ui/Card.svelte';
 
@@ -18,7 +19,7 @@
 				meta={work.details.year ? String(work.details.year) : undefined}
 				tint={null}
 				coverId={work.id}
-				rating={work.rating}
+				rating={starsFromRating(work.rating)}
 				shape="square"
 			/>
 		{/each}

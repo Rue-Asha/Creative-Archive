@@ -24,7 +24,7 @@
 	const statuses = $derived(
 		fixedStatus ? [] : config.status === 'media' ? MEDIA_STATUSES.filter((s) => s !== 'none') : config.status === 'piece' ? PIECE_STATUSES : []
 	);
-	const kinds = $derived(config.type === 'site' ? ([['shop', 'Shop'], ['site', 'Site']] as const) : []);
+	const kinds = $derived(config.type === 'brand' || config.type === 'site' ? ([['brand', 'Brand'], ['shop', 'Shop'], ['site', 'Site']] as const) : []);
 	const ratings = Array.from({ length: 9 }, (_, i) => 1 + i / 2);
 	const hasChips = $derived(statuses.length > 0 || kinds.length > 0);
 
@@ -54,7 +54,7 @@
 	{#if config.ratable}
 		<label class="select">
 			<span class="visually-hidden">Minimum rating</span>
-			<select value={String(state.minRating ?? '')} onchange={(e) => pick({ minRating: e.currentTarget.value ? Number(e.currentTarget.value) : undefined })}>
+			<select value={state.minRating === undefined ? '' : String(state.minRating / 2)} onchange={(e) => pick({ minRating: e.currentTarget.value ? Number(e.currentTarget.value) * 2 : undefined })}>
 				<option value="">Any rating</option>
 				{#each ratings as n (n)}<option value={String(n)}>{n}+</option>{/each}
 			</select>

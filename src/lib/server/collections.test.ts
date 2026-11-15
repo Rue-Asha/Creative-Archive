@@ -1,3 +1,6 @@
+import { mkdtempSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { ValidationError } from '#lib/errors.ts';
 import { closeDb } from './db.ts';
@@ -9,7 +12,8 @@ import {
 	getCollection,
 	listCollections,
 	removeFromCollection,
-	renameCollection
+	renameCollection,
+	reorderCollection
 } from './collections.ts';
 import { getEntry } from './entries.ts';
 import { insertEntryRow, useTestDb } from './testing.ts';
@@ -56,7 +60,7 @@ describe('collections', () => {
 		expect(listCollections()[0].count).toBe(1);
 	});
 
-	it('Scenario: Collage uses the first three images in added order', () => {
+	it('Scenario: Collage uses the first three images in collection order', () => {
 		const plain = insertEntryRow({ type: 'album', title: 'No image' });
 		const withImage = [1, 2, 3, 4].map((n) => insertEntryRow({ type: 'manga', title: `Image ${n}`, image: true }));
 		const id = createCollection('Mixed');
@@ -87,6 +91,63 @@ describe('collections', () => {
 		const id = createCollection('Old', 'first');
 		renameCollection(id, 'Autumn', 'Leaves and cardigans');
 		expect(getCollection(id)).toMatchObject({ name: 'Autumn', description: 'Leaves and cardigans' });
+	});
+	it('Scenario: Reordering changes the order and the collage', () => {
+		const withImage = [1, 2, 3, 4].map((n) => insertEntryRow({ type: 'manga', title: `Image ${n}`, image: true }));
+		const id = createCollection('Mixed');
+		for (const entry of withImage) addToCollection(id, entry);
+
+		reorderCollection(id, [withImage[3], ...withImage.slice(0, 3)]);
+
+		const collection = getCollection(id)!;
+		expect(collection.entries[0].id).toBe(withImage[3]);
+		expect(collection.collage[0]).toBe(getEntry(withImage[3])!.imageId);
+		expect(collection.count).toBe(4);
+	});
+});
+
+describe('collection order', () => {
+	function three() {
+		const [a, b, c] = ['A', 'B', 'C'].map((title) => insertEntryRow({ type: 'album', title }));
+		const id = createCollection('Ordered');
+		addToCollection(id, a);
+		addToCollection(id, b);
+		return { a, b, c, id };
+	}
+	const order = (id: number) => getCollection(id)!.entries.map((e) => e.id);
+
+	it('Scenario: New entry goes to the end', () => {
+		const { a, b, c, id } = three();
+		addToCollection(id, c);
+		expect(order(id)).toEqual([a, b, c]);
+	});
+
+	it('Scenario: Removing keeps the order of the rest', () => {
+		const { a, b, c, id } = three();
+		addToCollection(id, c);
+		const d = insertEntryRow({ type: 'album', title: 'D' });
+		removeFromCollection(id, b);
+		addToCollection(id, d);
+		expect(order(id)).toEqual([a, c, d]);
+	});
+
+	it('Scenario: Reorder sets the given order', () => {
+		closeDb();
+		process.env.DATABASE_PATH = join(mkdtempSync(join(tmpdir(), 'archive-order-')), 'o.db');
+		const { a, b, c, id } = three();
+		addToCollection(id, c);
+		reorderCollection(id, [c, a, b]);
+		expect(order(id)).toEqual([c, a, b]);
+		closeDb();
+		expect(order(id)).toEqual([c, a, b]);
+	});
+
+	it('Scenario: Reorder with a wrong id set is rejected', () => {
+		const { a, b, c, id } = three();
+		addToCollection(id, c);
+		const x = insertEntryRow({ type: 'album', title: 'X' });
+		for (const ids of [[a, b], [a, b, c, x], [a, a, b]]) expect(() => reorderCollection(id, ids)).toThrow(ValidationError);
+		expect(order(id)).toEqual([a, b, c]);
 	});
 });
 

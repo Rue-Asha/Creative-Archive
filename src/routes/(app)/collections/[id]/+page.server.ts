@@ -1,7 +1,7 @@
 import { error, fail, redirect } from '@sveltejs/kit';
 import { TYPES } from '#lib/entries/config.ts';
 import { ValidationError } from '#lib/errors.ts';
-import { deleteCollection, getCollection, removeFromCollection, renameCollection } from '#lib/server/collections.ts';
+import { deleteCollection, getCollection, removeFromCollection, renameCollection, reorderCollection } from '#lib/server/collections.ts';
 import type { Actions, PageServerLoad } from './$types';
 
 function find(id: string) {
@@ -30,6 +30,16 @@ export const actions: Actions = {
 		const collection = find(params.id);
 		const entryId = Number((await request.formData()).get('entryId'));
 		removeFromCollection(collection.id, entryId);
+	},
+	reorder: async ({ params, request }) => {
+		const collection = find(params.id);
+		const raw = String((await request.formData()).get('ids') ?? '');
+		try {
+			reorderCollection(collection.id, raw === '' ? [] : raw.split(',').map(Number));
+		} catch (e) {
+			if (e instanceof ValidationError) return fail(400, { errors: e.fields });
+			throw e;
+		}
 	},
 	delete: ({ params }) => {
 		deleteCollection(find(params.id).id);

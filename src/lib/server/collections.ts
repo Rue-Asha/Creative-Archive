@@ -6,7 +6,7 @@ import { loadTags, rowToEntry } from './rows.ts';
 
 type Row = Record<string, unknown>;
 
-const ADDED_ORDER = 'ORDER BY ce.added_at, ce.rowid';
+const ORDER = 'ORDER BY ce.position, ce.rowid';
 
 function requireName(name: string): string {
 	const trimmed = name.trim();
@@ -18,7 +18,7 @@ function collage(collectionId: Id): Id[] {
 	return getDb()
 		.prepare(
 			`SELECT e.image_id FROM collection_entries ce JOIN entries e ON e.id = ce.entry_id
-			 WHERE ce.collection_id = ? AND e.image_id IS NOT NULL ${ADDED_ORDER} LIMIT 3`
+			 WHERE ce.collection_id = ? AND e.image_id IS NOT NULL ${ORDER} LIMIT 3`
 		)
 		.all(collectionId)
 		.map((r) => Number(r.image_id));
@@ -69,7 +69,7 @@ export function getCollection(id: Id): (Collection & { entries: Entry[] }) | nul
 	const rows = getDb()
 		.prepare(
 			`SELECT e.* FROM collection_entries ce JOIN entries e ON e.id = ce.entry_id
-			 WHERE ce.collection_id = ? ${ADDED_ORDER}`
+			 WHERE ce.collection_id = ? ${ORDER}`
 		)
 		.all(id);
 	const tags = loadTags(rows.map((r) => Number(r.id)));
@@ -79,9 +79,33 @@ export function getCollection(id: Id): (Collection & { entries: Entry[] }) | nul
 export function addToCollection(collectionId: Id, entryId: Id): void {
 	const now = new Date().toISOString();
 	const { changes } = getDb()
-		.prepare('INSERT OR IGNORE INTO collection_entries (collection_id, entry_id, added_at) VALUES (?, ?, ?)')
-		.run(collectionId, entryId, now);
+		.prepare(
+			`INSERT OR IGNORE INTO collection_entries (collection_id, entry_id, added_at, position)
+			 VALUES (?, ?, ?, (SELECT COALESCE(MAX(position), 0) + 1 FROM collection_entries WHERE collection_id = ?))`
+		)
+		.run(collectionId, entryId, now, collectionId);
 	if (changes) touch(collectionId, now);
+}
+
+export function reorderCollection(collectionId: Id, entryIds: Id[]): void {
+	const db = getDb();
+	const members = db
+		.prepare('SELECT entry_id FROM collection_entries WHERE collection_id = ?')
+		.all(collectionId)
+		.map((r) => Number(r.entry_id));
+	const given = new Set(entryIds);
+	if (given.size !== entryIds.length || entryIds.length !== members.length || !members.every((m) => given.has(m)))
+		throw new ValidationError({ ids: 'Order must list exactly the entries of the collection' });
+	const set = db.prepare('UPDATE collection_entries SET position = ? WHERE collection_id = ? AND entry_id = ?');
+	db.exec('BEGIN');
+	try {
+		entryIds.forEach((entryId, i) => set.run(i + 1, collectionId, entryId));
+		db.exec('COMMIT');
+	} catch (e) {
+		db.exec('ROLLBACK');
+		throw e;
+	}
+	touch(collectionId, new Date().toISOString());
 }
 
 export function removeFromCollection(collectionId: Id, entryId: Id): void {

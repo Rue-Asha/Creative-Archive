@@ -1,5 +1,6 @@
 import { COPY } from '#lib/copy.ts';
 import { TYPES } from '#lib/entries/config.ts';
+import { isValidRating } from '#lib/entries/derive.ts';
 import { clampProgress } from '#lib/entries/progress.ts';
 import { DuplicateError, ValidationError } from '#lib/errors.ts';
 import type {
@@ -42,13 +43,13 @@ function clean(type: EntryType, input: EntryInput, selfId: Id | null): EntryInpu
 	const out: EntryInput = { type, title: input.title };
 
 	if (config.status && input.status !== undefined) {
-		if (!(config.status === 'media' ? MEDIA_STATUSES : PIECE_STATUSES).includes(input.status))
-			fail({ status: 'Invalid status' });
+		const allowed = config.status === 'media' ? MEDIA_STATUSES : PIECE_STATUSES;
+		if (!allowed.includes(input.status)) fail({ status: `Invalid status for ${type}` });
 		out.status = input.status;
 	}
 	if (config.ratable && input.rating !== undefined) {
-		if (input.rating !== null && !(input.rating >= 0.5 && input.rating <= 5 && input.rating * 2 === Math.round(input.rating * 2)))
-			fail({ rating: 'Rating must be 0.5 to 5 in half steps' });
+		if (input.rating !== null && !isValidRating(input.rating))
+			fail({ rating: 'Rating must be between 0 and 10 with up to two decimals' });
 		out.rating = input.rating;
 	}
 	if (input.progress) {
@@ -167,10 +168,10 @@ export function listEntries(q: ListQuery): Entry[] {
 		args.push(q.tag);
 	}
 	if (q.minRating !== undefined) {
-		where.push('rating_x2 >= ?');
-		args.push(Math.round(q.minRating * 2));
+		where.push('rating_x100 >= ?');
+		args.push(Math.round(q.minRating * 100));
 	}
-	const order = q.sort === 'rating' ? 'rating_x2 IS NULL, rating_x2 DESC, ' : '';
+	const order = q.sort === 'rating' ? 'rating_x100 IS NULL, rating_x100 DESC, ' : '';
 	const rows = getDb()
 		.prepare(`SELECT * FROM entries WHERE ${where.join(' AND ')} ORDER BY ${order}created_at DESC, id DESC`)
 		.all(...args);

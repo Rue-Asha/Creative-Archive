@@ -5,8 +5,9 @@ TBD - created by archiving change build-creative-archive. Update Purpose after a
 ## Requirements
 ### Requirement: Domain shelves
 The server SHALL provide a domain's shelves: an "In progress" shelf for media domains, then a "Recently added" shelf
-per type in the domain's type order (`TYPES_BY_DOMAIN`; Fashion: Brands, Shops, Influencers, Magazines, Pieces,
-Looks), omitting empty shelves.
+per list type in the domain's type order (`TYPES_BY_DOMAIN`; Fashion: Brands & shops, Influencers, Magazines, Pieces,
+Looks, where the one "Brands & shops" shelf holds both stored types brand and site and links to `/fashion/brands-shops`),
+omitting empty shelves.
 
 #### Scenario: Domain shelves group recent entries by type
 - **WHEN** a watching anime, two manga and no other animanga entries exist
@@ -15,15 +16,20 @@ Looks), omitting empty shelves.
 
 #### Scenario: Fashion shelves follow the type order
 - **WHEN** one entry of each Fashion type (brand, site, influencer, magazine, piece, look) is seeded
-- **THEN** `domainShelves('fashion')` titles read Brands, Shops, Influencers, Magazines, Pieces, Looks
+- **THEN** `domainShelves('fashion')` titles read Brands & shops, Influencers, Magazines, Pieces, Looks
+- **proof:** unit
+
+#### Scenario: One shelf holds brands and shops
+- **WHEN** a brand, a shop and a site are seeded and `domainShelves('fashion')` is read
+- **THEN** exactly one shelf "Brands & shops" holds all three with count 3 and href `/fashion/brands-shops`, and no "Brands" or "Shops" shelf exists
 - **proof:** unit
 
 ### Requirement: Domain landing pages
 `/music`, `/animanga`, `/books` and `/fashion` SHALL show the domain hero (its uploaded photo, or its world's gradient
 without one) in the domain's world, sub-type tabs (Music: Albums / Artists / Songs; Animanga: Anime / Manga; Books:
-Books; Fashion: Wardrobe / Pieces / Looks / Brands / Shops / Influencers / Magazines, grouped as in Grouped sub-type
+Books; Fashion: Wardrobe / Pieces / Looks / Brands & shops / Influencers / Magazines, grouped as in Grouped sub-type
 tabs) linking to the lists, an "Add" action that lets Rue pick one of the domain's types (Fashion: Brand, Shop/Site,
-Influencer, Magazine, Piece, Look), and the domain's shelves. Other paths SHALL answer 404.
+Influencer, Magazine, Piece, Look; merging Brand and Shop/Site into one menu item comes with the redesign), and the domain's shelves. Other paths SHALL answer 404.
 
 #### Scenario: Domain page shows its hero photo
 - **WHEN** a music hero is seeded and `/music` is opened
@@ -57,8 +63,8 @@ Influencer, Magazine, Piece, Look), and the domain's shelves. Other paths SHALL 
 
 ### Requirement: Grouped sub-type tabs
 The sub-tab bar SHALL render a domain's lists in the groups its list config (`LIST_GROUPS`) declares, inside the one
-`nav` named "Sub-types". Fashion SHALL declare "My things" (Wardrobe, Pieces, Looks) and then "Discover" (Brands,
-Shops, Influencers, Magazines); Music, Animanga and Books SHALL declare one unlabelled group and render their tabs flat
+`nav` named "Sub-types". Fashion SHALL declare "My things" (Wardrobe, Pieces, Looks) and then "Discover" (Brands &
+shops, Influencers, Magazines); Music, Animanga and Books SHALL declare one unlabelled group and render their tabs flat
 exactly as before, with no group, caption or divider. A labelled group SHALL be an element with `role="group"` named
 by its visible caption (`aria-labelledby`); the caption SHALL sit at the inline start of its tabs, SHALL NOT be a link
 or focusable, and SHALL use `--t-small` and the hero's on-photo colour token. A decorative divider (`aria-hidden`)
@@ -68,12 +74,12 @@ in one row with a vertical divider. The tabs keep their chip style (glass, at le
 
 #### Scenario: Fashion tabs come in two labelled groups
 - **WHEN** `/fashion` is opened
-- **THEN** inside the "Sub-types" navigation the group "My things" holds the links Wardrobe, Pieces, Looks and the group "Discover" holds Brands, Shops, Influencers, Magazines; both captions are visible, neither is a link, and exactly one `aria-hidden` divider sits between the groups
+- **THEN** inside the "Sub-types" navigation the group "My things" holds the links Wardrobe, Pieces, Looks and the group "Discover" holds Brands & shops, Influencers, Magazines; both captions are visible, neither is a link, and exactly one `aria-hidden` divider sits between the groups
 - **proof:** e2e
 
 #### Scenario: Fashion list config declares the groups
 - **WHEN** `LIST_GROUPS` and `LISTS` are read
-- **THEN** fashion has the groups "My things" (wardrobe, pieces, looks) and "Discover" (brands, shops, influencers, magazines); music, animanga and books each have one group with label null; and every domain's `LISTS` equals its groups' lists in order
+- **THEN** fashion has the groups "My things" (wardrobe, pieces, looks) and "Discover" (brands-shops, influencers, magazines); music, animanga and books each have one group with label null; and every domain's `LISTS` equals its groups' lists in order
 - **proof:** unit
 
 #### Scenario: Other domains keep a flat tab bar
@@ -98,7 +104,7 @@ in one row with a vertical divider. The tabs keep their chip style (glass, at le
 
 #### Scenario: Grouped tabs sit in one row on desktop
 - **WHEN** `/fashion` is opened at 1280 px
-- **THEN** all seven tab links share one top (within 1 px), "Discover" starts right of "My things" with the divider (taller than wide) between them, the Add button's vertical centre is within 2 px of the tabs' centre, and the navigation's `scrollWidth` is at most its `clientWidth`
+- **THEN** all six tab links share one top (within 1 px), "Discover" starts right of "My things" with the divider (taller than wide) between them, the Add button's vertical centre is within 2 px of the tabs' centre, and the navigation's `scrollWidth` is at most its `clientWidth`
 - **proof:** e2e
 
 #### Scenario: Grouped tabs read well

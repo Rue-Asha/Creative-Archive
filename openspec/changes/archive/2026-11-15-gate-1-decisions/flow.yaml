@@ -1,0 +1,9 @@
+track: feature
+triage: 'feature (adopted) — server/data part of the gate-1 decisions: rating 0..10 in hundredths with a one-way migration, combined brands-and-shops list with 308 redirects, manual collection order with a one-way migration, initial status on create, HEIC dropped; the current UI keeps working through thin adapters, release 0.2.0. Appetite: one to two evenings.'
+base: main
+adopted: true
+gate1: '2026-11-14 (adopted; Rue approved, additions a + b accepted, contract fix in U7)'
+gate2: '2026-11-15'
+learnings:
+  - 'Reviewer of an adopted scale change found clean() in createEntry/updateEntry still on the old 0.5–5 scale while setRating and derive moved; e2e seeds bypass clean() via insertEntryRow, so 686 green tests missed it — a scale/unit change brief should name every validator of the value (rg the old bounds) (reviewer, gate-1-decisions)'
+  - 'The Creative e2e server serves `node build`; a single-test e2e run after a src edit needs `npm run build` first, else it reads the old build (fixer r1, gate-1-decisions)'

@@ -36,10 +36,12 @@ describe('type config', () => {
 				const config = typeBySlug(domain, list.slug);
 				expect(config?.type, `${domain}/${list.slug}`).toBe(list.query.types[0]);
 			}
-		for (const type of ALL) expect(typeBySlug(TYPES[type].domain, TYPES[type].slug)?.type).toBe(type);
+		for (const type of ALL.filter((t) => t !== 'brand' && t !== 'site')) expect(typeBySlug(TYPES[type].domain, TYPES[type].slug)?.type).toBe(type);
 		expect(typeBySlug('fashion', 'magazines')?.type).toBe('magazine');
 		expect(typeBySlug('fashion', 'wardrobe')?.type).toBe('piece');
 		expect(LISTS.fashion.find((l) => l.slug === 'wardrobe')?.query).toEqual({ types: ['piece'], status: 'owned' });
+		expect(typeBySlug('fashion', 'brands-shops')?.type).toBe('brand');
+		expect(typeBySlug('fashion', 'shops')).toBeNull();
 		expect(typeBySlug('music', 'nope')).toBeNull();
 		expect(typeBySlug('music', 'anime')).toBeNull();
 	});
@@ -55,7 +57,7 @@ describe('type config', () => {
 			music: ['Albums', 'Artists', 'Songs'],
 			animanga: ['Anime', 'Manga'],
 			books: ['Books'],
-			fashion: ['Wardrobe', 'Pieces', 'Looks', 'Brands', 'Shops', 'Influencers', 'Magazines']
+			fashion: ['Wardrobe', 'Pieces', 'Looks', 'Brands & shops', 'Influencers', 'Magazines']
 		});
 	});
 
@@ -64,7 +66,7 @@ describe('type config', () => {
 
 		expect(slugsOf('fashion')).toEqual([
 			['My things', ['wardrobe', 'pieces', 'looks']],
-			['Discover', ['brands', 'shops', 'influencers', 'magazines']]
+			['Discover', ['brands-shops', 'influencers', 'magazines']]
 		]);
 		for (const domain of ['music', 'animanga', 'books'] as const) {
 			expect(LIST_GROUPS[domain], domain).toHaveLength(1);

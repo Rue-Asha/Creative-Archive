@@ -94,13 +94,25 @@ describe('home queries', () => {
 		for (const type of ['look', 'piece', 'magazine', 'influencer', 'site', 'brand'] as const)
 			insertEntryRow({ type, title: type, kind: type === 'brand' || type === 'site' ? type : undefined });
 
-		expect(domainShelves('fashion').map((s) => s.title)).toEqual(['Brands', 'Shops', 'Influencers', 'Magazines', 'Pieces', 'Looks']);
+		expect(domainShelves('fashion').map((s) => s.title)).toEqual(['Brands & shops', 'Influencers', 'Magazines', 'Pieces', 'Looks']);
+	});
+
+	it('Scenario: One shelf holds brands and shops', () => {
+		insertEntryRow({ type: 'brand', title: 'Brand', kind: 'brand' });
+		insertEntryRow({ type: 'site', title: 'Shop', kind: 'shop' });
+		insertEntryRow({ type: 'site', title: 'Site', kind: 'site' });
+
+		const shelves = domainShelves('fashion');
+		expect(shelves.map((s) => s.title)).toEqual(['Brands & shops']);
+		expect(shelves[0].count).toBe(3);
+		expect(titles(shelves[0].entries)).toHaveLength(3);
+		expect(shelves[0].href).toBe('/fashion/brands-shops');
 	});
 
 	it('has no In progress shelf for fashion and omits types without entries', () => {
 		insertEntryRow({ type: 'piece', title: 'Coat', status: 'owned' });
 		insertEntryRow({ type: 'brand', title: 'Acne', kind: 'brand' });
-		expect(domainShelves('fashion').map((s) => s.title)).toEqual(['Brands', 'Pieces']);
+		expect(domainShelves('fashion').map((s) => s.title)).toEqual(['Brands & shops', 'Pieces']);
 		expect(domainShelves('music')).toEqual([]);
 	});
 });

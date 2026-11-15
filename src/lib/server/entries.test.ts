@@ -105,6 +105,36 @@ describe('createEntry', () => {
 		expect(entry.status).toBe('wishlist');
 	});
 
+	it('Scenario: Create a media entry with an initial status', () => {
+		const album = getEntry(createEntry({ type: 'album', title: 'Blonde', status: 'want' }))!;
+		const book = getEntry(createEntry({ type: 'book', title: 'Norwegian Wood', status: 'none' }))!;
+		const piece = getEntry(createEntry({ type: 'piece', title: 'Coat', status: 'owned' }))!;
+
+		expect(album.status).toBe('want');
+		expect(book.status).toBe('none');
+		expect(piece.status).toBe('owned');
+		const events = (id: number) => getDb().prepare('SELECT status FROM status_events WHERE entry_id = ?').all(id);
+		expect(events(album.id)).toEqual([{ status: 'want' }]);
+		expect(events(book.id)).toEqual([]);
+		expect(events(piece.id)).toEqual([]);
+	});
+
+	it('Scenario: Invalid initial status is rejected', () => {
+		const rejected = (input: EntryInput) => {
+			try {
+				createEntry(input);
+			} catch (e) {
+				return e;
+			}
+		};
+		const album = rejected({ type: 'album', title: 'Blonde', status: 'owned' });
+		const piece = rejected({ type: 'piece', title: 'Coat', status: 'done' });
+
+		expect((album as ValidationError).fields).toEqual({ status: 'Invalid status for album' });
+		expect((piece as ValidationError).fields).toEqual({ status: 'Invalid status for piece' });
+		expect(count('entries')).toBe(0);
+	});
+
 	it('Scenario: Server rejects a blank title', () => {
 		const rejected = (type: EntryType) => {
 			try {
@@ -142,6 +172,20 @@ describe('createEntry', () => {
 		expect(book.rating).toBe(4);
 		const brand = getEntry(createEntry({ type: 'brand', title: 'B', rating: 5, status: 'done' }))!;
 		expect([brand.rating, brand.status]).toEqual([null, null]);
+	});
+
+	it('Scenario: Create and update accept the full rating range', () => {
+		const id = createEntry({ type: 'album', title: 'X', rating: 8.75 });
+		expect(getEntry(id)!.rating).toBe(8.75);
+		for (const rating of [0, 7, 10]) {
+			updateEntry(id, { type: 'album', title: 'X', rating });
+			expect(getEntry(id)!.rating).toBe(rating);
+		}
+		for (const rating of [-0.01, 10.01, 8.755, Number.NaN]) {
+			expect(() => createEntry({ type: 'album', title: `Y${rating}`, rating })).toThrow(ValidationError);
+			expect(() => updateEntry(id, { type: 'album', title: 'X', rating })).toThrow(ValidationError);
+		}
+		expect(getEntry(id)!.rating).toBe(10);
 	});
 
 	it('Scenario: Kind decides the brand or site type', () => {

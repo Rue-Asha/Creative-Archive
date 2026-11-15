@@ -60,7 +60,7 @@ test('a work card opens the album', async ({ page, request }) => {
 	} = await seed(request, {
 		entries: [
 			{ type: 'artist', title: 'Frank Ocean' },
-			{ type: 'album', title: 'Blonde', artist: 0, rating: 4.5 }
+			{ type: 'album', title: 'Blonde', artist: 0, rating: 9 }
 		]
 	});
 	await open(page, `/entries/${artist}`);

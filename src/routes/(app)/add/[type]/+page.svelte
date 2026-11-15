@@ -67,7 +67,7 @@
 	<!-- a failed save reloads the page at the action URL; without manual there it would swap the form for the search -->
 	<EntryForm
 		type={data.type}
-		{values}
+		values={{ status: data.initialStatus, ...values }}
 		errors={form?.errors}
 		artists={data.artists}
 		tags={data.tags}

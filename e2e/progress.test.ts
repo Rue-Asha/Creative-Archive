@@ -108,7 +108,7 @@ test('Scenario: Leaving the input saves the edit', async ({ page, request }) => 
 	// a sentinel rating proves no second progress save was queued behind the first
 	await page.getByRole('slider', { name: 'Rating', exact: true }).focus();
 	await page.keyboard.press('ArrowRight');
-	await expect.poll(saves).toEqual(['progress key=episodes value=12', 'rating rating=0.5']);
+	await expect.poll(saves).toEqual(['progress key=episodes value=12', 'rating rating=1']);
 	await page.reload();
 	await expect(control(page, 'Episodes')).toContainText('12 / 28');
 });

@@ -4,24 +4,34 @@
 TBD - created by archiving change build-creative-archive. Update Purpose after archive.
 ## Requirements
 ### Requirement: Per-type list queries
-`listEntries` SHALL return the entries of the given types filtered by status (media and pieces), kind (shops), tag
-and minimum rating (media), sorted by added (newest first, the default), rating (highest first, unrated last) or
+`listEntries` SHALL return the entries of the given types filtered by status (media and pieces), kind (brands and shops), tag
+and minimum rating (media, on the 0 to 10 scale), sorted by added (newest first, the default), rating (highest first, unrated last) or
 title (Unicode-aware, case- and accent-insensitive base order).
 
 #### Scenario: List query filters by status, kind, tag and minimum rating
-- **WHEN** `listEntries` is called on seeded albums, shops and pieces with `status: 'done'`, with `kind: 'site'`, with a tag id and with `minRating: 4`
+- **WHEN** `listEntries` is called on seeded albums, shops and pieces with `status: 'done'`, with `kind: 'site'`, with a tag id and with `minRating: 8`
 - **THEN** each returns exactly the matching entries of the requested types
 - **proof:** unit
 
+#### Scenario: Combined brands-and-shops query spans both stored types
+- **WHEN** `listEntries` is called with the combined list query on a seeded brand, a shop and a site, and then with `kind: 'shop'`
+- **THEN** the first returns all three and the second only the shop
+- **proof:** unit
+
+#### Scenario: Minimum rating uses the 0 to 10 scale
+- **WHEN** `listEntries` is called with `minRating: 7.5` on albums rated 7, 7.5 and 9.25 and one unrated
+- **THEN** the albums rated 7.5 and 9.25 are returned
+- **proof:** unit
+
 #### Scenario: List query sorts by added, rating and title
-- **WHEN** albums "Zeta" (rated 3, added first), "Ästhetik" (unrated, added second) and "alpha" (rated 5, added last) are listed with each sort
+- **WHEN** albums "Zeta" (rated 6, added first), "Ästhetik" (unrated, added second) and "alpha" (rated 10, added last) are listed with each sort
 - **THEN** added gives alpha, Ästhetik, Zeta; rating gives alpha, Zeta, Ästhetik; title gives alpha, Ästhetik, Zeta
 - **proof:** unit
 
 ### Requirement: Domain list pages
-Each type SHALL have a list at `/[domain]/[slug]` (Wardrobe at `/fashion/wardrobe` lists pieces with status owned)
-showing cards in the domain's world, with filters status (media), kind (shops), status (pieces), tag and minimum
-rating (media), and sort by added, rating (media) and title. Filter and sort state SHALL live in the URL query, so
+Each type SHALL have a list at `/[domain]/[slug]` (Brands and shops share one list at `/fashion/brands-shops`; Wardrobe at `/fashion/wardrobe` lists pieces with status owned)
+showing cards in the domain's world, with filters status (media), kind (brands and shops), status (pieces), tag and minimum
+rating (media, 0 to 10 scale), and sort by added, rating (media) and title. Filter and sort state SHALL live in the URL query, so
 reload and back restore it. Media lists SHALL also offer a shelves view grouped by status. With no entries the list
 SHALL show an empty state with "Add"; with filters that match nothing it SHALL show "Nothing matches" and "Reset
 filters".
@@ -42,13 +52,13 @@ filters".
 - **proof:** e2e
 
 #### Scenario: Filter by minimum rating
-- **WHEN** minimum rating 4 is chosen on `/animanga/anime`
-- **THEN** only anime rated 4 or higher show
+- **WHEN** `/animanga/anime?rating=8` is opened with anime rated 7.5, 8 and 9.25
+- **THEN** only the anime rated 8 and 9.25 show
 - **proof:** e2e
 
-#### Scenario: Filter shops by kind
-- **WHEN** kind "Site" is chosen on `/fashion/shops`
-- **THEN** only entries with kind site show
+#### Scenario: Filter brands and shops by kind
+- **WHEN** kind "Site" is chosen on `/fashion/brands-shops`
+- **THEN** only entries with kind site show and the URL contains `kind=site`
 - **proof:** e2e
 
 #### Scenario: Filter pieces by status
@@ -82,8 +92,18 @@ filters".
 - **proof:** e2e
 
 #### Scenario: Filters matching nothing offer reset
-- **WHEN** minimum rating 5 is chosen on a list where nothing is rated 5
+- **WHEN** minimum rating 10 is chosen on a list where nothing is rated 10
 - **THEN** "Nothing matches" shows, and "Reset filters" restores the full list and clears the URL query
+- **proof:** e2e
+
+#### Scenario: Retired brands list redirects
+- **WHEN** `/fashion/brands?tag=3&sort=title` is requested
+- **THEN** the response is a 308 to `/fashion/brands-shops?tag=3&sort=title&kind=brand`
+- **proof:** e2e
+
+#### Scenario: Retired shops list redirects
+- **WHEN** `/fashion/shops?sort=title` is requested
+- **THEN** the response is a 308 to `/fashion/brands-shops?sort=title` with no kind added
 - **proof:** e2e
 
 #### Scenario: Unknown list answers 404
@@ -92,7 +112,7 @@ filters".
 - **proof:** e2e
 
 #### Scenario: List query round-trips through the URL
-- **WHEN** `toSearchParams` and `fromSearchParams` convert `{ status: 'done', tag: 3, minRating: 3.5, sort: 'title' }` and an empty query
+- **WHEN** `toSearchParams` and `fromSearchParams` convert `{ status: 'done', tag: 3, minRating: 8.75, sort: 'title' }` and an empty query
 - **THEN** both round-trip unchanged, the empty query gives an empty search string, and invalid values are dropped
 - **proof:** unit
 

@@ -4,10 +4,10 @@
 TBD - created by archiving change build-creative-archive. Update Purpose after archive.
 ## Requirements
 ### Requirement: Collection store
-A collection SHALL have a required name and an optional description and hold any entries of mixed types in the order
-they were added. Adding an entry already in it SHALL change nothing; removing an entry or deleting the collection
+A collection SHALL have a required name and an optional description and hold any entries of mixed types in a manual order: a newly added entry goes to the end, and the order can be
+set by hand. Existing collections keep the order in which their entries were added. Adding an entry already in it SHALL change nothing; removing an entry or deleting the collection
 SHALL keep the entries. Each collection SHALL report its count and a collage of the images of its first three entries
-that have one.
+in that order that have one.
 
 #### Scenario: Collection requires a name
 - **WHEN** `createCollection` gets "  "
@@ -19,9 +19,14 @@ that have one.
 - **THEN** the collection's count is 1
 - **proof:** unit
 
-#### Scenario: Collage uses the first three images in added order
+#### Scenario: Collage uses the first three images in collection order
 - **WHEN** a collection gets, in order, an album without image and four entries with images
-- **THEN** its collage holds the images of the 2nd, 3rd and 4th added entries and its count is 5
+- **THEN** its collage holds the images of the 2nd, 3rd and 4th entries and its count is 5
+- **proof:** unit
+
+#### Scenario: Reordering changes the order and the collage
+- **WHEN** `reorderCollection` puts the last of those entries first
+- **THEN** `getCollection` lists it first, the collage starts with its image, and the count is unchanged
 - **proof:** unit
 
 #### Scenario: Deleting a collection keeps its entries
@@ -36,7 +41,7 @@ that have one.
 
 ### Requirement: Collections pages and the add popover
 `/collections` SHALL list every collection with its collage (a placeholder collage when empty) and count, and create
-new ones. `/collections/[id]` SHALL show the name, description and the entries as mixed cards in added order, and
+new ones. `/collections/[id]` SHALL show the name, description and the entries as mixed cards in the collection's order, and
 allow rename, removing an entry and deleting the collection after a confirm. Every entry detail page SHALL offer "Add
 to collection": a popover listing all collections with a mark on those holding the entry, toggling membership, and
 creating a new collection that the entry joins at once.
@@ -68,7 +73,7 @@ creating a new collection that the entry joins at once.
 
 #### Scenario: Collection page shows mixed cards
 - **WHEN** a collection holding an album, a manga and a piece in that order is opened
-- **THEN** three cards show in added order, each with its own type chip
+- **THEN** three cards show in the collection's order, each with its own type chip
 - **proof:** e2e
 
 #### Scenario: Index shows collage and count
@@ -90,4 +95,46 @@ creating a new collection that the entry joins at once.
 - **WHEN** "Delete collection" is chosen and the confirm cancelled, then chosen again and accepted
 - **THEN** after cancel the collection stays; after accept the browser is on `/collections`, the collection is gone and its entries still exist
 - **proof:** e2e
+
+### Requirement: Collection order
+Each collection SHALL keep an explicit order of its entries. `addToCollection` SHALL append at the end; removing an
+entry SHALL keep the relative order of the rest. `reorderCollection(collectionId, entryIds)` SHALL set the order to the
+given list and SHALL reject, changing nothing, a list that is not exactly the collection's current members (missing,
+extra or duplicated ids). The page SHALL expose a `reorder` form action taking the ordered ids. A migration SHALL give
+existing collections the order they had (added time, then insertion order).
+
+#### Scenario: New entry goes to the end
+- **WHEN** `addToCollection` adds entry C to a collection ordered A, B
+- **THEN** `getCollection` lists A, B, C
+- **proof:** unit
+
+#### Scenario: Removing keeps the order of the rest
+- **WHEN** B is removed from a collection ordered A, B, C and D is added
+- **THEN** `getCollection` lists A, C, D
+- **proof:** unit
+
+#### Scenario: Reorder sets the given order
+- **WHEN** `reorderCollection` gets [C, A, B] for a collection ordered A, B, C
+- **THEN** `getCollection` lists C, A, B and the order survives reopening the database
+- **proof:** unit
+
+#### Scenario: Reorder with a wrong id set is rejected
+- **WHEN** `reorderCollection` gets [A, B] (missing C), [A, B, C, X] (foreign X) and [A, A, B]
+- **THEN** each throws a ValidationError and the order stays A, B, C
+- **proof:** unit
+
+#### Scenario: Reorder action saves the order
+- **WHEN** the collection page's `reorder` action gets ids `3,1,2` as form data for a collection holding 1, 2 and 3
+- **THEN** the collection lists 3, 1, 2 and an invalid id list answers a 400 failure
+- **proof:** unit
+
+#### Scenario: Migration preserves the existing order
+- **WHEN** the order migration runs on a database whose collection holds entries added at t1 < t2 < t3, inserted out of order
+- **THEN** after it `getCollection` lists them by added time
+- **proof:** unit
+
+#### Scenario: A migrated database matches a fresh one at head
+- **WHEN** a database migrated step by step from 0000 with data in it and a fresh database are both at the latest migration
+- **THEN** their schemas (tables, indexes, constraints) are identical and both pass the foreign key and integrity checks
+- **proof:** unit
 

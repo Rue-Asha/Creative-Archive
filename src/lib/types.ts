@@ -55,7 +55,7 @@ export interface Tag {
 	count: number;
 }
 
-// read model: stored fields, plus `rating` derived from the stored rating_x2
+// read model: stored fields, plus `rating` derived from the stored rating_x100
 export interface Entry {
 	id: Id;
 	type: EntryType;

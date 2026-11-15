@@ -77,7 +77,7 @@ test('each type returns to its own list', async ({ page, request }) => {
 			{ type: 'look', title: 'Autumn layers' }
 		]
 	});
-	const lists = [/\/animanga\/anime$/, /\/fashion\/shops$/, /\/fashion\/looks$/];
+	const lists = [/\/animanga\/anime$/, /\/fashion\/brands-shops$/, /\/fashion\/looks$/];
 
 	for (const [i, id] of entries.entries()) {
 		await open(page, `/entries/${id}`);

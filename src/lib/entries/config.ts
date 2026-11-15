@@ -232,6 +232,14 @@ const listOf = (type: EntryType): ListDef => ({
 	query: { types: [type] }
 });
 
+export const BRANDS_SHOPS: ListDef = { slug: 'brands-shops', label: 'Brands & shops', query: { types: ['brand', 'site'] } };
+
+// the two lists the combined one replaced; `kind` is what the old list implied, if anything
+export const RETIRED_LISTS: Record<string, { to: string; kind?: 'brand' }> = {
+	'fashion/brands': { to: BRANDS_SHOPS.slug, kind: 'brand' },
+	'fashion/shops': { to: BRANDS_SHOPS.slug }
+};
+
 const flat = (domain: Domain): ListGroup[] => [{ label: null, lists: TYPES_BY_DOMAIN[domain].map(listOf) }];
 
 export const LIST_GROUPS: Record<Domain, ListGroup[]> = {
@@ -247,7 +255,7 @@ export const LIST_GROUPS: Record<Domain, ListGroup[]> = {
 				listOf('look')
 			]
 		},
-		{ label: 'Discover', lists: [listOf('brand'), listOf('site'), listOf('influencer'), listOf('magazine')] }
+		{ label: 'Discover', lists: [BRANDS_SHOPS, listOf('influencer'), listOf('magazine')] }
 	]
 };
 

@@ -15,6 +15,8 @@ const FORMATS = new Set(['jpeg', 'png', 'webp', 'gif', 'avif', 'heif']);
 async function downscale(bytes: Uint8Array): Promise<{ data: Buffer; width: number; height: number }> {
 	const meta = await sharp(bytes).metadata();
 	if (!meta.format || !FORMATS.has(meta.format)) throw new ImageError('not-image');
+	// sharp reports HEIC as `heif`; AVIF files are AV1 inside HEIF and stay allowed
+	if (meta.compression === 'hevc') throw new ImageError('not-image');
 	for (let side = MAX_LONG_SIDE; ; side = Math.floor(side * 0.8)) {
 		let out: { data: Buffer; info: OutputInfo } | null = null;
 		for (const quality of QUALITIES) {

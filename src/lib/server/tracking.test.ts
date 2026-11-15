@@ -221,39 +221,53 @@ describe('progress', () => {
 });
 
 describe('setRating', () => {
-	it('Scenario: Rating is stored in half steps', () => {
+	it('Scenario: Rating accepts 0 to 10 with two decimals', () => {
 		const id = seed('album', { status: 'done' });
 
-		setRating(id, 4.5);
-		expect(read(id).rating).toBe(4.5);
+		setRating(id, 8.75);
+		expect(read(id).rating).toBe(8.75);
+		setRating(id, 0);
+		expect(read(id).rating).toBe(0);
+		setRating(id, 10);
+		expect(read(id).rating).toBe(10);
 
-		for (const bad of [4.3, 0, 5.5]) {
+		for (const bad of [8.755, -0.01, 10.01, Number.NaN]) {
 			expect(() => setRating(id, bad)).toThrow(ValidationError);
-			expect(read(id).rating).toBe(4.5);
+			expect(read(id).rating).toBe(10);
 		}
 	});
 
-	it('accepts the bounds and clears with null', () => {
+	it('Scenario: Rating is stored in whole hundredths', () => {
+		const id = seed('album', { status: 'done' });
+		const stored = () => getDb().prepare('SELECT rating_x100 FROM entries WHERE id = ?').get(id)?.rating_x100;
+
+		setRating(id, 8.75);
+		expect(stored()).toBe(875);
+		expect(read(id).rating).toBe(8.75);
+		setRating(id, 0.1 + 0.2);
+		expect(stored()).toBe(30);
+		expect(read(id).rating).toBe(0.3);
+	});
+
+	it('Scenario: Clearing keeps 0 distinct from unrated', () => {
 		const id = seed('book', { status: 'done' });
 
-		setRating(id, 0.5);
-		expect(read(id).rating).toBe(0.5);
-		setRating(id, 5);
-		expect(read(id).rating).toBe(5);
+		setRating(id, 0);
+		expect(read(id).rating).toBe(0);
 		setRating(id, null);
 		expect(read(id).rating).toBeNull();
 	});
 
-	it('rejects NaN and a type without ratings, and bumps updated_at on success', () => {
-		const album = seed('album', { rating: 3 });
+	it('uses the exact message and rejects a type without ratings, and bumps updated_at on success', () => {
+		const album = seed('album', { rating: 6 });
 		const brand = seed('brand', { kind: 'brand' });
 
-		expect(() => setRating(album, Number.NaN)).toThrow(ValidationError);
+		expect(() => setRating(album, 10.01)).toThrow('Rating must be between 0 and 10 with up to two decimals');
 		expect(() => setRating(brand, 3)).toThrow(ValidationError);
 		expect(read(album).updatedAt).toBe(OLD);
 		expect(read(brand).rating).toBeNull();
 
-		setRating(album, 4);
+		setRating(album, 8);
 		expect(read(album).updatedAt > OLD).toBe(true);
 	});
 });

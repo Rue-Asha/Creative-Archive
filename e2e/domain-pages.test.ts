@@ -12,10 +12,10 @@ const TABS = {
 	music: ['Albums', 'Artists', 'Songs'],
 	animanga: ['Anime', 'Manga'],
 	books: ['Books'],
-	fashion: ['Wardrobe', 'Pieces', 'Looks', 'Brands', 'Shops', 'Influencers', 'Magazines']
+	fashion: ['Wardrobe', 'Pieces', 'Looks', 'Brands & shops', 'Influencers', 'Magazines']
 };
 
-const slugs = { Albums: 'albums', Artists: 'artists', Songs: 'songs', Anime: 'anime', Manga: 'manga', Books: 'books', Brands: 'brands', Shops: 'shops', Influencers: 'influencers', Magazines: 'magazines', Pieces: 'pieces', Wardrobe: 'wardrobe', Looks: 'looks' } as const;
+const slugs = { Albums: 'albums', Artists: 'artists', Songs: 'songs', Anime: 'anime', Manga: 'manga', Books: 'books', 'Brands & shops': 'brands-shops', Influencers: 'influencers', Magazines: 'magazines', Pieces: 'pieces', Wardrobe: 'wardrobe', Looks: 'looks' } as const;
 
 test.beforeEach(async ({ page, request }) => {
 	await calm(page);
