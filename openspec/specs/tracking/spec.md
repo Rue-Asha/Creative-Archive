@@ -214,18 +214,42 @@ server's value, and later changes SHALL still be saved.
 - **proof:** e2e
 
 ### Requirement: Rating
-Media entries SHALL be ratable from 0.5 to 5 in half steps, clearable, operable by pointer and by arrow keys
-(±0.5, Delete/Backspace clears), and shown on cards and on the detail page; unrated entries SHALL show no stars on
-cards. Fashion entries SHALL have no rating.
+Media entries (albums, artists, songs, anime, manga, books) SHALL be ratable with a number from 0 to 10 inclusive with
+at most two decimal places (stored as whole hundredths), or unrated, clearable, shown on cards and on the detail page;
+unrated entries SHALL show no rating on cards. A rating of 0 is a rating, distinct from unrated. Values outside 0 to
+10, with more than two decimals or not finite SHALL be rejected with "Rating must be between 0 and 10 with up to two
+decimals" and leave the stored value unchanged. Fashion entries SHALL have no rating. Until the redesign the existing
+star control SHALL keep working as an adapter: it shows the value as stars (value / 2, in half steps) and writes
+star value times 2.
 
-#### Scenario: Rating is stored in half steps
-- **WHEN** `setRating` is called with 4.5, then with 4.3, 0 and 5.5
-- **THEN** 4.5 is stored and each of the others throws a ValidationError leaving 4.5
+#### Scenario: Rating accepts 0 to 10 with two decimals
+- **WHEN** `setRating` is called with 8.75, then with 0, 10, 8.755, -0.01, 10.01 and NaN
+- **THEN** 8.75, 0 and 10 are each stored, and the other three throw a ValidationError leaving 10
 - **proof:** unit
 
-#### Scenario: Rate in half stars
+#### Scenario: Create and update accept the full rating range
+- **WHEN** `createEntry` is called with rating 8.75 and `updateEntry` with 0, 7 and 10, then each with -0.01, 10.01, 8.755 and NaN
+- **THEN** the first four are stored and the last four throw a ValidationError leaving 10
+- **proof:** unit
+
+#### Scenario: Rating is stored in whole hundredths
+- **WHEN** `setRating` is called with 8.75 and with 0.1 + 0.2
+- **THEN** the stored integers are 875 and 30 and `getEntry` returns 8.75 and 0.3
+- **proof:** unit
+
+#### Scenario: Migration converts star ratings
+- **WHEN** the rating migration runs on a database holding a 4.5-star album (`rating_x2` 9), a half-star book (`rating_x2` 1) and an unrated song
+- **THEN** after it `getEntry` returns 9, 1 and null, and the `rating_x2` column is gone
+- **proof:** unit
+
+#### Scenario: Clearing keeps 0 distinct from unrated
+- **WHEN** an entry is rated 0 and `setRating(id, null)` is then called
+- **THEN** `getEntry` returns 0 first and null after
+- **proof:** unit
+
+#### Scenario: Rate in half stars through the adapter
 - **WHEN** the left half of the fifth star is chosen on a seeded album's detail page
-- **THEN** the rating reads 4.5 and after a reload it still does
+- **THEN** the control reads 4.5 stars, the stored rating is 9, and after a reload it still reads 4.5 stars
 - **proof:** e2e
 
 #### Scenario: Clear the rating
@@ -233,13 +257,13 @@ cards. Fashion entries SHALL have no rating.
 - **THEN** no star is filled and after a reload the album is unrated
 - **proof:** e2e
 
-#### Scenario: Keyboard rates with arrow keys
+#### Scenario: Keyboard rates with arrow keys through the adapter
 - **WHEN** the rating control of an unrated book is focused and ArrowRight is pressed three times, then ArrowLeft once
-- **THEN** the rating reads 1 and `aria-valuenow` is 1
+- **THEN** the control reads 1 star and `aria-valuenow` is 1
 - **proof:** e2e
 
-#### Scenario: Rated entries show stars on cards
-- **WHEN** a list holds an album rated 3.5
+#### Scenario: Rated entries show their rating on cards
+- **WHEN** a list holds an album whose stored rating is 7
 - **THEN** its card shows the star display with accessible name "3.5 of 5"
 - **proof:** e2e
 

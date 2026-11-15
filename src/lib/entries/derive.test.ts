@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { atTotal, domainOf, isWardrobe, listHref, progressLabel, ratingFromX2, ratingToX2, statusLabel } from './derive.ts';
+import { atTotal, domainOf, isWardrobe, listHref, progressLabel, ratingFromX100, ratingToX100, starsFromRating, statusLabel } from './derive.ts';
 
 describe('derived values', () => {
 	it('finds the domain of each type', () => {
@@ -46,14 +46,28 @@ describe('derived values', () => {
 
 	it('links each type to its list', () => {
 		expect(listHref('album')).toBe('/music/albums');
-		expect(listHref('site')).toBe('/fashion/shops');
+		expect(listHref('site')).toBe('/fashion/brands-shops');
+		expect(listHref('brand')).toBe('/fashion/brands-shops');
 		expect(listHref('book')).toBe('/books/books');
 	});
 
-	it('turns stored half steps into a rating and back', () => {
-		expect(ratingFromX2(9)).toBe(4.5);
-		expect(ratingFromX2(null)).toBeNull();
-		expect(ratingToX2(4.5)).toBe(9);
-		expect(ratingToX2(null)).toBeNull();
+	it('shows the rating as half stars', () => {
+		expect(starsFromRating(9)).toBe(4.5);
+		expect(starsFromRating(7)).toBe(3.5);
+		expect(starsFromRating(0.1)).toBe(0);
+		expect(starsFromRating(8.75)).toBe(4.5);
+		expect(starsFromRating(null)).toBeNull();
 	});
+
+	it('turns stored hundredths into a rating and back', () => {
+		expect(ratingFromX100(875)).toBe(8.75);
+		expect(ratingFromX100(0)).toBe(0);
+		expect(ratingFromX100(null)).toBeNull();
+		expect(ratingToX100(8.75)).toBe(875);
+		expect(ratingToX100(0.1 + 0.2)).toBe(30);
+		expect(ratingToX100(0)).toBe(0);
+		expect(ratingToX100(null)).toBeNull();
+		for (const bad of [8.755, -0.01, 10.01, Number.NaN, Infinity]) expect(() => ratingToX100(bad)).toThrow(RangeError);
+	});
+
 });

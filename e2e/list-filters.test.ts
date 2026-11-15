@@ -46,20 +46,22 @@ test('Scenario: Filter by tag', async ({ page, request }) => {
 test('Scenario: Filter by minimum rating', async ({ page, request }) => {
 	await seed(request, {
 		entries: [
-			{ type: 'anime', title: 'Five', rating: 5 },
-			{ type: 'anime', title: 'Three Half', rating: 3.5 },
-			{ type: 'anime', title: 'Four', rating: 4 },
+			{ type: 'anime', title: 'Nine and a quarter', rating: 9.25 },
+			{ type: 'anime', title: 'Seven and a half', rating: 7.5 },
+			{ type: 'anime', title: 'Eight', rating: 8 },
 			{ type: 'anime', title: 'Unrated' }
 		]
 	});
-	await open(page, '/animanga/anime');
-	await select(page, 'Minimum rating').selectOption({ label: '4+' });
+	await open(page, '/animanga/anime?rating=8');
 
-	await expect(page).toHaveURL(/rating=4/);
-	await expect(titles(page)).toHaveText(['Four', 'Five']);
+	await expect(titles(page)).toHaveText(['Eight', 'Nine and a quarter']);
+	await expect(select(page, 'Minimum rating')).toHaveValue('4');
+	await select(page, 'Minimum rating').selectOption({ label: '4.5+' });
+	await expect(page).toHaveURL(/rating=9/);
+	await expect(titles(page)).toHaveText(['Nine and a quarter']);
 });
 
-test('Scenario: Filter shops by kind', async ({ page, request }) => {
+test('Scenario: Filter brands and shops by kind', async ({ page, request }) => {
 	await seed(request, {
 		entries: [
 			{ type: 'site', title: 'Corner Shop', kind: 'shop' },
@@ -67,8 +69,8 @@ test('Scenario: Filter shops by kind', async ({ page, request }) => {
 			{ type: 'brand', title: 'Maison' }
 		]
 	});
-	await open(page, '/fashion/shops');
-	await expect(titles(page)).toHaveCount(2);
+	await open(page, '/fashion/brands-shops');
+	await expect(titles(page)).toHaveCount(3);
 	await chip(page, 'Site').click();
 
 	await expect(page).toHaveURL(/kind=site/);
@@ -92,9 +94,9 @@ test('Scenario: Filter pieces by status', async ({ page, request }) => {
 
 const sortable = () => ({
 	entries: [
-		{ type: 'album' as const, title: 'Zeta', rating: 3, createdAt: '2026-01-01T10:00:00.000Z' },
+		{ type: 'album' as const, title: 'Zeta', rating: 6, createdAt: '2026-01-01T10:00:00.000Z' },
 		{ type: 'album' as const, title: 'Ästhetik', createdAt: '2026-01-02T10:00:00.000Z' },
-		{ type: 'album' as const, title: 'alpha', rating: 5, createdAt: '2026-01-03T10:00:00.000Z' }
+		{ type: 'album' as const, title: 'alpha', rating: 10, createdAt: '2026-01-03T10:00:00.000Z' }
 	]
 });
 
@@ -115,8 +117,8 @@ test('Scenario: Sort by title and rating in the list', async ({ page, request })
 test('Scenario: Filter state survives reload and back', async ({ page, request }) => {
 	await seed(request, {
 		entries: [
-			{ type: 'album', title: 'Zeta', status: 'done', rating: 4, createdAt: '2026-01-01T10:00:00.000Z' },
-			{ type: 'album', title: 'Beta', status: 'done', rating: 2, createdAt: '2026-01-02T10:00:00.000Z' },
+			{ type: 'album', title: 'Zeta', status: 'done', rating: 8, createdAt: '2026-01-01T10:00:00.000Z' },
+			{ type: 'album', title: 'Beta', status: 'done', rating: 4, createdAt: '2026-01-02T10:00:00.000Z' },
 			{ type: 'album', title: 'Alpha', status: 'want', createdAt: '2026-01-03T10:00:00.000Z' }
 		]
 	});
@@ -135,7 +137,7 @@ test('Scenario: Filter state survives reload and back', async ({ page, request }
 
 	const earlier = page.url();
 	await select(page, 'Minimum rating').selectOption({ label: '3+' });
-	await expect(page).toHaveURL(/rating=3/);
+	await expect(page).toHaveURL(/rating=6/);
 	await expect(titles(page)).toHaveText(['Zeta']);
 
 	await page.goBack();
@@ -148,8 +150,8 @@ test('Scenario: Filter state survives reload and back', async ({ page, request }
 test('Scenario: Filters matching nothing offer reset', async ({ page, request }) => {
 	await seed(request, {
 		entries: [
-			{ type: 'album', title: 'Good', rating: 4 },
-			{ type: 'album', title: 'Fine', rating: 3 }
+			{ type: 'album', title: 'Good', rating: 8 },
+			{ type: 'album', title: 'Fine', rating: 6 }
 		]
 	});
 	await open(page, '/music/albums');

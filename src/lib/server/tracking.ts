@@ -1,4 +1,5 @@
 import { TYPES } from '#lib/entries/config.ts';
+import { isValidRating, ratingToX100 } from '#lib/entries/derive.ts';
 import { clampProgress } from '#lib/entries/progress.ts';
 import { ValidationError } from '#lib/errors.ts';
 import type { Entry, EntryType, Id, ProgressKey, Status, StatusEvent } from '#lib/types.ts';
@@ -60,12 +61,11 @@ export function stepProgress(id: Id, key: ProgressKey, delta: 1 | -1): Entry {
 export function setRating(id: Id, rating: number | null): void {
 	const entry = lookup(id);
 	if (!TYPES[entry.type].ratable) throw new ValidationError({ rating: `${entry.type} has no rating` });
-	const x2 = rating === null ? null : rating * 2;
-	if (x2 !== null && !(Number.isInteger(x2) && x2 >= 1 && x2 <= 10))
-		throw new ValidationError({ rating: 'Rating must be 0.5 to 5 in half steps' });
+	if (rating !== null && !isValidRating(rating))
+		throw new ValidationError({ rating: 'Rating must be between 0 and 10 with up to two decimals' });
 	getDb()
-		.prepare('UPDATE entries SET rating_x2 = ?, updated_at = ? WHERE id = ?')
-		.run(x2, new Date().toISOString(), id);
+		.prepare('UPDATE entries SET rating_x100 = ?, updated_at = ? WHERE id = ?')
+		.run(ratingToX100(rating), new Date().toISOString(), id);
 }
 
 export function statusEvents(id: Id): StatusEvent[] {

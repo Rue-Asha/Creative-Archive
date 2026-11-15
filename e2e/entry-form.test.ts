@@ -41,6 +41,21 @@ test('Scenario: Form shows the fields of its type', async ({ page }) => {
 	for (const label of ['Instagram', 'TikTok', 'YouTube', 'Website']) await expect(page.getByLabel(label), label).toBeVisible();
 });
 
+test('Scenario: Status prefill reaches the piece form', async ({ page }) => {
+	await open(page, '/add/piece?manual=1&status=owned');
+	await expect(page.getByLabel('Status', { exact: true })).toHaveValue('owned');
+	await page.getByLabel('Name', { exact: true }).fill('Coat');
+	await save(page).click();
+
+	await expect(page).toHaveURL(/\/entries\/\d+$/);
+	await open(page, `${new URL(page.url()).pathname}/edit`);
+	await expect(page.getByLabel('Status', { exact: true })).toHaveValue('owned');
+
+	await open(page, '/add/album?manual=1&status=want');
+	await expect(title(page)).toBeVisible();
+	await expect(page.getByLabel('Status', { exact: true })).toHaveCount(0);
+});
+
 test('Scenario: Empty title is not saved', async ({ page, request }) => {
 	await open(page, '/add/book?manual=1');
 	await save(page).click();

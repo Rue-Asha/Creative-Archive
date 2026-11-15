@@ -4,7 +4,7 @@
 	import AddToCollection from '#lib/collections/AddToCollection.svelte';
 	import { TYPES } from '#lib/entries/config.ts';
 	import { MARK_DONE } from '#lib/copy.ts';
-	import { atTotal, statusLabel } from '#lib/entries/derive.ts';
+	import { atTotal, starsFromRating, statusLabel } from '#lib/entries/derive.ts';
 	import ArtistWorks from '#lib/entries/ArtistWorks.svelte';
 	import DeleteEntry from '#lib/entries/DeleteEntry.svelte';
 	import DetailPanel from '#lib/entries/DetailPanel.svelte';
@@ -64,7 +64,8 @@
 		send('progress', { key, ...fields });
 	}
 
-	function setRating(next: number | null) {
+	function setRating(stars: number | null) {
+		const next = stars === null ? null : stars * 2;
 		local.rating = next;
 		send('rating', { rating: next === null ? '' : String(next) });
 	}
@@ -97,7 +98,7 @@
 				{/if}
 				{#if config.ratable}
 					<div class="rating">
-						<StarRating value={rating} mode="input" label="Rating" onchange={setRating} />
+						<StarRating value={starsFromRating(rating)} mode="input" label="Rating" onchange={setRating} />
 						{#if rating !== null}<button type="button" class="clear" onclick={() => setRating(null)}>Clear rating</button>{/if}
 					</div>
 				{/if}

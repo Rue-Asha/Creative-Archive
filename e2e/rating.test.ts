@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { calm, countSaves, open, rate, reset, seed } from './helpers.ts';
+import { calm, countSaves, open, rate, recordSaves, reset, seed } from './helpers.ts';
 
 declare global {
 	interface Window {
@@ -29,17 +29,19 @@ test.beforeEach(async ({ page, request }) => {
 	await reset(request);
 });
 
-test('Scenario: Rate in half stars', async ({ page, request }) => {
+test('Scenario: Rate in half stars through the adapter', async ({ page, request }) => {
 	const {
 		entries: [id]
 	} = await seed(request, { entries: [{ type: 'album', title: 'Blonde' }] });
 	const saved = countSaves(page);
+	const saves = recordSaves(page);
 	await open(page, `/entries/${id}`);
 	await rate(slider(page), 5, 'left');
 
 	await expect(slider(page)).toHaveAttribute('aria-valuenow', '4.5');
 	await expect(slider(page)).toHaveAttribute('aria-valuetext', '4.5 of 5');
 	await saved(1);
+	expect(saves()).toEqual(['rating rating=9']);
 	await page.reload();
 	await expect(slider(page)).toHaveAttribute('aria-valuenow', '4.5');
 	await expect(slider(page)).toHaveAttribute('aria-valuetext', '4.5 of 5');
@@ -58,7 +60,7 @@ test('the right half of a star rates it whole', async ({ page, request }) => {
 test('Scenario: Clear the rating', async ({ page, request }) => {
 	const {
 		entries: [id]
-	} = await seed(request, { entries: [{ type: 'album', title: 'Blonde', rating: 4 }] });
+	} = await seed(request, { entries: [{ type: 'album', title: 'Blonde', rating: 8 }] });
 	const saved = countSaves(page);
 	await open(page, `/entries/${id}`);
 	await page.getByRole('button', { name: 'Clear rating' }).click();
@@ -72,7 +74,7 @@ test('Scenario: Clear the rating', async ({ page, request }) => {
 	await expect(slider(page)).toHaveAttribute('aria-valuetext', 'Not rated');
 });
 
-test('Scenario: Keyboard rates with arrow keys', async ({ page, request }) => {
+test('Scenario: Keyboard rates with arrow keys through the adapter', async ({ page, request }) => {
 	const {
 		entries: [id]
 	} = await seed(request, { entries: [{ type: 'book', title: 'Norwegian Wood' }] });
@@ -108,7 +110,7 @@ test('a failed save does not block the saves after it', async ({ page, request }
 test('Delete clears the rating from the keyboard', async ({ page, request }) => {
 	const {
 		entries: [id]
-	} = await seed(request, { entries: [{ type: 'book', title: 'Norwegian Wood', rating: 3.5 }] });
+	} = await seed(request, { entries: [{ type: 'book', title: 'Norwegian Wood', rating: 7 }] });
 	const saved = countSaves(page);
 	await open(page, `/entries/${id}`);
 	await slider(page).focus();
@@ -140,7 +142,7 @@ test('Scenario: Star fill animates on rate', async ({ page, request }) => {
 	await recordAnimations(page);
 	const {
 		entries: [id]
-	} = await seed(request, { entries: [{ type: 'album', title: 'Blonde', rating: 4 }] });
+	} = await seed(request, { entries: [{ type: 'album', title: 'Blonde', rating: 8 }] });
 	await open(page, `/entries/${id}`);
 	expect(await starAnimations(page)).toEqual([]);
 	await rate(slider(page), 5, 'left');
@@ -153,7 +155,7 @@ test('Scenario: Reduced motion fills stars instantly', async ({ page, request })
 	await recordAnimations(page);
 	const {
 		entries: [id]
-	} = await seed(request, { entries: [{ type: 'album', title: 'Blonde', rating: 4 }] });
+	} = await seed(request, { entries: [{ type: 'album', title: 'Blonde', rating: 8 }] });
 	await open(page, `/entries/${id}`);
 	await rate(slider(page), 5, 'left');
 

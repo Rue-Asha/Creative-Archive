@@ -158,7 +158,7 @@ test('Scenario: Desktop controls share one row', async ({ page, request }, info)
 	const {
 		entries: [id]
 	} = await seed(request, {
-		entries: [{ type: 'anime', title: 'Frieren', status: 'progress', rating: 4, progress: { episodes: { current: 3, total: 28 } } }]
+		entries: [{ type: 'anime', title: 'Frieren', status: 'progress', rating: 8, progress: { episodes: { current: 3, total: 28 } } }]
 	});
 	await open(page, `/entries/${id}`);
 	const panel = page.getByRole('region', { name: 'Frieren', exact: true });
@@ -176,7 +176,7 @@ test('Scenario: Detail without progress keeps its controls row', async ({ page, 
 	test.skip(info.project.name !== 'desktop');
 	const {
 		entries: [id]
-	} = await seed(request, { entries: [{ type: 'album', title: 'Blonde', status: 'done', rating: 5 }] });
+	} = await seed(request, { entries: [{ type: 'album', title: 'Blonde', status: 'done', rating: 10 }] });
 	await open(page, `/entries/${id}`);
 	const panel = page.getByRole('region', { name: 'Blonde', exact: true });
 

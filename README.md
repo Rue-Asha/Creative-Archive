@@ -26,6 +26,24 @@ npm run package      # build, then dist/creative-archive-<version>.tgz + .sha256
 `proof:full` serves the production build on `$PORT` (default 4173) with a throwaway database at
 `.e2e/$PORT.db`, so several runs on different ports don't interfere.
 
+## What changed in 0.2.0
+
+- Ratings are a number from 0 to 10, with up to two decimals. Old star ratings convert by doubling: 4.5 stars is now 9.
+- Brands and shops are one list, `/fashion/brands-shops`, filtered by Kind. The old `/fashion/brands` and `/fashion/shops` URLs redirect there.
+- Collection entries keep a manual order.
+- HEIC uploads are no longer accepted. The other six image formats stay.
+
+### Upgrading to 0.2.0
+
+Copy the database file before the first start of 0.2.0. Migrations `0004` and `0005` change data one way, and there is no
+way back. The file is the one `DATABASE_PATH` points to (`/var/lib/creative-archive/creative-archive.db` on the host):
+
+```sh
+cp /var/lib/creative-archive/creative-archive.db /var/lib/creative-archive/creative-archive.db.0.1.3
+```
+
+To go back, stop the service, put the copy in place and start 0.1.3.
+
 ## Release
 
 Releases are cut by tag; the ship runbook for `v0.1.0` and the release procedure are in [docs/release.md](docs/release.md).

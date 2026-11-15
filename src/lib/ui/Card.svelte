@@ -43,7 +43,7 @@
 	<div class="foot">
 		<h3 class="title" data-card-title><a {href}>{title}</a></h3>
 		{#if meta}<p class="meta">{meta}</p>{/if}
-		{#if rating !== null && rating > 0}<StarRating value={rating} mode="display" size="sm" tone="photo" />{/if}
+		{#if rating !== null}<StarRating value={rating} mode="display" size="sm" tone="photo" />{/if}
 		{#if children}<div class="extra">{@render children()}</div>{/if}
 	</div>
 	<ArrowButton decorative variant="glass" direction="up-right" class="go" data-card-arrow />

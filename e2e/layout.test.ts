@@ -8,7 +8,7 @@ const albums: SeedEntry[] = Array.from({ length: 10 }, (_, i) => ({
 	type: 'album',
 	title: i === 0 ? spaced : i === 1 ? unbroken : `Album ${i + 1}`,
 	status: i % 2 ? 'done' : 'want',
-	rating: 4,
+	rating: 8,
 	image: true,
 	artist: i < 3 ? 0 : undefined,
 	details: { year: 2000 + i }

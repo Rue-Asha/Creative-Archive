@@ -1,5 +1,5 @@
 import { DOMAINS, type Domain } from '#lib/domains.ts';
-import { TYPES, TYPES_BY_DOMAIN } from '#lib/entries/config.ts';
+import { BRANDS_SHOPS, TYPES, TYPES_BY_DOMAIN } from '#lib/entries/config.ts';
 import { listHref } from '#lib/entries/derive.ts';
 import type { Entry, EntryType, ShelfData } from '#lib/types.ts';
 import { getDb } from './db.ts';
@@ -60,13 +60,19 @@ function progressShelf(entries: Entry[]): ShelfData[] {
 
 export function domainShelves(domain: Domain): ShelfData[] {
 	const progress = progressShelf(inProgress().filter((e) => TYPES[e.type].domain === domain));
-	const byType = TYPES_BY_DOMAIN[domain].map((type): ShelfData => ({
-		key: type,
-		title: TYPES[type].plural,
-		count: total([type]),
-		entries: recent([type], 12),
-		href: listHref(type)
-	}));
+	const byType = TYPES_BY_DOMAIN[domain]
+		.filter((type) => type !== 'site')
+		.map((type): ShelfData => {
+			const combined = type === 'brand';
+			const types = combined ? BRANDS_SHOPS.query.types : [type];
+			return {
+				key: combined ? BRANDS_SHOPS.slug : type,
+				title: combined ? BRANDS_SHOPS.label : TYPES[type].plural,
+				count: total(types),
+				entries: recent(types, 12),
+				href: listHref(type)
+			};
+		});
 	return [...progress, ...byType.filter((s) => s.count > 0)];
 }
 

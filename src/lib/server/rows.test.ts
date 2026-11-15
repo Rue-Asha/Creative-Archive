@@ -110,7 +110,7 @@ describe('entryColumns', () => {
 			title: 'Vagabond',
 			title_key: 'vagabond',
 			status: 'progress',
-			rating_x2: 7,
+			rating_x100: 350,
 			chapters: 12,
 			chapters_total: null,
 			volumes: 2,
@@ -130,7 +130,7 @@ describe('entryColumns', () => {
 	it('writes the artist link, kind and a cleared rating', () => {
 		expect(
 			entryColumns({ type: 'song', title: 'Nikes', artist: { id: 4, name: 'Frank Ocean' }, rating: null })
-		).toMatchObject({ artist_id: 4, artist_name: 'Frank Ocean', rating_x2: null });
+		).toMatchObject({ artist_id: 4, artist_name: 'Frank Ocean', rating_x100: null });
 		expect(entryColumns({ type: 'song', title: 'Nikes', artist: null })).toMatchObject({ artist_id: null, artist_name: null });
 		expect(entryColumns({ type: 'brand', title: 'Maison', kind: 'brand' })).toMatchObject({ kind: 'brand' });
 	});

@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import sharp, { type Sharp } from 'sharp';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ImageError } from '#lib/errors.ts';
@@ -71,6 +72,17 @@ describe('storeImage', () => {
 			expect(err).toBeInstanceOf(ImageError);
 			expect((err as ImageError).code).toBe('not-image');
 		}
+		expect(imageRows()).toBe(0);
+	});
+
+	it('Scenario: HEIC is rejected by the server', async () => {
+		const heic = readFileSync(new URL('../../../fixtures/heic/sample.heic', import.meta.url));
+		expect((await sharp(heic).metadata()).compression).toBe('hevc');
+
+		const err = await rejection(storeImage(heic));
+
+		expect(err).toBeInstanceOf(ImageError);
+		expect((err as ImageError).code).toBe('not-image');
 		expect(imageRows()).toBe(0);
 	});
 

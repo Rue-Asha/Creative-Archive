@@ -124,14 +124,17 @@ describe('entryInputFromForm', () => {
 		expect(cleared.input.artist).toBeNull();
 	});
 
-	it('only offers status to pieces and ignores fields of another type', () => {
+	it('reads status for pieces and media and ignores fields of another type', () => {
 		const piece = entryInputFromForm(formOf(['title', 'Coat'], ['status', 'owned']), 'piece', null);
 		expect(piece.input.status).toBe('owned');
 
 		const album = entryInputFromForm(formOf(['title', 'Ctrl'], ['status', 'done'], ['progress.episodes.total', '5'], ['details.url', 'https://x.example']), 'album', null);
-		expect(album.input.status).toBeUndefined();
+		expect(album.input.status).toBe('done');
 		expect(album.input.progress).toBeUndefined();
 		expect(album.input.details).toEqual({});
+
+		const brand = entryInputFromForm(formOf(['title', 'Acne'], ['status', 'done']), 'brand', null);
+		expect(brand.input.status).toBeUndefined();
 	});
 });
 
@@ -212,7 +215,7 @@ describe('saveFromForm', () => {
 			formOf(['type', 'piece'], ['title', 'Coat'], ['status', 'broken'], ['image', new File([testImage()], 'a.png', { type: 'image/png' })])
 		);
 
-		expect(result).toEqual({ errors: { status: 'Invalid status' } });
+		expect(result).toEqual({ errors: { status: 'Invalid status for piece' } });
 		expect(count('images')).toBe(0);
 		expect(count('entries')).toBe(0);
 	});

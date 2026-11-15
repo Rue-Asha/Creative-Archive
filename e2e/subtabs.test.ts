@@ -16,7 +16,7 @@ test('Scenario: Fashion tabs come in two labelled groups', async ({ page }) => {
 	const mine = tabs(page).getByRole('group', { name: 'My things' });
 	const discover = tabs(page).getByRole('group', { name: 'Discover' });
 	await expect(mine.getByRole('link')).toHaveText(['Wardrobe', 'Pieces', 'Looks']);
-	await expect(discover.getByRole('link')).toHaveText(['Brands', 'Shops', 'Influencers', 'Magazines']);
+	await expect(discover.getByRole('link')).toHaveText(['Brands & shops', 'Influencers', 'Magazines']);
 	await expect(captions(page)).toHaveText(['My things', 'Discover']);
 	await expect(captions(page).first()).toBeVisible();
 	await expect(captions(page).last()).toBeVisible();
@@ -107,7 +107,7 @@ test('Scenario: Grouped tabs sit in one row on desktop', async ({ page }, info) 
 	await open(page, '/fashion');
 
 	const links = await tabs(page).getByRole('link').all();
-	expect(links).toHaveLength(7);
+	expect(links).toHaveLength(6);
 	const boxes = await Promise.all(links.map(box));
 	for (const b of boxes) expect(Math.abs(b.y - boxes[0].y)).toBeLessThanOrEqual(1);
 	const mine = await box(tabs(page).getByRole('group', { name: 'My things' }));

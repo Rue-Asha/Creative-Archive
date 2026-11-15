@@ -1,6 +1,6 @@
 import type { Entry, EntryType, Id, ListQuery, MediaStatus, PieceStatus, ShelfData, SiteKind, SortKey, Status } from '#lib/types.ts';
 import type { TypeConfig } from './config.ts';
-import { statusLabel } from './derive.ts';
+import { isValidRating, statusLabel } from './derive.ts';
 
 // `view` is page state, not part of the query the server filters by; only the shelves view is written to the URL
 export interface ListState extends Partial<Pick<ListQuery, 'status' | 'kind' | 'tag' | 'minRating' | 'sort'>> {
@@ -35,14 +35,14 @@ export function fromSearchParams(input: URLSearchParams | string, config?: TypeC
 	if (status && statusesOf(config).includes(status as Status)) state.status = status as Status;
 
 	const kind = params.get('kind');
-	const kinds = config ? (config.type === 'site' ? KINDS.filter((k) => k !== 'brand') : []) : KINDS;
+	const kinds = !config || config.type === 'brand' || config.type === 'site' ? KINDS : [];
 	if (kind && kinds.includes(kind as SiteKind)) state.kind = kind as SiteKind;
 
 	const tag = params.get('tag');
 	if (tag && /^\d+$/.test(tag) && Number(tag) > 0) state.tag = Number(tag) as Id;
 
-	const rating = Number(params.get('rating') ?? NaN);
-	if ((!config || config.ratable) && rating >= 0.5 && rating <= 5 && Number.isInteger(rating * 2)) state.minRating = rating;
+	const raw = params.get('rating');
+	if ((!config || config.ratable) && raw && isValidRating(Number(raw))) state.minRating = Number(raw);
 
 	const sort = params.get('sort');
 	if (sort && SORTS.includes(sort as SortKey) && (sort !== 'rating' || !config || config.ratable)) state.sort = sort as SortKey;

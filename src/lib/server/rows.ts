@@ -1,5 +1,5 @@
 import { TYPES } from '#lib/entries/config.ts';
-import { ratingFromX2, ratingToX2 } from '#lib/entries/derive.ts';
+import { ratingFromX100, ratingToX100 } from '#lib/entries/derive.ts';
 import { fold } from '#lib/text.ts';
 import type { Entry, EntryInput, EntryType, Id, Progress, ProviderId, SiteKind, Status, Tag } from '#lib/types.ts';
 import { getDb } from './db.ts';
@@ -16,7 +16,7 @@ export function rowToEntry(row: Record<string, unknown>, tags: Tag[]): Entry {
 		type,
 		title: String(row.title),
 		status: nullable<Status>(row.status),
-		rating: ratingFromX2(nullable<number>(row.rating_x2)),
+		rating: ratingFromX100(nullable<number>(row.rating_x100)),
 		progress,
 		kind: nullable<SiteKind>(row.kind),
 		artistId: nullable<Id>(row.artist_id),
@@ -38,7 +38,7 @@ export function entryColumns(input: EntryInput): Record<string, unknown> {
 	const title = input.title.trim();
 	const cols: Record<string, unknown> = { type: input.type, title, title_key: fold(title) };
 	if (input.status !== undefined) cols.status = input.status;
-	if (input.rating !== undefined) cols.rating_x2 = ratingToX2(input.rating);
+	if (input.rating !== undefined) cols.rating_x100 = ratingToX100(input.rating);
 	for (const [key, p] of Object.entries(input.progress ?? {}) as [string, Progress][]) {
 		cols[key] = p.current;
 		cols[`${key}_total`] = p.total;

@@ -9,6 +9,8 @@ const NOW = '2026-10-31T08:00:00.000Z';
 const TYPES = ['album', 'artist', 'song', 'anime', 'manga', 'book', 'brand', 'site', 'influencer', 'piece', 'look'];
 const STATUS: Record<string, string> = { album: 'done', artist: 'none', song: 'want', anime: 'progress', manga: 'dropped', book: 'done', piece: 'owned' };
 
+const through0003 = () => loadMigrations().filter((m) => m.name <= '0003_magazine.sql');
+
 let dir: string;
 let db: DatabaseSync;
 
@@ -76,7 +78,7 @@ describe('migration 0003', () => {
 	it('Scenario: Existing database migrates without loss', () => {
 		const before = snapshot(db);
 
-		migrate(db);
+		migrate(db, through0003());
 
 		expect(snapshot(db)).toEqual(before);
 		expect(db.prepare('PRAGMA foreign_key_check').all()).toEqual([]);
@@ -84,7 +86,7 @@ describe('migration 0003', () => {
 	});
 
 	it('Scenario: Foreign keys still bind after the rebuild', () => {
-		migrate(db);
+		migrate(db, through0003());
 
 		db.prepare('DELETE FROM entries WHERE id IN (2, 4)').run();
 
@@ -109,10 +111,10 @@ describe('migration 0003', () => {
 	});
 
 	it('Scenario: Migration 0003 runs once', () => {
-		migrate(db);
+		migrate(db, through0003());
 		const after = snapshot(db);
 
-		migrate(db);
+		migrate(db, through0003());
 
 		expect(
 			db.prepare("SELECT count(*) AS n FROM schema_migrations WHERE name = '0003_magazine.sql'").get()?.n
@@ -122,8 +124,8 @@ describe('migration 0003', () => {
 
 	it('Scenario: Fresh and migrated databases share one schema', () => {
 		const fresh = openDb(join(dir, 'fresh.db'));
-		migrate(fresh);
-		migrate(db);
+		migrate(fresh, through0003());
+		migrate(db, through0003());
 		const schema = (d: DatabaseSync) =>
 			d.prepare("SELECT type, name, sql FROM sqlite_master WHERE name <> 'schema_migrations' ORDER BY type, name").all();
 

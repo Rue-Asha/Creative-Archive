@@ -78,11 +78,11 @@ describe('0002_core schema', () => {
 		expect(() => entry({ type: 'album', status: 'none', provider: 'spotify' })).toThrow(/CHECK/);
 	});
 
-	it('keeps ratings between half a star and five stars', () => {
-		expect(() => entry({ type: 'album', status: 'done', rating_x2: 1 })).not.toThrow();
-		expect(() => entry({ type: 'album', status: 'done', rating_x2: 10 })).not.toThrow();
-		expect(() => entry({ type: 'album', status: 'done', rating_x2: 11 })).toThrow(/CHECK/);
-		expect(() => entry({ type: 'album', status: 'done', rating_x2: 0 })).toThrow(/CHECK/);
+	it('keeps ratings between 0 and 1000 hundredths', () => {
+		expect(() => entry({ type: 'album', status: 'done', rating_x100: 0 })).not.toThrow();
+		expect(() => entry({ type: 'album', status: 'done', rating_x100: 1000 })).not.toThrow();
+		expect(() => entry({ type: 'album', status: 'done', rating_x100: 1001 })).toThrow(/CHECK/);
+		expect(() => entry({ type: 'album', status: 'done', rating_x100: -1 })).toThrow(/CHECK/);
 	});
 
 	it('refuses negative progress', () => {
@@ -126,6 +126,8 @@ describe('0002_core schema', () => {
 				.lastInsertRowid
 		);
 		db.prepare('INSERT INTO collection_entries (collection_id, entry_id, added_at) VALUES (?, ?, ?)').run(c, id, NOW);
+
+		expect(db.prepare('SELECT position FROM collection_entries').get()?.position).toBe(0);
 
 		db.prepare('DELETE FROM entries WHERE id = ?').run(id);
 

@@ -1,12 +1,19 @@
-import { error } from '@sveltejs/kit';
+import { error, redirect } from '@sveltejs/kit';
 import { DOMAINS } from '#lib/domains.ts';
-import { LISTS, TYPES } from '#lib/entries/config.ts';
+import { LISTS, RETIRED_LISTS, TYPES } from '#lib/entries/config.ts';
 import { fromSearchParams } from '#lib/entries/query.ts';
 import { listEntries } from '#lib/server/entries.ts';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = ({ params, url }) => {
 	const domain = DOMAINS.find((d) => d === params.domain);
+	const retired = RETIRED_LISTS[`${params.domain}/${params.list}`];
+	if (retired) {
+		const query = new URLSearchParams(url.searchParams);
+		if (retired.kind) query.set('kind', retired.kind);
+		const search = query.size ? `?${query}` : '';
+		redirect(308, `/${params.domain}/${retired.to}${search}`);
+	}
 	const list = domain && LISTS[domain].find((l) => l.slug === params.list);
 	if (!domain || !list) error(404, 'Not found');
 

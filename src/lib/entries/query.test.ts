@@ -5,9 +5,9 @@ import { fromSearchParams, statusShelves, toSearchParams } from './query.ts';
 
 describe('list query in the URL', () => {
 	it('Scenario: List query round-trips through the URL', () => {
-		const full = { status: 'done', tag: 3, minRating: 3.5, sort: 'title' } as const;
+		const full = { status: 'done', tag: 3, minRating: 8.75, sort: 'title' } as const;
 		const params = toSearchParams(full);
-		expect(params.toString()).toBe('status=done&tag=3&rating=3.5&sort=title');
+		expect(params.toString()).toBe('status=done&tag=3&rating=8.75&sort=title');
 		expect(fromSearchParams(params)).toEqual(full);
 
 		expect(toSearchParams({}).toString()).toBe('');
@@ -22,11 +22,15 @@ describe('list query in the URL', () => {
 	});
 
 	it('drops invalid values and keeps the valid ones', () => {
-		const bad = 'status=bogus&tag=abc&rating=9&sort=newest&kind=zine&view=cloud';
+		const bad = 'status=bogus&tag=abc&rating=11&sort=newest&kind=zine&view=cloud';
 		expect(fromSearchParams(bad)).toEqual({});
-		expect(fromSearchParams('tag=0&rating=3.3&sort=title')).toEqual({ sort: 'title' });
-		expect(fromSearchParams('tag=-2&rating=0&status=done')).toEqual({ status: 'done' });
+		expect(fromSearchParams('tag=0&rating=3.333&sort=title')).toEqual({ sort: 'title' });
+		expect(fromSearchParams('tag=-2&rating=-1&status=done')).toEqual({ status: 'done' });
 		expect(fromSearchParams('rating=0.5&tag=12')).toEqual({ minRating: 0.5, tag: 12 });
+		expect(fromSearchParams('rating=0')).toEqual({ minRating: 0 });
+		expect(fromSearchParams('rating=10')).toEqual({ minRating: 10 });
+		expect(fromSearchParams('rating=10.01')).toEqual({});
+		expect(fromSearchParams('rating=abc')).toEqual({});
 	});
 
 	it('does not write the default sort', () => {
@@ -38,9 +42,11 @@ describe('list query in the URL', () => {
 		const url = 'status=done&kind=site&rating=4&sort=rating&view=shelves';
 		expect(fromSearchParams(url, TYPES.album)).toEqual({ status: 'done', minRating: 4, sort: 'rating', view: 'shelves' });
 		expect(fromSearchParams(url, TYPES.site)).toEqual({ kind: 'site' });
+		expect(fromSearchParams(url, TYPES.brand)).toEqual({ kind: 'site' });
 		expect(fromSearchParams('status=owned&sort=title&rating=4', TYPES.piece)).toEqual({ status: 'owned', sort: 'title' });
 		expect(fromSearchParams('status=owned', TYPES.album)).toEqual({});
-		expect(fromSearchParams('kind=brand', TYPES.site)).toEqual({});
+		expect(fromSearchParams('kind=brand', TYPES.site)).toEqual({ kind: 'brand' });
+		expect(fromSearchParams('kind=brand', TYPES.album)).toEqual({});
 		expect(fromSearchParams('status=done&kind=shop&sort=title', TYPES.look)).toEqual({ sort: 'title' });
 	});
 

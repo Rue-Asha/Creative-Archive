@@ -2,7 +2,7 @@
 	import { applyAction, deserialize } from '$app/forms';
 	import { invalidateAll } from '$app/navigation';
 	import { TYPES } from '#lib/entries/config.ts';
-	import { statusLabel } from '#lib/entries/derive.ts';
+	import { starsFromRating, statusLabel } from '#lib/entries/derive.ts';
 	import { clampProgress } from '#lib/entries/progress.ts';
 	import type { Entry, EntryType } from '#lib/types.ts';
 	import Card from '#lib/ui/Card.svelte';
@@ -70,7 +70,7 @@
 		{meta}
 		tint={null}
 		coverId={entry.id}
-		rating={entry.rating}
+		rating={starsFromRating(entry.rating)}
 		shape={shape ?? shapeOf(entry.type)}
 	>
 		{#if key && progress}

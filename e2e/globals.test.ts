@@ -39,7 +39,7 @@ const cursor = (locator: Locator) => locator.first().evaluate((el) => getCompute
 async function seedChrome(request: Parameters<typeof reset>[0]) {
 	await seed(request, {
 		entries: [
-			{ type: 'album', title: 'Blonde', status: 'done', rating: 4, note: 'On repeat all winter.' },
+			{ type: 'album', title: 'Blonde', status: 'done', rating: 8, note: 'On repeat all winter.' },
 			{ type: 'anime', title: 'Frieren', status: 'progress', progress: { episodes: { current: 3, total: 28 } } }
 		],
 		collections: [{ name: 'Winter', description: 'Quiet records for cold days.', entries: [0] }]
@@ -124,7 +124,7 @@ test('Scenario: Focus ring follows the element\'s own radius', async ({ page, re
 		entries: [album]
 	} = await seed(request, {
 		entries: [
-			{ type: 'album', title: 'Blonde', status: 'done', rating: 4 },
+			{ type: 'album', title: 'Blonde', status: 'done', rating: 8 },
 			{ type: 'album', title: 'Nikes', status: 'want' }
 		]
 	});

@@ -86,7 +86,7 @@ export function entryInputFromForm(
 		}
 	}
 
-	if (config.status === 'piece' && text(form, 'status')) input.status = text(form, 'status') as Status;
+	if (config.status && text(form, 'status')) input.status = text(form, 'status') as Status;
 
 	if (config.artist) {
 		const name = text(form, 'artistName').trim();

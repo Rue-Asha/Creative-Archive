@@ -5,8 +5,6 @@
 
 	// mirrors MAX_UPLOAD_BYTES in the server's images.ts, which pulls in sharp and cannot ship to the browser
 	const MAX_BYTES = 16 * 1024 * 1024;
-	const MIME = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/avif', 'image/heif', 'image/heic']);
-	const EXTENSION = /\.(jpe?g|png|webp|gif|avif|heic|heif)$/i;
 
 	// the new picture settles in from slightly zoomed while the old one fades behind it
 	function swap(_node: Element, { leaving = false }: { leaving?: boolean } = {}): TransitionConfig {
@@ -22,6 +20,7 @@
 <script lang="ts">
 	import { onDestroy } from 'svelte';
 	import { COPY } from '#lib/copy.ts';
+	import { isAcceptedImageFile } from './imageFormats.ts';
 	import { hideOnOutro } from '#lib/motion.ts';
 	import type { Id } from '#lib/types.ts';
 	import Button from '#lib/ui/Button.svelte';
@@ -70,7 +69,7 @@
 		ondirty?.();
 		if (!file) {
 			picked = '';
-		} else if (!(MIME.has(file.type) || (file.type === '' && EXTENSION.test(file.name)))) {
+		} else if (!isAcceptedImageFile(file)) {
 			reject(COPY.imageType);
 		} else if (file.size > MAX_BYTES) {
 			reject(COPY.imageSize);
