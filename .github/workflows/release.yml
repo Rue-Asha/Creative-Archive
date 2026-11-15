@@ -94,7 +94,7 @@ jobs:
     needs: publish
     permissions:
       contents: read
-    uses: Rue-Asha/ci/.github/workflows/bump-pin.yml@7b49f3dcf37c61aea3722e68917bc06db507f386 # v1.1.0
+    uses: Rue-Asha/ci/.github/workflows/bump-pin.yml@ed47510b066c92029bf55763a95626a3bfcd826f # v1.2.0
     with:
       app: creative-archive
       host_vars_path: ansible/inventory/host_vars/creative-archive01/vars.yml
