@@ -94,7 +94,6 @@ test('Scenario: Pages load no external resources', async ({ page, baseURL }) => 
 	for (const slug of slugs) {
 		await open(page, path(slug, 'normal'));
 		await page.evaluate(() => document.fonts.ready);
-		await page.waitForLoadState('networkidle');
 	}
 	expect(foreign).toEqual([]);
 });

@@ -143,13 +143,18 @@ async function pressed(page: Page, title: string): Promise<{ held: string; relea
 	const box = (await card(page, title).boundingBox())!;
 	await page.mouse.move(box.x + box.width / 2, box.y + box.height / 4);
 	await page.mouse.down();
-	await page.waitForTimeout(400);
-	const held = await transformOf(page, title);
+	const held = await still(page, title, true);
 	// leave the card before letting go, so the press does not open the entry
 	await page.mouse.move(2, 2);
 	await page.mouse.up();
-	await page.waitForTimeout(400);
-	return { held, released: await transformOf(page, title) };
+	return { held, released: await still(page, title, false) };
+}
+
+// the card's transform once it is (or is no longer) pressed and has stopped moving: a transition's clock only runs on
+// painted frames, so a busy renderer can hold it at its first frame for longer than any fixed wait
+async function still(page: Page, title: string, active: boolean): Promise<string> {
+	await expect.poll(() => card(page, title).evaluate((el, pressed) => el.matches(':active') === pressed && el.getAnimations().length === 0, active)).toBe(true);
+	return transformOf(page, title);
 }
 
 test('Scenario: Cards press in', async ({ page }, info) => {

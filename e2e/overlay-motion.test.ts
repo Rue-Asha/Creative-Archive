@@ -100,6 +100,8 @@ test('Scenario: A menu above its button grows from its bottom edge', async ({ pa
 	await page.setViewportSize({ width: 390, height: 500 });
 	await open(page, `/collections/${id}`);
 	const rowButton = page.getByRole('button', { name: 'Actions for H' });
+	// the rows rise into place; a click that lands on a moving button is retried with the page scrolled to its end
+	await page.waitForFunction(() => document.getAnimations().every((a) => a.playState !== 'running'));
 	await rowButton.evaluate((el) => el.scrollIntoView({ block: 'end' }));
 	expect((await rowButton.boundingBox())!.y, 'the button sits near the bottom edge').toBeGreaterThan(330);
 	await rowButton.click();
