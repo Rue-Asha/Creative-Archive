@@ -19,7 +19,7 @@
 		"package": "npm run build && node scripts/package.mjs"
 	},
 	"devDependencies": {
-		"@playwright/test": "^1.64.0",
+		"@playwright/test": "^1.65.0",
 		"@sveltejs/adapter-node": "^6.0.0",
 		"@sveltejs/kit": "^3.0.1",
 		"@sveltejs/vite-plugin-svelte": "^7.3.1",
