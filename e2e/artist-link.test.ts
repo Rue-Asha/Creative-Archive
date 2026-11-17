@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { calm, cardTitles, open, reset, seed } from './helpers.ts';
+import { calm, open, reset, seed } from './helpers.ts';
 
 test.beforeEach(async ({ page, request }) => {
 	await calm(page);
@@ -49,7 +49,7 @@ test('Scenario: Artist lists linked albums and songs', async ({ page, request })
 	await open(page, `/entries/${artist}`);
 	const works = page.getByRole('region', { name: 'Works' });
 
-	await expect(cardTitles(works)).toHaveText(['Channel Orange', 'Blonde', 'Nikes']);
+	await expect(works.getByRole('link')).toContainText(['Channel Orange', 'Blonde', 'Nikes']);
 	await expect(page.getByText('Not His Album')).toHaveCount(0);
 	await expect(page.getByText('Somebody Elses')).toHaveCount(0);
 });
@@ -70,7 +70,7 @@ test('a work card opens the album', async ({ page, request }) => {
 	await expect(page.getByRole('heading', { level: 1 })).toHaveText('Blonde');
 });
 
-test('an artist without works and an album without an artist show no works shelf', async ({ page, request }) => {
+test('an artist without works says so and an album without an artist shows no works section', async ({ page, request }) => {
 	const {
 		entries: [artist, album]
 	} = await seed(request, {
@@ -79,10 +79,10 @@ test('an artist without works and an album without an artist show no works shelf
 			{ type: 'album', title: 'Blonde' }
 		]
 	});
-	for (const id of [artist, album]) {
-		await open(page, `/entries/${id}`);
+	await open(page, `/entries/${artist}`);
+	await expect(page.getByRole('region', { name: 'Works' })).toContainText('No works yet');
 
-		await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
-		await expect(page.getByRole('region', { name: 'Works' })).toHaveCount(0);
-	}
+	await open(page, `/entries/${album}`);
+	await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+	await expect(page.getByRole('region', { name: 'Works' })).toHaveCount(0);
 });

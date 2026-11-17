@@ -4,9 +4,7 @@
 TBD - created by archiving change build-creative-archive. Update Purpose after archive.
 ## Requirements
 ### Requirement: Proof commands
-The repo SHALL provide `npm run proof` (svelte-check with `--fail-on-warnings`, build, vitest) and `npm run proof:full`
-(proof plus Playwright e2e). Both SHALL print the name of every passed test (vitest `--reporter=verbose`, Playwright
-`--reporter=list`) and exit non-zero on any failure.
+The repo SHALL provide `npm run proof` (the fingerprint guards `check-slop` and `check-drift`, svelte-check with `--fail-on-warnings`, build, vitest) and `npm run proof:full` (proof plus Playwright e2e). Both SHALL print the name of every passed test (vitest `--reporter=verbose`, Playwright `--reporter=list`) and exit non-zero on any failure.
 
 #### Scenario: Proof prints test names and passes
 - **WHEN** `npm run proof` runs on a clean checkout with all tests passing
@@ -14,9 +12,14 @@ The repo SHALL provide `npm run proof` (svelte-check with `--fail-on-warnings`, 
 - **proof:** manual (infrastructure; its output is the evidence every other unit relies on, read in U1's report)
 
 #### Scenario: Proof fails on a failing check
-- **WHEN** a typecheck error, build error or failing test is present
+- **WHEN** a typecheck error, build error, failing test, `check-slop` violation or edited vendored file is present
 - **THEN** `npm run proof` and `npm run proof:full` exit non-zero
-- **proof:** manual (infrastructure; proven once in U1 with a deliberately failing test, then reverted)
+- **proof:** manual (infrastructure; proven once in U1 with a deliberate raw colour in a new file and a deliberate vendored edit, then reverted)
+
+#### Scenario: Proof runs the fingerprint guards
+- **WHEN** `package.json` is read
+- **THEN** `proof` runs the slop check and `scripts/fingerprint/check-drift.mjs` before `npm run check`
+- **proof:** unit
 
 ### Requirement: E2E projects and isolation
 Playwright SHALL run two projects, `phone` (390×844, touch, mobile) and `desktop` (1280×800), with `workers: 1`,
@@ -93,11 +96,7 @@ again after `migrate` returns or throws.
 - **proof:** unit
 
 ### Requirement: Test-only routes
-`POST /__test/reset`, `POST /__test/seed`, `GET /__test/counts` and `GET /__test/image/[name]` SHALL exist only for
-e2e and answer 404 unless `CREATIVE_ARCHIVE_TEST=1`. Reset SHALL delete every row of every table. Seed SHALL insert the entries (with
-tags, status, rating, progress, artist link, generated image, explicit timestamps), collections and hero images it is
-given and return the ids of the entries and collections. Counts SHALL return the row count of every table. The image
-route SHALL return a small generated PNG.
+`POST /__test/reset`, `POST /__test/seed`, `GET /__test/counts` and `GET /__test/image/[name]` SHALL exist only for e2e and answer 404 unless `CREATIVE_ARCHIVE_TEST=1`. Reset SHALL delete every row of every table. Seed SHALL insert the entries (with tags, status, rating, progress, artist link, generated image, explicit timestamps), collections and hero images it is given and return the ids of the entries and collections. Counts SHALL return the row count of every table and, so a test can tell which status event a save wrote, the status events per status as `status_events.<status>`. The image route SHALL return a small generated PNG.
 
 #### Scenario: Test routes answer 404 without the test flag
 - **WHEN** a test route handler runs while `CREATIVE_ARCHIVE_TEST` is not `1`

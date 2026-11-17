@@ -3,6 +3,7 @@ import { ValidationError } from '#lib/errors.ts';
 import type { Collection, Entry, Id } from '#lib/types.ts';
 import { getDb } from './db.ts';
 import { loadTags, rowToEntry } from './rows.ts';
+import { atomic } from './tags.ts';
 
 type Row = Record<string, unknown>;
 
@@ -113,6 +114,21 @@ export function removeFromCollection(collectionId: Id, entryId: Id): void {
 		.prepare('DELETE FROM collection_entries WHERE collection_id = ? AND entry_id = ?')
 		.run(collectionId, entryId);
 	if (changes) touch(collectionId, new Date().toISOString());
+}
+
+export function removeManyFromCollection(collectionId: Id, entryIds: Id[]): number {
+	const db = getDb();
+	const ids = [...new Set(entryIds)];
+	if (ids.length === 0) return 0;
+	const member = db.prepare('SELECT 1 FROM collection_entries WHERE collection_id = ? AND entry_id = ?');
+	const del = db.prepare('DELETE FROM collection_entries WHERE collection_id = ? AND entry_id = ?');
+	atomic(() => {
+		const missing = ids.filter((id) => !member.get(collectionId, id));
+		if (missing.length) throw new ValidationError({ ids: `Not in the collection: ${missing.join(', ')}` });
+		for (const id of ids) del.run(collectionId, id);
+	});
+	touch(collectionId, new Date().toISOString());
+	return ids.length;
 }
 
 export function collectionsOf(entryId: Id): Id[] {

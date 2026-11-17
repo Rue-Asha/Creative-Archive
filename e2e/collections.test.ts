@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { calm, cardTitles, cards, open, reset, seed } from './helpers.ts';
+import { calm, cards, open, posture, reset, seed } from './helpers.ts';
 
 test.beforeEach(async ({ page, request }) => {
 	await calm(page);
@@ -33,7 +33,7 @@ test('Scenario: Index shows collage and count', async ({ page, request }) => {
 	await expect(card.getByLabel('4 entries', { exact: true })).toHaveText('4');
 });
 
-test('Scenario: Collection page shows mixed cards', async ({ page, request }) => {
+test('Scenario: Collection page lists mixed entries in order', async ({ page, request }) => {
 	const {
 		collections: [id]
 	} = await seed(request, {
@@ -46,9 +46,10 @@ test('Scenario: Collection page shows mixed cards', async ({ page, request }) =>
 	});
 	await open(page, `/collections/${id}`);
 
-	await expect(cards(page)).toHaveCount(3);
-	await expect(cardTitles(page)).toHaveText(['Blonde', 'Berserk', 'Trench coat']);
-	for (const [i, type] of ['Album', 'Manga', 'Piece'].entries()) await expect(page.getByRole('region', { name: 'Entries' }).getByRole('listitem').nth(i).getByText(type, { exact: true })).toBeVisible();
+	const rows = page.getByRole('region', { name: 'In order' }).getByRole('listitem');
+	await expect(rows).toHaveCount(3);
+	await expect(rows.getByRole('link')).toHaveText(['Blonde', 'Berserk', 'Trench coat']);
+	for (const [i, type] of ['Album', 'Manga', 'Piece'].entries()) await expect(rows.nth(i).getByText(type, { exact: true })).toBeVisible();
 });
 
 test('Scenario: Remove an entry from a collection', async ({ page, request }) => {
@@ -63,10 +64,15 @@ test('Scenario: Remove an entry from a collection', async ({ page, request }) =>
 		collections: [{ name: 'Moodboard', entries: [0, 1] }]
 	});
 	await open(page, `/collections/${id}`);
+	const rows = page.getByRole('region', { name: 'In order' }).getByRole('listitem');
 	await expect(page.getByLabel('2 entries', { exact: true })).toHaveText('2');
-	await page.getByRole('button', { name: 'Remove Blonde' }).click();
+	if (posture(page) === 'desktop') await page.getByRole('button', { name: 'Remove Blonde' }).click();
+	else {
+		await page.getByRole('button', { name: 'Actions for Blonde', exact: true }).click();
+		await page.getByRole('menuitem', { name: 'Remove', exact: true }).click();
+	}
 
-	await expect(cards(page)).toHaveCount(1);
+	await expect(rows).toHaveCount(1);
 	await expect(page.getByRole('link', { name: 'Blonde' })).toHaveCount(0);
 	await expect(page.getByLabel('1 entry', { exact: true })).toHaveText('1');
 	expect((await request.get(`/entries/${album}`)).status()).toBe(200);
@@ -97,17 +103,30 @@ test('Scenario: Deleting a collection asks first', async ({ page, request }) => 
 	});
 	await open(page, `/collections/${id}`);
 	await page.getByRole('button', { name: 'Delete collection' }).click();
-	await page.getByRole('dialog').getByRole('button', { name: 'Cancel' }).click();
+	await page.getByRole('alertdialog').getByRole('button', { name: 'Cancel' }).click();
 
-	await expect(page.getByRole('dialog')).toHaveCount(0);
+	await expect(page.getByRole('alertdialog')).toHaveCount(0);
 	await expect(page).toHaveURL(`/collections/${id}`);
 	expect((await request.get(`/collections/${id}`)).status()).toBe(200);
 
 	await page.getByRole('button', { name: 'Delete collection' }).click();
-	await page.getByRole('dialog').getByRole('button', { name: 'Delete' }).click();
+	await page.getByRole('alertdialog').getByRole('button', { name: 'Delete' }).click();
 
 	await expect(page).toHaveURL(/\/collections$/);
 	await expect(cards(page).filter({ hasText: 'Moodboard' })).toHaveCount(0);
 	expect((await request.get(`/collections/${id}`)).status()).toBe(404);
 	expect((await request.get(`/entries/${entry}`)).status()).toBe(200);
+});
+
+test('collection row thumbnails are round, as in the hi-fi', async ({ page, request }) => {
+	const {
+		collections: [id]
+	} = await seed(request, {
+		entries: [{ type: 'album', title: 'Blonde', image: true }, { type: 'book', title: 'Piranesi' }],
+		collections: [{ name: 'Moodboard', entries: [0, 1] }]
+	});
+	await open(page, `/collections/${id}`);
+	const rows = page.locator('main ol > li');
+	for (const thumb of [rows.nth(0).getByRole('presentation'), rows.nth(1).locator('.thumb')])
+		expect(await thumb.evaluate((el) => getComputedStyle(el).borderTopLeftRadius)).toBe('50%');
 });

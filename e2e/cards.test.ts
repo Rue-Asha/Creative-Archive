@@ -1,12 +1,5 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
-import { calm, cardOf, cardTitles, cards, countSaves, editProgress, open, progressValue, reset, seed } from './helpers.ts';
-import { accents, schemes } from '../src/lib/styles/tokens.ts';
-import { WORLDS } from '../src/lib/styles/worlds.ts';
-
-const rgb = (hex: string) => {
-	const n = parseInt(hex.slice(1), 16);
-	return `rgb(${n >> 16}, ${(n >> 8) & 255}, ${n & 255})`;
-};
+import { calm, cardOf, cardTitles, cards, countSaves, editProgress, open, progressGroup, progressValue, reset, seed } from './helpers.ts';
 
 test.beforeEach(async ({ page, request }) => {
 	await calm(page);
@@ -40,29 +33,34 @@ test('Scenario: Entry without image shows a tinted placeholder with initials', a
 
 	const placeholder = card(page, 'Kitchen Confidential').getByRole('img', { name: 'Kitchen Confidential' });
 	await expect(placeholder).toHaveText('KC');
-	const { scheme, accent } = WORLDS.books;
-	const soft = rgb(accents[accent][scheme]['accent-soft']);
-	const background = await placeholder.evaluate((el) => getComputedStyle(el).backgroundImage);
-	expect(background).toContain(`linear-gradient(160deg, ${soft},`);
+	// the fingerprint's plate colour, never a gradient
+	const { colour, gradient } = await placeholder.evaluate((el) => {
+		const style = getComputedStyle(el);
+		return { colour: style.backgroundColor, gradient: style.backgroundImage };
+	});
+	expect(gradient).toBe('none');
+	expect(colour).not.toBe('rgba(0, 0, 0, 0)');
 	await expect(card(page, 'Kitchen Confidential').locator('img')).toHaveCount(0);
 });
 
 test('Scenario: Rated entries show their rating on cards', async ({ page, request }) => {
-	await seed(request, { entries: [{ type: 'album', title: 'Rated One', rating: 7 }] });
+	await seed(request, { entries: [{ type: 'album', title: 'Rated One', rating: 7.5 }] });
 	await open(page, '/music/albums');
 
-	await expect(card(page, 'Rated One').getByRole('img', { name: '3.5 of 5' })).toBeVisible();
+	await expect(card(page, 'Rated One')).toContainText('7.5 / 10');
+	await expect(card(page, 'Rated One').getByText('7.5 of 10', { exact: true })).toHaveCount(1);
 });
 
-test('Scenario: Unrated entries show no stars on cards', async ({ page, request }) => {
+test('Scenario: Unrated entries show no rating on cards', async ({ page, request }) => {
 	await seed(request, { entries: [{ type: 'album', title: 'Plain One' }] });
 	await open(page, '/music/albums');
 
 	await expect(card(page, 'Plain One')).toBeVisible();
-	await expect(card(page, 'Plain One').getByRole('img', { name: /of 5$/ })).toHaveCount(0);
+	await expect(card(page, 'Plain One').getByText(/\/ 10$/)).toHaveCount(0);
+	await expect(card(page, 'Plain One').getByText(/ of 10$/)).toHaveCount(0);
 });
 
-const group = (scope: Page | Locator, label: string) => scope.getByRole('group', { name: label, exact: true });
+const group = progressGroup;
 
 test('Scenario: Progress on the card', async ({ page, request }) => {
 	const {
@@ -76,14 +74,15 @@ test('Scenario: Progress on the card', async ({ page, request }) => {
 	const saved = countSaves(page);
 	await open(page, '/animanga/anime');
 	const frieren = card(page, 'Frieren');
-	await expect(group(page, 'Episodes')).toHaveCount(1);
-	await expect(group(frieren, 'Episodes')).toContainText('5 / 28');
+	await expect(cards(page).getByRole('group')).toHaveCount(1);
+	await expect(page.getByRole('group', { name: 'Episodes, Frieren', exact: true })).toHaveCount(1);
+	await expect(group(frieren, 'Episodes', 'Frieren')).toContainText('5 / 28');
 	await frieren.getByRole('button', { name: 'Episodes: one more', exact: true }).click();
 
-	await expect(group(frieren, 'Episodes')).toContainText('6 / 28');
+	await expect(group(frieren, 'Episodes', 'Frieren')).toContainText('6 / 28');
 	await saved(1);
 	await page.reload();
-	await expect(group(card(page, 'Frieren'), 'Episodes')).toContainText('6 / 28');
+	await expect(group(card(page, 'Frieren'), 'Episodes', 'Frieren')).toContainText('6 / 28');
 	await open(page, `/entries/${id}`);
 	await expect(group(page, 'Episodes')).toContainText('6 / 28');
 });
@@ -94,11 +93,11 @@ test('a manga card steps chapters and an unknown total reads "n / ?"', async ({ 
 	});
 	await open(page, '/animanga/manga');
 	const vagabond = card(page, 'Vagabond');
-	await expect(group(vagabond, 'Chapters')).toContainText('/ ?');
-	await expect(group(vagabond, 'Volumes')).toHaveCount(0);
+	await expect(group(vagabond, 'Chapters', 'Vagabond')).toContainText('/ ?');
+	await expect(vagabond.getByRole('group', { name: /^Volumes/ })).toHaveCount(0);
 	await vagabond.getByRole('button', { name: 'Chapters: one more', exact: true }).click();
 
-	await expect(group(vagabond, 'Chapters')).toContainText('41 / ?');
+	await expect(group(vagabond, 'Chapters', 'Vagabond')).toContainText('41 / ?');
 });
 
 test('a card control sits only on in-progress anime and manga', async ({ page, request }) => {
@@ -119,49 +118,57 @@ test('a card control sits only on in-progress anime and manga', async ({ page, r
 const transformOf = (page: Page, title: string) =>
 	card(page, title).evaluate((el) => getComputedStyle(el).transform);
 
-test('Scenario: Cards lift on hover on desktop', async ({ page, request }, info) => {
+test('Scenario: Cards do not move on hover on desktop', async ({ page, request }, info) => {
 	test.skip(info.project.name !== 'desktop', 'hover is desktop-only');
 	await page.emulateMedia({ reducedMotion: 'no-preference' });
-	await seed(request, { entries: [{ type: 'album', title: 'Lifted' }, { type: 'album', title: 'Resting' }] });
+	await seed(request, { entries: [{ type: 'album', title: 'Steady', image: true }] });
 	await open(page, '/music/albums');
-	expect(await transformOf(page, 'Lifted')).toBe('none');
-	const box = (await card(page, 'Lifted').boundingBox())!;
-	await page.mouse.move(box.x + box.width * 0.8, box.y + box.height * 0.2);
-
-	await expect.poll(() => transformOf(page, 'Lifted')).not.toBe('none');
-	// the tilt toward the pointer is a 3D transform (perspective + rotate), not only the CSS lift
-	await expect.poll(() => transformOf(page, 'Lifted')).toContain('matrix3d');
-	expect(await transformOf(page, 'Resting')).toBe('none');
-	await page.mouse.move(0, 0);
-	await expect.poll(() => transformOf(page, 'Lifted')).toBe('none');
-});
-
-test('Scenario: Cards do not tilt on phone', async ({ page, request }, info) => {
-	test.skip(info.project.name !== 'phone', 'phone has no hover');
-	await page.emulateMedia({ reducedMotion: 'no-preference' });
-	await seed(request, { entries: [{ type: 'album', title: 'Touched' }] });
-	await open(page, '/music/albums');
-	const box = (await card(page, 'Touched').boundingBox())!;
-	const x = box.x + box.width / 2;
-	const y = box.y + box.height / 2;
-	const cdp = await page.context().newCDPSession(page);
-	await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x, y }] });
-	await page.waitForTimeout(500);
-
-	expect(await transformOf(page, 'Touched')).toBe('none');
-	await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
-});
-
-test('Scenario: Reduced motion cards do not tilt', async ({ page, request }, info) => {
-	test.skip(info.project.name !== 'desktop', 'hover is desktop-only');
-	await seed(request, { entries: [{ type: 'album', title: 'Calm' }] });
-	await open(page, '/music/albums');
-	const box = (await card(page, 'Calm').boundingBox())!;
+	const cover = card(page, 'Steady').locator('img').first();
+	await expect(cover).toBeVisible();
+	// the cards settle into place on a full load; measure once they have
+	await page.evaluate(() => Promise.all(document.getAnimations().map((a) => a.finished)));
+	const box = (await card(page, 'Steady').boundingBox())!;
 	await page.mouse.move(box.x + box.width * 0.8, box.y + box.height * 0.2);
 	await page.mouse.move(box.x + box.width * 0.7, box.y + box.height * 0.3);
-	await page.waitForTimeout(500);
+	await page.waitForTimeout(400);
 
-	expect(await transformOf(page, 'Calm')).toBe('none');
+	expect(await transformOf(page, 'Steady')).toBe('none');
+	expect(await cover.evaluate((el) => getComputedStyle(el).transform)).toBe('none');
+	expect(await card(page, 'Steady').boundingBox()).toEqual(box);
+});
+
+async function pressed(page: Page, title: string): Promise<{ held: string; released: string }> {
+	await seed(page.request, { entries: [{ type: 'album', title }] });
+	await open(page, '/music/albums');
+	const box = (await card(page, title).boundingBox())!;
+	await page.mouse.move(box.x + box.width / 2, box.y + box.height / 4);
+	await page.mouse.down();
+	const held = await still(page, title, true);
+	// leave the card before letting go, so the press does not open the entry
+	await page.mouse.move(2, 2);
+	await page.mouse.up();
+	return { held, released: await still(page, title, false) };
+}
+
+// the card's transform once it is (or is no longer) pressed and has stopped moving: a transition's clock only runs on
+// painted frames, so a busy renderer can hold it at its first frame for longer than any fixed wait
+async function still(page: Page, title: string, active: boolean): Promise<string> {
+	await expect.poll(() => card(page, title).evaluate((el, pressed) => el.matches(':active') === pressed && el.getAnimations().length === 0, active)).toBe(true);
+	return transformOf(page, title);
+}
+
+test('Scenario: Cards press in', async ({ page }, info) => {
+	test.skip(info.project.name !== 'desktop', 'a held mouse press');
+	await page.emulateMedia({ reducedMotion: 'no-preference' });
+	const { held, released } = await pressed(page, 'Touched');
+	expect(held).toBe('matrix(0.97, 0, 0, 0.97, 0, 0)');
+	expect(released).toBe('none');
+});
+
+test('Scenario: Reduced motion cards stay still when pressed', async ({ page }, info) => {
+	test.skip(info.project.name !== 'desktop', 'a held mouse press');
+	const { held } = await pressed(page, 'Touched');
+	expect(held).toBe('none');
 });
 
 test('Scenario: Failed save on the card shows a toast and reverts', async ({ page, request }) => {
@@ -176,7 +183,7 @@ test('Scenario: Failed save on the card shows a toast and reverts', async ({ pag
 		return route.fulfill({ status: 500, contentType: 'application/json', body: '{}' });
 	});
 	await open(page, '/animanga/anime');
-	const episodes = () => group(card(page, 'Frieren'), 'Episodes');
+	const episodes = () => group(card(page, 'Frieren'), 'Episodes', 'Frieren');
 	const more = () => card(page, 'Frieren').getByRole('button', { name: 'Episodes: one more', exact: true });
 	await more().click();
 
@@ -187,7 +194,7 @@ test('Scenario: Failed save on the card shows a toast and reverts', async ({ pag
 	await expect(episodes()).toContainText('6 / 28');
 	await saved(2);
 	await page.reload();
-	await expect(group(card(page, 'Frieren'), 'Episodes')).toContainText('6 / 28');
+	await expect(group(card(page, 'Frieren'), 'Episodes', 'Frieren')).toContainText('6 / 28');
 });
 
 test('Scenario: Activating the value on a card stays on the list', async ({ page, request }) => {
@@ -198,10 +205,10 @@ test('Scenario: Activating the value on a card stays on the list', async ({ page
 	});
 	const saved = countSaves(page);
 	await open(page, '/animanga/anime');
-	await editProgress(card(page, 'Frieren'), 'Episodes', '6', 'Enter');
+	await editProgress(card(page, 'Frieren'), 'Episodes', '6', 'Enter', 'Frieren');
 
 	await expect(page).toHaveURL(/\/animanga\/anime$/);
-	await expect(group(card(page, 'Frieren'), 'Episodes')).toContainText('6');
+	await expect(group(card(page, 'Frieren'), 'Episodes', 'Frieren')).toContainText('6');
 	await saved(1);
 	await open(page, `/entries/${id}`);
 	await expect(group(page, 'Episodes')).toContainText('6 / 28');
@@ -219,7 +226,7 @@ test('Scenario: Numeric keyboard opens only in edit mode', async ({ page, reques
 	await expect(frieren).toBeVisible();
 
 	await expect(frieren.getByRole('textbox')).toHaveCount(0);
-	await progressValue(frieren, 'Episodes').tap();
+	await progressValue(frieren, 'Episodes', 'Frieren').tap();
 	await expect(frieren.getByRole('textbox')).toBeFocused();
 	await expect(frieren.getByRole('textbox')).toHaveAttribute('inputmode', 'numeric');
 });
@@ -237,7 +244,7 @@ const fits = async (page: Page, title: string, label: string) => {
 	await expect(frieren).toBeVisible();
 	const controls = [
 		frieren.getByRole('button', { name: `${label}: one less`, exact: true }),
-		progressValue(frieren, label),
+		progressValue(frieren, label, title),
 		frieren.getByRole('button', { name: `${label}: one more`, exact: true })
 	];
 	for (const control of controls) {
@@ -258,8 +265,11 @@ test('Scenario: Progress control fits a phone shelf card', async ({ page, reques
 	await fits(page, 'Frieren', 'Episodes');
 
 	await expect(inProgress(page)).toBeVisible();
-	await expect(frieren.getByText('/ 28')).toBeHidden();
-	await expect(progressValue(frieren, 'Episodes')).toHaveAccessibleName('Episodes 12 of 28');
+	await expect(group(frieren, 'Episodes', 'Frieren').getByText('/ 28')).toBeHidden();
+	const line = frieren.getByText('12 / 28 episodes', { exact: true });
+	await expect(line).toBeVisible();
+	expect((await line.boundingBox())!.y, 'the line sits above the steps').toBeLessThan((await group(frieren, 'Episodes', 'Frieren').boundingBox())!.y);
+	await expect(progressValue(frieren, 'Episodes', 'Frieren')).toHaveAccessibleName('Episodes 12 of 28');
 });
 
 test('Scenario: Three-digit progress fits a phone shelf card', async ({ page, request }, info) => {
@@ -268,10 +278,10 @@ test('Scenario: Three-digit progress fits a phone shelf card', async ({ page, re
 		entries: [{ type: 'manga', title: 'Vagabond', status: 'progress', progress: { chapters: { current: 120, total: 327 }, volumes: { current: 4, total: null } } }]
 	});
 	await open(page, '/');
-	await expect(progressValue(inProgress(page), 'Chapters')).toContainText('120');
+	await expect(progressValue(inProgress(page), 'Chapters', 'Vagabond')).toContainText('120');
 
 	await fits(page, 'Vagabond', 'Chapters');
-	const value = progressValue(cardOf(inProgress(page), 'Vagabond'), 'Chapters');
+	const value = progressValue(cardOf(inProgress(page), 'Vagabond'), 'Chapters', 'Vagabond');
 	expect(await value.evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(true);
 });
 
@@ -282,6 +292,61 @@ test('Scenario: Desktop cards show the total', async ({ page, request }, info) =
 	});
 	await open(page, '/animanga/anime');
 
-	await expect(group(card(page, 'Frieren'), 'Episodes')).toContainText('5 / 28');
-	await expect(group(card(page, 'Frieren'), 'Episodes').getByText('/ 28')).toBeVisible();
+	await expect(group(card(page, 'Frieren'), 'Episodes', 'Frieren')).toContainText('5 / 28');
+	await expect(group(card(page, 'Frieren'), 'Episodes', 'Frieren').getByText('/ 28')).toBeVisible();
+});
+
+test('Scenario: Rating and progress share one footer slot', async ({ page, request }) => {
+	await seed(request, {
+		entries: [
+			{ type: 'anime', title: 'Watching', status: 'progress', progress: { episodes: { current: 5, total: 28 } } },
+			{ type: 'anime', title: 'Finished', status: 'done', rating: 8.75 }
+		]
+	});
+	await open(page, '/animanga/anime?view=shelves');
+	const slotEnd = async (title: string, inner: Locator) => {
+		const [c, i] = [(await card(page, title).boundingBox())!, (await inner.boundingBox())!];
+		return { height: c.height, gap: Math.round(c.y + c.height - (i.y + i.height)) };
+	};
+	const progress = await slotEnd('Watching', group(card(page, 'Watching'), 'Episodes', 'Watching'));
+	const rating = await slotEnd('Finished', card(page, 'Finished').getByRole('paragraph').filter({ hasText: '8.75' }));
+
+	expect(rating.height).toBe(progress.height);
+	expect(rating.gap).toBe(progress.gap);
+});
+
+// every heading on the page, in reading order, as its level
+const outline = (page: Page) =>
+	page.getByRole('heading').evaluateAll((els) => els.map((el) => Number(el.getAttribute('aria-level') ?? el.tagName.slice(1))));
+
+const noSkips = (levels: number[], label: string) => {
+	expect(levels[0], `${label} starts at h1`).toBe(1);
+	levels.forEach((level, i) => i && expect(level, `${label} heading ${i}`).toBeLessThanOrEqual(levels[i - 1] + 1));
+};
+
+test('card headings sit one level under their section', async ({ page, request }) => {
+	await seed(request, {
+		entries: [
+			{ type: 'album', title: 'Blonde', status: 'done' },
+			{ type: 'anime', title: 'Frieren', status: 'progress', progress: { episodes: { current: 3, total: 28 } } }
+		]
+	});
+	await open(page, '/music/albums');
+	const list = page.getByRole('region', { name: 'Albums list', exact: true });
+
+	await expect(page.getByRole('heading', { level: 1 })).toHaveCount(1);
+	await expect(list.getByRole('heading', { level: 2, name: 'Albums list', exact: true })).toBeAttached();
+	await expect(card(list, 'Blonde').getByRole('heading', { level: 3, name: 'Blonde', exact: true })).toBeVisible();
+	noSkips(await outline(page), 'list');
+
+	await open(page, '/');
+	const recent = page.getByRole('region', { name: 'Recently added', exact: true });
+	const music = recent.getByRole('region', { name: 'Music', exact: true });
+	const inProgress = page.getByRole('region', { name: 'In progress', exact: true });
+	await expect(recent.getByRole('heading', { level: 2, name: 'Recently added', exact: true })).toBeVisible();
+	await expect(music.getByRole('heading', { level: 3, name: 'Music', exact: true })).toBeVisible();
+	await expect(card(music, 'Blonde').getByRole('heading', { level: 4, name: 'Blonde', exact: true })).toBeVisible();
+	await expect(inProgress.getByRole('heading', { level: 2, name: 'In progress', exact: true })).toBeVisible();
+	await expect(card(inProgress, 'Frieren').getByRole('heading', { level: 3, name: 'Frieren', exact: true })).toBeAttached();
+	noSkips(await outline(page), 'home');
 });

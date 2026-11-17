@@ -18,7 +18,7 @@ test('Scenario: List shows entries of one type', async ({ page, request }) => {
 
 	await expect(cards(page)).toHaveCount(2);
 	await expect(cardTitles(page)).toHaveText(['Newer Album', 'Older Album']);
-	await expect(page.getByRole('heading', { level: 1, name: 'Albums' })).toBeVisible();
+	await expect(page.getByRole('heading', { level: 1 })).toContainText('Albums');
 });
 
 test('Scenario: Wardrobe lists owned pieces', async ({ page, request }) => {
@@ -32,14 +32,18 @@ test('Scenario: Wardrobe lists owned pieces', async ({ page, request }) => {
 	await open(page, '/fashion/wardrobe');
 
 	await expect(cardTitles(page)).toHaveText(['Wool Coat']);
-	await expect(page.getByRole('heading', { level: 1, name: 'Wardrobe' })).toBeVisible();
+	await expect(page.getByRole('heading', { level: 1 })).toContainText('Wardrobe');
+	await expect(page.getByRole('toolbar', { name: 'Filters' }).getByRole('combobox', { name: 'Status', exact: true })).toHaveCount(0);
+	await expect(page.locator('main').getByRole('link', { name: 'Add', exact: true })).toHaveAttribute('href', '/add/piece?status=owned');
 });
 
 test('Scenario: Empty list offers Add', async ({ page }) => {
 	await open(page, '/fashion/looks');
 
 	await expect(cards(page)).toHaveCount(0);
-	await expect(page.getByRole('link', { name: 'Add', exact: true })).toHaveAttribute('href', '/add/look');
+	await expect(page.getByRole('heading', { name: 'No looks yet' })).toBeVisible();
+	await expect(page.locator('main').getByRole('link', { name: 'Add', exact: true })).toHaveAttribute('href', '/add/look');
+	await expect(page.getByRole('toolbar', { name: 'Filters' })).toHaveCount(0);
 });
 
 test('Scenario: Unknown list answers 404', async ({ request }) => {

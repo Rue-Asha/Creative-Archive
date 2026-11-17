@@ -90,11 +90,23 @@ describe('home queries', () => {
 		expect(shelves.map((s) => s.href)).toEqual([null, '/animanga/anime', '/animanga/manga']);
 	});
 
-	it('Scenario: Fashion shelves follow the type order', () => {
+	it('Scenario: Fashion shelves follow the sub-type order', () => {
 		for (const type of ['look', 'piece', 'magazine', 'influencer', 'site', 'brand'] as const)
-			insertEntryRow({ type, title: type, kind: type === 'brand' || type === 'site' ? type : undefined });
+			insertEntryRow({ type, title: type, kind: type === 'brand' || type === 'site' ? type : undefined, status: type === 'piece' ? 'owned' : undefined });
 
-		expect(domainShelves('fashion').map((s) => s.title)).toEqual(['Brands & shops', 'Influencers', 'Magazines', 'Pieces', 'Looks']);
+		const shelves = domainShelves('fashion');
+		expect(shelves.map((s) => s.title)).toEqual(['Wardrobe', 'Pieces', 'Looks', 'Brands & shops', 'Influencers', 'Magazines']);
+		expect(shelves[0].href).toBe('/fashion/wardrobe');
+	});
+
+	it('Scenario: Wardrobe holds only owned pieces', () => {
+		insertEntryRow({ type: 'piece', title: 'Wanted', status: 'wishlist', createdAt: at(1) });
+		expect(domainShelves('fashion').map((s) => s.title)).toEqual(['Pieces']);
+
+		insertEntryRow({ type: 'piece', title: 'Owned', status: 'owned', createdAt: at(2) });
+		const [wardrobe, pieces] = domainShelves('fashion');
+		expect([wardrobe.title, wardrobe.count, titles(wardrobe.entries)]).toEqual(['Wardrobe', 1, ['Owned']]);
+		expect([pieces.title, pieces.count, titles(pieces.entries)]).toEqual(['Pieces', 2, ['Owned', 'Wanted']]);
 	});
 
 	it('Scenario: One shelf holds brands and shops', () => {
@@ -112,7 +124,7 @@ describe('home queries', () => {
 	it('has no In progress shelf for fashion and omits types without entries', () => {
 		insertEntryRow({ type: 'piece', title: 'Coat', status: 'owned' });
 		insertEntryRow({ type: 'brand', title: 'Acne', kind: 'brand' });
-		expect(domainShelves('fashion').map((s) => s.title)).toEqual(['Brands & shops', 'Pieces']);
+		expect(domainShelves('fashion').map((s) => s.title)).toEqual(['Wardrobe', 'Pieces', 'Brands & shops']);
 		expect(domainShelves('music')).toEqual([]);
 	});
 });

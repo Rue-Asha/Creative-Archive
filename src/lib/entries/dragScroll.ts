@@ -47,6 +47,7 @@ export function dragScroll(node: HTMLElement): { destroy(): void } {
 			// capture only once it is a drag, so a plain click still reaches the card's link
 			node.setPointerCapture(event.pointerId);
 			node.style.scrollSnapType = 'none';
+			node.dataset.dragging = '';
 		}
 		node.scrollLeft = origin.scroll - dx;
 		samples.push({ t: event.timeStamp, x: event.clientX });
@@ -57,6 +58,7 @@ export function dragScroll(node: HTMLElement): { destroy(): void } {
 		const wasDragging = dragging;
 		origin = null;
 		dragging = false;
+		delete node.dataset.dragging;
 		if (!wasDragging) return;
 		const recent = samples.filter((s) => event.timeStamp - s.t <= WINDOW_MS);
 		const first = recent[0];

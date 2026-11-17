@@ -1,32 +1,5 @@
-import { expect, test, type Page } from '@playwright/test';
-import { calm, cardTitles, open, reset, seed, shelf } from './helpers.ts';
-
-test('Scenario: Home shows the hero photo and headline', async ({ page, request }) => {
-	await calm(page);
-	await reset(request);
-	await seed(request, { heroes: ['home'] });
-	await open(page, '/');
-
-	const src = await page.locator('[data-hero-image]').getAttribute('src');
-	expect(src).toMatch(/^\/images\/\d+$/);
-	const headline = page.getByRole('heading', { level: 1 });
-	await expect(headline).toBeVisible();
-	await expect(headline.getByText('love', { exact: true })).toBeVisible();
-	const font = await headline.evaluate((el) => getComputedStyle(el).fontFamily);
-	const display = await page.evaluate(() => getComputedStyle(document.body).getPropertyValue('--font-display').trim());
-	expect(font).toBe(display);
-	expect(font.split(',')[0].replace(/['"]/g, '')).toBe('Bricolage Grotesque');
-});
-
-test('Scenario: Home without hero photo shows the world gradient', async ({ page, request }) => {
-	await calm(page);
-	await reset(request);
-	await open(page, '/');
-
-	await expect(page.locator('[data-hero-gradient]')).toHaveCount(1);
-	await expect(page.locator('[data-hero-image]')).toHaveCount(0);
-	await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
-});
+import { expect, test } from '@playwright/test';
+import { calm, cardTitles, open, plus, reset, seed, shelf } from './helpers.ts';
 
 test('Scenario: In progress shelf lists media in progress', async ({ page, request }) => {
 	await calm(page);
@@ -45,6 +18,31 @@ test('Scenario: In progress shelf lists media in progress', async ({ page, reque
 	await expect(cardTitles(progress)).toHaveText(['Piranesi', 'Frieren']);
 });
 
+test('Scenario: In progress cards read their progress with its total', async ({ page, request }) => {
+	await calm(page);
+	await reset(request);
+	await seed(request, {
+		entries: [
+			{ type: 'anime', title: 'Frieren', status: 'progress', progress: { episodes: { current: 3, total: 28 } } },
+			{ type: 'manga', title: 'Vagabond', status: 'progress', progress: { chapters: { current: 5, total: null } } }
+		]
+	});
+	for (const path of ['/', '/animanga']) {
+		await open(page, path);
+		const progress = page.getByRole('region', { name: 'In progress', exact: true });
+		for (const [title, line, steps] of [
+			['Frieren', '3 / 28 episodes', 'Episodes, Frieren'],
+			['Vagabond', '5 / ? chapters', 'Chapters, Vagabond']
+		]) {
+			const card = progress.getByRole('article').filter({ hasText: title });
+			const text = card.getByText(line, { exact: true });
+			await expect(text, `${path} ${title}`).toBeVisible();
+			const group = card.getByRole('group', { name: steps });
+			expect((await text.boundingBox())!.y, 'above the steps').toBeLessThan((await group.boundingBox())!.y);
+		}
+	}
+});
+
 test('Scenario: Recently added shelves per domain', async ({ page, request }) => {
 	await calm(page);
 	await reset(request);
@@ -56,39 +54,15 @@ test('Scenario: Recently added shelves per domain', async ({ page, request }) =>
 	});
 	await open(page, '/');
 
-	await expect(shelf(page, 'Recently added · Music').getByRole('heading', { level: 2 })).toHaveText(/Recently added\s*·?\s*Music/);
-	await expect(cardTitles(shelf(page, 'Recently added · Music'))).toHaveText(['Blonde']);
-	await expect(shelf(page, 'Recently added · Fashion').getByRole('heading', { level: 2 })).toHaveText(/Recently added\s*·?\s*Fashion/);
-	await expect(cardTitles(shelf(page, 'Recently added · Fashion'))).toHaveText(['Wool coat']);
-	await expect(shelf(page, 'Recently added · Animanga')).toHaveCount(0);
-	await expect(shelf(page, 'Recently added · Books')).toHaveCount(0);
-});
-
-test('Scenario: Collections bento shows collages', async ({ page, request }) => {
-	await calm(page);
-	await reset(request);
-	const { collections } = await seed(request, {
-		entries: [
-			{ type: 'album', title: 'Blonde', image: true },
-			{ type: 'book', title: 'Piranesi', image: true },
-			{ type: 'anime', title: 'Frieren', image: true }
-		],
-		collections: [
-			{ name: 'Winter evenings', entries: [0, 1, 2] },
-			{ name: 'Tokyo, someday', entries: [2] }
-		]
-	});
-	await open(page, '/');
-
-	const bento = page.getByRole('region', { name: 'Collections', exact: true });
-	const cards = bento.getByRole('list').getByRole('link');
-	await expect(cards).toHaveCount(2);
-	await expect(cards.nth(0)).toHaveAttribute('href', `/collections/${collections[1]}`);
-	await expect(cards.nth(1)).toHaveAttribute('href', `/collections/${collections[0]}`);
-	await expect(cards.nth(0)).toContainText('Tokyo, someday');
-	await expect(cards.nth(0)).toContainText('1 entry');
-	await expect(cards.nth(1)).toContainText('3 entries');
-	await expect(cards.nth(1).getByRole('img', { name: 'Winter evenings collage' }).getByRole('presentation')).toHaveCount(3);
+	// one card stacks a shelf per domain that has entries, each with its "See all" link
+	const recent = page.getByRole('region', { name: 'Recently added', exact: true });
+	await expect(recent.getByRole('region')).toHaveCount(2);
+	await expect(cardTitles(shelf(page, 'Music'))).toHaveText(['Blonde']);
+	await expect(shelf(page, 'Music').getByRole('link', { name: 'See all' })).toHaveAttribute('href', '/music');
+	await expect(cardTitles(shelf(page, 'Fashion'))).toHaveText(['Wool coat']);
+	await expect(shelf(page, 'Fashion').getByRole('link', { name: 'See all' })).toHaveAttribute('href', '/fashion');
+	await expect(recent.getByRole('region', { name: 'Animanga', exact: true })).toHaveCount(0);
+	await expect(recent.getByRole('region', { name: 'Books', exact: true })).toHaveCount(0);
 });
 
 test('Scenario: Empty archive shows a welcome per domain', async ({ page, request }) => {
@@ -102,74 +76,10 @@ test('Scenario: Empty archive shows a welcome per domain', async ({ page, reques
 		const item = welcome.getByRole('listitem').filter({ has: page.getByRole('heading', { name: domain, exact: true }) });
 		await expect(item.getByRole('link')).toHaveAttribute('href', `/add/${type}`);
 	}
+	await expect(plus(page).first()).toBeVisible();
+	await expect(page.getByRole('region', { name: 'Domains', exact: true })).toHaveCount(0);
 	await expect(page.getByRole('region', { name: /^(In progress|Recently added)/ })).toHaveCount(0);
-	await expect(page.getByRole('group', { name: 'Latest entries' })).toHaveCount(0);
 	await expect(page.getByRole('region', { name: 'Collections', exact: true })).toHaveCount(0);
-});
-
-// Collections list newest first, so they are seeded in reverse to show up in the order the scenarios name them.
-const tileBoxes = async (page: Page) =>
-	Promise.all(
-		(await page.getByRole('region', { name: 'Collections', exact: true }).getByRole('list').getByRole('link').all()).map(async (tile) => {
-			const box = (await tile.boundingBox())!;
-			return { name: await tile.getByRole('heading', { level: 3 }).textContent(), width: Math.round(box.width), height: Math.round(box.height) };
-		})
-	);
-
-test('Scenario: Bento features the first collection with images', async ({ page, request }, info) => {
-	test.skip(info.project.name !== 'desktop', 'bento sizes are a desktop layout');
-	await calm(page);
-	await reset(request);
-	await seed(request, {
-		entries: [
-			{ type: 'album', title: 'Blonde', image: true },
-			{ type: 'book', title: 'Piranesi', image: true }
-		],
-		collections: [
-			{ name: 'Summer', entries: [1] },
-			{ name: 'Late Night', entries: [0] },
-			{ name: 'Empty one', entries: [] }
-		]
-	});
-	await open(page, '/');
-
-	const tiles = await tileBoxes(page);
-	expect(tiles.map((t) => t.name)).toEqual(['Late Night', 'Empty one', 'Summer']);
-	const [feature, empty, regular] = tiles;
-	expect(empty.width).toBe(regular.width);
-	expect(empty.height).toBe(regular.height);
-	expect(feature.width).toBeGreaterThan(regular.width * 1.9);
-	expect(feature.height).toBeGreaterThan(regular.height * 1.9);
-});
-
-test('Scenario: Bento without images features no collection', async ({ page, request }, info) => {
-	test.skip(info.project.name !== 'desktop', 'bento sizes are a desktop layout');
-	await calm(page);
-	await reset(request);
-	await seed(request, {
-		entries: [{ type: 'album', title: 'Plain' }, { type: 'book', title: 'Bare' }],
-		collections: [
-			{ name: 'One', entries: [0] },
-			{ name: 'Two', entries: [1] },
-			{ name: 'Three', entries: [] }
-		]
-	});
-	await open(page, '/');
-
-	const tiles = await tileBoxes(page);
-	expect(tiles).toHaveLength(3);
-	for (const tile of tiles) {
-		expect(tile.width).toBe(tiles[0].width);
-		expect(tile.height).toBe(tiles[0].height);
-	}
-});
-
-test('Scenario: Home without collections shows no bento', async ({ page, request }) => {
-	await calm(page);
-	await reset(request);
-	await seed(request, { entries: [{ type: 'album', title: 'Blonde', image: true }] });
-	await open(page, '/');
-
-	await expect(shelf(page, 'Recently added · Music')).toBeVisible();
-	await expect(page.getByRole('region', { name: 'Collections', exact: true })).toHaveCount(0);
+	// P6: nothing to count, so no facts card
+	await expect(page.getByRole('list', { name: 'Archive key facts' })).toHaveCount(0);
 });

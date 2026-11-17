@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { atTotal, domainOf, isWardrobe, listHref, progressLabel, ratingFromX100, ratingToX100, starsFromRating, statusLabel } from './derive.ts';
+import { atTotal, domainOf, isWardrobe, listHref, progressLabel, ratingFromX100, ratingToX100, statusLabel } from './derive.ts';
 
 describe('derived values', () => {
 	it('finds the domain of each type', () => {
@@ -49,14 +49,6 @@ describe('derived values', () => {
 		expect(listHref('site')).toBe('/fashion/brands-shops');
 		expect(listHref('brand')).toBe('/fashion/brands-shops');
 		expect(listHref('book')).toBe('/books/books');
-	});
-
-	it('shows the rating as half stars', () => {
-		expect(starsFromRating(9)).toBe(4.5);
-		expect(starsFromRating(7)).toBe(3.5);
-		expect(starsFromRating(0.1)).toBe(0);
-		expect(starsFromRating(8.75)).toBe(4.5);
-		expect(starsFromRating(null)).toBeNull();
 	});
 
 	it('turns stored hundredths into a rating and back', () => {

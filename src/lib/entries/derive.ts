@@ -40,11 +40,6 @@ export function ratingFromX100(x100: number | null): number | null {
 	return x100 === null ? null : x100 / 100;
 }
 
-// the star control still counts in half stars until the redesign: shown stars are the rating over two, in half steps
-export function starsFromRating(rating: number | null): number | null {
-	return rating === null ? null : Math.round(rating) / 2;
-}
-
 export function isValidRating(rating: number): boolean {
 	if (!Number.isFinite(rating) || rating < 0 || rating > 10) return false;
 	return Math.abs(rating * 100 - Math.round(rating * 100)) <= 1e-6;

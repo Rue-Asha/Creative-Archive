@@ -1,7 +1,6 @@
 import { DOMAINS, type Domain } from '#lib/domains.ts';
-import { BRANDS_SHOPS, TYPES, TYPES_BY_DOMAIN } from '#lib/entries/config.ts';
-import { listHref } from '#lib/entries/derive.ts';
-import type { Entry, EntryType, ShelfData } from '#lib/types.ts';
+import { LISTS, TYPES, TYPES_BY_DOMAIN } from '#lib/entries/config.ts';
+import type { Entry, EntryType, ShelfData, Status } from '#lib/types.ts';
 import { getDb } from './db.ts';
 import { loadTags, rowToEntry } from './rows.ts';
 
@@ -12,21 +11,23 @@ function hydrate(rows: Record<string, unknown>[]): Entry[] {
 	return rows.map((r) => rowToEntry(r, tags.get(Number(r.id)) ?? []));
 }
 
-function recent(types: EntryType[], limit: number): Entry[] {
+// `status` narrows to one status (the Wardrobe list is the owned pieces); null takes every entry of the types
+function recent(types: EntryType[], limit: number, status: Status | null = null): Entry[] {
 	return hydrate(
 		getDb()
 			.prepare(
-				'SELECT * FROM entries WHERE type IN (SELECT value FROM json_each(?)) ORDER BY created_at DESC, id DESC LIMIT ?'
+				`SELECT * FROM entries WHERE type IN (SELECT value FROM json_each(?)) AND (? IS NULL OR status = ?)
+				 ORDER BY created_at DESC, id DESC LIMIT ?`
 			)
-			.all(ofTypes(types), limit)
+			.all(ofTypes(types), status, status, limit)
 	);
 }
 
-function total(types: EntryType[]): number {
+function total(types: EntryType[], status: Status | null = null): number {
 	return Number(
 		getDb()
-			.prepare('SELECT count(*) AS n FROM entries WHERE type IN (SELECT value FROM json_each(?))')
-			.get(ofTypes(types))!.n
+			.prepare('SELECT count(*) AS n FROM entries WHERE type IN (SELECT value FROM json_each(?)) AND (? IS NULL OR status = ?)')
+			.get(ofTypes(types), status, status)!.n
 	);
 }
 
@@ -58,22 +59,21 @@ function progressShelf(entries: Entry[]): ShelfData[] {
 	return entries.length ? [{ key: 'progress', title: 'In progress', count: entries.length, entries, href: null }] : [];
 }
 
+// one shelf per sub-type list, in the order the sub-type navigation shows them (Fashion: My things, then Discover)
 export function domainShelves(domain: Domain): ShelfData[] {
 	const progress = progressShelf(inProgress().filter((e) => TYPES[e.type].domain === domain));
-	const byType = TYPES_BY_DOMAIN[domain]
-		.filter((type) => type !== 'site')
-		.map((type): ShelfData => {
-			const combined = type === 'brand';
-			const types = combined ? BRANDS_SHOPS.query.types : [type];
-			return {
-				key: combined ? BRANDS_SHOPS.slug : type,
-				title: combined ? BRANDS_SHOPS.label : TYPES[type].plural,
-				count: total(types),
-				entries: recent(types, 12),
-				href: listHref(type)
-			};
-		});
-	return [...progress, ...byType.filter((s) => s.count > 0)];
+	const byList = LISTS[domain].map((list): ShelfData => {
+		const { types, status = null } = list.query;
+		const single = types.length === 1 && status === null;
+		return {
+			key: single ? types[0] : list.slug,
+			title: list.label,
+			count: total(types, status),
+			entries: recent(types, 12, status),
+			href: `/${domain}/${list.slug}`
+		};
+	});
+	return [...progress, ...byList.filter((s) => s.count > 0)];
 }
 
 export function homeShelves(): ShelfData[] {

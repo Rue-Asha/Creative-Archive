@@ -106,9 +106,9 @@ test('Scenario: Leaving the input saves the edit', async ({ page, request }) => 
 	await expect(control(page, 'Episodes')).toContainText('12 / 28');
 	await expect(control(page, 'Episodes').getByRole('textbox')).toHaveCount(0);
 	// a sentinel rating proves no second progress save was queued behind the first
-	await page.getByRole('slider', { name: 'Rating', exact: true }).focus();
-	await page.keyboard.press('ArrowRight');
-	await expect.poll(saves).toEqual(['progress key=episodes value=12', 'rating rating=1']);
+	await page.getByRole('spinbutton', { name: 'Rating', exact: true }).focus();
+	await page.keyboard.press('ArrowUp');
+	await expect.poll(saves).toEqual(['progress key=episodes value=12', 'rating rating=0.25']);
 	await page.reload();
 	await expect(control(page, 'Episodes')).toContainText('12 / 28');
 });

@@ -1,0 +1,8 @@
+# fingerprint.lock holds SHA-256 hashes of the vendored Design-System files;
+# generic-api-key reads them as keys.
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Design-System fingerprint lock (file hashes, not secrets)"
+paths = ['''^fingerprint\.lock$''']

@@ -1,0 +1,1084 @@
+/* Layout: the composition every app screen shares, on fingerprint tokens only. One rounded
+   glass frame floats over a full-bleed photo; type sits on the photo, chrome is glass and
+   anything you read sits on a solid card (DESIGN.md, "The composition"). Plain CSS, no
+   framework. Load after fonts.css, tokens.css, base.css and motion.css, before the app's own
+   CSS. Vendored by sync.sh and drift-checked: apps never edit it, they file a request in
+   Design-System requests.md. Primitives (.btn, .field, .row, .empty, sheets, toasts) come
+   from the Svelte copy-ins, not from here.
+
+   Markup and attribute hooks (DESIGN.md, "Screen skeleton"):
+     .app[data-photo]                 the backdrop: the photo again, blurred and veiled
+     .app[data-backdrop="field"]      no fitting photo (Notes): the blurred colour field
+     .frame > figure.stage > img.stage-photo, then header.app-bar, .rail (optional), main.screen
+     .app-bar > a.brand (.brand-mark + .brand-name) + nav.app-nav > ul > li > a + .app-actions
+     .rail > .btn.quiet.icon (one [aria-current])   vertical beside the head, horizontal on phones
+     .app > .dock (last child, after .frame) > ul.dock-tabs > li > a (svg + span) + button.dock-add
+                                              phone tab bar, below 1024px; one a[aria-current]
+     .dock[data-specimen] / .dock[data-hidden]   always shown (galleries) / slid out while typing
+     .app-bar[data-scrolled]          wide only: the bar shrinks to a sticky capsule (see 5 below)
+     .detail-actions > .detail-status + <Button variant="quiet" icon aria-haspopup="menu"> (…)
+     main.screen > .screen-head (.screen-lead > ul.kicker + h1 + .lede; .seg-bar; ul.screen-facts)
+                 + .screen-body (the cards over the photo's lower edge)
+     ul.kicker > li; a breadcrumb is ol.kicker > li > a, the current part [aria-current],
+       the held-back middle button.kicker-more
+     .seg-bar > .seg (svg + .seg-text > .seg-label + .seg-value) … + .seg-actions
+     ul.screen-facts[data-surface="inverse"] > li.facts-caption + li > span.n + label
+     span.position > number + span.of     "01 / 06"
+     .card, .card[data-surface="inverse"], .card-head > h2 + .card-note, .ruled
+     img.thumb, span.thumb.plate[role="img"]
+   Custom properties an app sets: --photo (on .app; an absolute or root-relative url(), since a
+   relative one resolves against this file), --photo-x / --photo-y (the stage crop, default
+   --stage-crop-x / -y), --thumb (thumb size, default --thumb-size).
+   Sizes come from tokens.css ("Composition (layout.css)": --frame-max-width, --rail-width,
+   --stage-*, the scrim and haze stops, --seg-height); the frame's local knobs (--pad-block,
+   --pad-inline, --gutter, --overlap, --bar-h, --photo-gap) are set from them per width.
+
+   Behaviour the app implements (in Svelte; specimen/shell.js is the reference):
+   1. Backdrop: set --photo: url("/…") on .app from its data-photo.
+   2. Pill glide: a [data-pill] track (the nav ul, a seg group) gets motion.css "2. The pill
+      glides": lay the inert ghost copy of the track over it at the track's offset and size,
+      set --pill-clip to the current item's box, and set data-pill-instant for keyboard
+      activation (click.detail 0), scroll and resize. Reference: pill().
+   3. Scroll cue: on a track that scrolls sideways, toggle data-fade-start / data-fade-end on
+      the track (and its ghost) and data-more-start / data-more-end on its host for each edge
+      with more to scroll (scrollWidth > clientWidth, 1px tolerance); rerun on scroll and
+      resize. On load, scroll the current item into view clear of --scroll-fade. Reference:
+      edges() and the scroll in pill(). A region that scrolls down takes data-fade-below on
+      itself and data-more-below on its host while more follows (copy-in primitives/scroll-cue).
+   4. Toast stack and its page clearance belong to the toast primitive (Toaster.svelte).
+   5. Scrolled bar: set data-scrolled on .app-bar while the top of the frame is out of view, from
+      an IntersectionObserver on a sentinel, never a scroll listener (copy-in primitives/scroll-cue
+      `scrolled`). Only 1100px and up reacts; below that the attribute is ignored.
+   6. Dock typing: set data-hidden on .dock while a text field has focus on a coarse pointer
+      (copy-in primitives/scroll-cue `hideOnType`); never remove the dock from the DOM.
+   The phone rail's edge shades are CSS only (background-attachment: local).
+
+   Rail items are <Button variant="quiet" icon>: the Button itself draws them clear (no fill,
+   no rim), so nothing here fights its resting look. Svelte scoping adds a class to every
+   Button rule (.quiet.svelte-x is 0,2,0, .btn.svelte-x:hover 0,3,0), so the rail's current
+   pill and hover name .btn.quiet too (.rail .btn.quiet[aria-current] is 0,4,0, the hover
+   0,5,0) and win whatever order the stylesheets load in. A plain .rail .btn would tie with
+   the Button and leave it to load order.
+
+   Widths: phone below 768px (max-width: 767px), tablet 768 to 1099px (max-width: 1099px),
+   wide 1100px and up. The sheet primitive switches at the same 768px. The dock is the one
+   exception to the phone width: it applies below 1024px (max-width: 1023px). Custom properties
+   can't drive media queries, so app CSS repeats these values as written. Touch sizes follow
+   (pointer: coarse) in tokens.css, never the width. */
+
+/* ---------- The backdrop and the frame ---------- */
+/* The same photo runs on behind the frame, out to the screen edge, softened and toned down so
+   it reads as the room around the app. The app sets --photo from .app[data-photo]. */
+.app {
+	position: relative;
+	isolation: isolate;
+	overflow: clip;
+	min-inline-size: 0;
+	padding: var(--space-frame-block) var(--space-frame-inline);
+	color: var(--ink);
+}
+.app::before {
+	content: "";
+	position: absolute;
+	inset: calc(-1 * var(--space-16));
+	z-index: var(--z-backdrop);
+	background: var(--photo, none) center / cover, var(--surface-backdrop);
+	filter: var(--backdrop-photo-filter);
+}
+/* No fitting photo (Notes): the blurred colour field, and a frame with a little more white.
+   With data-photo the field is that photo blurred past recognition (its colours only). */
+.app[data-backdrop="field"]::before {
+	background: var(--photo, none) center / cover, var(--surface-field);
+	filter: var(--backdrop-field-filter);
+}
+.app[data-backdrop="field"] .frame { background: var(--surface-frame-strong); }
+.app::after {
+	content: "";
+	position: absolute;
+	inset: 0;
+	z-index: var(--z-veil);
+	background: var(--veil-backdrop);
+}
+
+/* Rows: bar, rail (phones only), head, body. The stage covers bar to head and runs --overlap
+   into the body, so the first cards overlap the photo's lower edge. */
+.frame {
+	--gutter: var(--space-7);
+	--pad-block: var(--frame-pad-block);
+	--pad-inline: var(--space-7);
+	--overlap: var(--stage-overlap);
+	--bar-h: calc(var(--pad-block) + var(--target-touch));
+	position: relative;
+	display: grid;
+	grid-template-columns: [main-start] minmax(0, 1fr) [main-end];
+	grid-template-rows: [bar] auto [rail] auto [head] auto [body] auto;
+	column-gap: var(--gutter);
+	max-inline-size: var(--frame-max-width);
+	margin-inline: auto;
+	padding: var(--pad-block) var(--pad-inline) var(--space-8);
+	border-radius: var(--radius-frame);
+	overflow: clip;
+	background: var(--surface-frame);
+	-webkit-backdrop-filter: var(--glass-filter);
+	backdrop-filter: var(--glass-filter);
+	box-shadow: var(--elevation-frame);
+}
+.frame:has(> .rail) {
+	grid-template-columns: [rail-start] var(--rail-width) [rail-end main-start] minmax(0, 1fr) [main-end];
+}
+.frame > * {
+	position: relative;
+	z-index: var(--z-raised);
+	min-inline-size: 0;
+}
+
+.frame > .stage {
+	z-index: var(--z-base);
+	grid-row: bar / body;
+	grid-column: 1 / -1;
+	margin: calc(-1 * var(--pad-block)) calc(-1 * var(--pad-inline)) calc(-1 * var(--overlap));
+	overflow: hidden;
+	background: var(--scrim);
+	-webkit-mask-image: linear-gradient(var(--ink) calc(100% - var(--stage-fade)), transparent);
+	mask-image: linear-gradient(var(--ink) calc(100% - var(--stage-fade)), transparent);
+}
+.stage-photo {
+	position: absolute;
+	inset: 0;
+	inline-size: 100%;
+	block-size: 100%;
+	max-inline-size: none;
+	object-fit: cover;
+	object-position: var(--photo-x, var(--stage-crop-x)) var(--photo-y, var(--stage-crop-y));
+}
+/* The scrim: a band behind the app bar, and a haze from the left that holds --scrim-text
+   or more under every line of type (the contrast check assumes a black pixel under it).
+   The head's type stays inside the first --scrim-reach of the stage. */
+.stage::after {
+	content: "";
+	position: absolute;
+	inset: 0;
+	background:
+		linear-gradient(180deg, var(--scrim-text) 0, var(--scrim-text) var(--bar-h), var(--scrim-soft) calc(var(--bar-h) + var(--scrim-bar-soft)), var(--scrim-clear) calc(var(--bar-h) + var(--scrim-bar-clear))),
+		linear-gradient(90deg, var(--scrim-strong) 0, var(--scrim-text) var(--scrim-reach), var(--scrim-soft) calc(var(--scrim-reach) + var(--scrim-reach-soft)), var(--scrim-clear) calc(var(--scrim-reach) + var(--scrim-reach-clear)));
+}
+
+/* ---------- App bar ---------- */
+.app-bar {
+	grid-row: bar;
+	grid-column: 1 / -1;
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+	align-items: center;
+	gap: var(--space-3) var(--space-5);
+}
+.brand {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--space-3);
+	justify-self: start;
+	min-block-size: var(--target-touch);
+	color: var(--ink);
+	text-decoration: none;
+}
+.brand-mark {
+	display: grid;
+	place-items: center;
+	flex: none;
+	inline-size: var(--brand-mark-size);
+	block-size: var(--brand-mark-size);
+	border-radius: var(--radius-round);
+	background: var(--surface-inverse);
+	color: var(--ink-on-inverse);
+	font-family: var(--font-display);
+	font-weight: var(--weight-display);
+	font-size: var(--type-brand-mark-size);
+	line-height: 1;
+}
+.brand-name {
+	font-size: var(--type-brand-size);
+	letter-spacing: var(--type-brand-tracking);
+	font-weight: var(--type-brand-weight);
+	text-transform: uppercase;
+}
+
+/* The glass capsule nav, the current area a charcoal pill. On phones the labels scroll inside
+   the capsule (see "Sideways scrolling bars" below). */
+.app-nav {
+	justify-self: center;
+	min-inline-size: 0;
+	max-inline-size: 100%;
+	border-radius: var(--radius-pill);
+	background: var(--surface-glass);
+	-webkit-backdrop-filter: var(--glass-filter);
+	backdrop-filter: var(--glass-filter);
+	box-shadow: var(--shadow-rim);
+}
+.app-nav ul {
+	display: flex;
+	gap: var(--space-0-5);
+	padding: var(--space-1);
+}
+.app-nav li { flex: none; }
+.app-nav a {
+	display: inline-flex;
+	align-items: center;
+	min-block-size: max(var(--control-height-s), var(--target));
+	padding: 0 var(--space-4);
+	border-radius: var(--radius-pill);
+	color: var(--ink);
+	font-size: var(--type-label-size);
+	font-weight: var(--type-label-weight);
+	text-decoration: none;
+}
+.app-nav a[aria-current] {
+	background: var(--surface-inverse);
+	color: var(--ink-on-inverse);
+}
+@media (hover: hover) {
+	.app-nav a:not([aria-current]):hover { background: var(--surface-hover); }
+}
+.app-actions {
+	display: flex;
+	justify-content: flex-end;
+	align-items: center;
+	gap: var(--space-2-5);
+}
+
+/* ---------- Sideways scrolling bars ---------- */
+/* A [data-pill] track that holds more than fits scrolls inside its glass host. The script sets
+   data-fade-start / -end on the track (the edge with more fades out) and data-more-start /
+   -end on the host, which draws a chevron in the faded edge: a cut-off label never reads as
+   the end of the bar. The track keeps --space-1 inside the host's rounded end, and the
+   current item starts in view clear of the fade. */
+.frame [data-fade-end] {
+	-webkit-mask-image: linear-gradient(90deg, var(--ink) calc(100% - var(--scroll-fade)), transparent calc(100% - var(--space-8)));
+	mask-image: linear-gradient(90deg, var(--ink) calc(100% - var(--scroll-fade)), transparent calc(100% - var(--space-8)));
+}
+.frame [data-fade-start] {
+	-webkit-mask-image: linear-gradient(90deg, transparent var(--space-8), var(--ink) var(--scroll-fade));
+	mask-image: linear-gradient(90deg, transparent var(--space-8), var(--ink) var(--scroll-fade));
+}
+.frame [data-fade-start][data-fade-end] {
+	-webkit-mask-image: linear-gradient(90deg, transparent var(--space-8), var(--ink) var(--scroll-fade), var(--ink) calc(100% - var(--scroll-fade)), transparent calc(100% - var(--space-8)));
+	mask-image: linear-gradient(90deg, transparent var(--space-8), var(--ink) var(--scroll-fade), var(--ink) calc(100% - var(--scroll-fade)), transparent calc(100% - var(--space-8)));
+}
+:is([data-more-start], [data-more-end])::before,
+:is([data-more-start], [data-more-end])::after {
+	position: absolute;
+	z-index: var(--z-raised);
+	inset-block: 0;
+	inline-size: var(--scroll-cue-size);
+	block-size: var(--scroll-cue-size);
+	margin-block: auto;
+	border-block-start: var(--stroke-strong) solid var(--ink);
+	border-inline-end: var(--stroke-strong) solid var(--ink);
+	pointer-events: none;
+}
+[data-more-start]::before {
+	content: "";
+	inset-inline-start: var(--space-4);
+	rotate: -135deg;
+}
+[data-more-end]::after {
+	content: "";
+	inset-inline-end: var(--space-4);
+	rotate: 45deg;
+}
+/* The same cue for a region that scrolls down: while more follows, the rows fade out over
+   the bottom edge and the host draws a chevron in the fade; the padding lets the last row
+   scroll clear of it. */
+[data-fade-below] {
+	padding-block-end: var(--space-6);
+	-webkit-mask-image: linear-gradient(var(--ink) calc(100% - var(--space-12)), transparent calc(100% - var(--space-2)));
+	mask-image: linear-gradient(var(--ink) calc(100% - var(--space-12)), transparent calc(100% - var(--space-2)));
+}
+[data-more-below] {
+	position: relative;
+}
+[data-more-below]::after {
+	content: "";
+	position: absolute;
+	z-index: var(--z-raised);
+	inset-inline: 0;
+	inset-block-end: var(--space-3);
+	inline-size: var(--scroll-cue-size);
+	block-size: var(--scroll-cue-size);
+	margin-inline: auto;
+	border-block-start: var(--stroke-strong) solid var(--ink);
+	border-inline-end: var(--stroke-strong) solid var(--ink);
+	rotate: 135deg;
+	pointer-events: none;
+}
+
+/* ---------- Sideways scroll shade ---------- */
+/* A table or code block that scrolls sideways inside a solid card: a shade on the edge that
+   has more, covered by the content once it is scrolled to that end (backgrounds attached
+   locally vs. to the scroller). On the charcoal card set --bg: var(--surface-inverse) and
+   --shade: var(--scroll-shade-on-inverse). */
+.scroll-x {
+	--bg: var(--surface-raised);
+	--shade: var(--scroll-shade);
+	overflow-x: auto;
+	max-inline-size: 100%;
+	padding-block-end: var(--space-1-5);
+	background:
+		linear-gradient(90deg, var(--bg) 40%, transparent) left / var(--space-8) 100% no-repeat local,
+		linear-gradient(270deg, var(--bg) 40%, transparent) right / var(--space-8) 100% no-repeat local,
+		radial-gradient(farthest-side at 0 50%, var(--shade), transparent) left / var(--space-3-5) 100% no-repeat scroll,
+		radial-gradient(farthest-side at 100% 50%, var(--shade), transparent) right / var(--space-3-5) 100% no-repeat scroll,
+		var(--bg);
+	scrollbar-width: thin;
+	scrollbar-color: var(--edge-control) transparent;
+}
+
+/* ---------- Rail ---------- */
+/* The vertical glass pill beside the head; it stays in view while the body scrolls. On
+   phones it turns horizontal and sits on the photo's lower edge above the head. */
+.rail {
+	grid-column: rail;
+	grid-row: head / span 2;
+	align-self: start;
+	position: sticky;
+	inset-block-start: var(--space-4);
+	z-index: var(--z-rail);
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: var(--space-1-5);
+	margin-block-start: var(--space-12);
+	padding: var(--space-2);
+	border-radius: var(--radius-pill);
+	background: var(--surface-glass);
+	-webkit-backdrop-filter: var(--glass-filter);
+	backdrop-filter: var(--glass-filter);
+	box-shadow: var(--shadow-rim);
+}
+/* Rail items are quiet Buttons, so the Button draws them clear itself; this adds the current
+   pill and the hover one class above the Button's own rules (see the header). */
+.rail .btn.quiet[aria-current] {
+	background: var(--surface-inverse);
+	color: var(--ink-on-inverse);
+}
+@media (hover: hover) {
+	.rail .btn.quiet:not([aria-current]):hover { background: var(--surface-hover); }
+}
+
+/* ---------- Screen: head on the photo, body overlapping its edge ---------- */
+.screen {
+	grid-column: main;
+	grid-row: head / span 2;
+	display: grid;
+	grid-template-rows: subgrid;
+}
+.screen-head {
+	position: relative;
+	display: grid;
+	gap: var(--space-9);
+	align-content: start;
+	padding-block: var(--space-12) calc(var(--overlap) * 0.3);
+}
+.screen-lead {
+	position: relative;
+	display: grid;
+	gap: var(--space-4);
+	justify-items: start;
+	max-inline-size: var(--lead-max);
+}
+.screen-lead h1 { max-inline-size: var(--title-max); }
+.lede {
+	max-inline-size: var(--lede-max);
+	font-size: var(--type-body-size);
+	line-height: var(--type-body-line);
+	color: var(--ink-secondary);
+}
+.screen-body {
+	display: grid;
+	gap: var(--space-4);
+	align-items: start;
+	align-content: start;
+}
+
+/* Kicker: uppercase, wide tracking, em-dashes between parts. The dash opens the part after it
+   and each part is one flex row (dash, then the text, which wraps beside it), so a wrapped
+   line starts with "— part" and no line ends on a dangling dash. A breadcrumb is a kicker of links (ol.kicker), the
+   current part marked aria-current; "…" (.kicker-more) holds back the middle parts. */
+.kicker {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	/* 0.6em plus the part's trailing tracking matches the 0.85em after the dash. */
+	column-gap: 0.6em;
+	row-gap: var(--space-1);
+}
+.kicker li {
+	display: flex;
+	align-items: baseline;
+	font-size: var(--type-kicker-size);
+	line-height: var(--type-kicker-line);
+	letter-spacing: var(--type-kicker-tracking);
+	font-weight: var(--type-kicker-weight);
+	text-transform: uppercase;
+	color: var(--ink-secondary);
+	font-variant-numeric: var(--numeric-figures);
+}
+.kicker li + li::before {
+	content: "—\2060" / "";
+	margin-inline-end: 0.85em;
+	letter-spacing: 0;
+}
+.kicker a {
+	display: inline-flex;
+	align-items: center;
+	min-block-size: var(--target-min);
+	color: inherit;
+	text-decoration: none;
+}
+@media (hover: hover) {
+	.kicker a:hover {
+		color: var(--ink);
+		text-decoration: underline;
+		text-underline-offset: 0.35em;
+	}
+}
+.kicker [aria-current] {
+	color: var(--ink);
+	font-weight: var(--weight-bold);
+}
+.kicker-more {
+	display: inline-grid;
+	place-items: center;
+	align-self: center;
+	min-inline-size: var(--target-min);
+	min-block-size: var(--target-min);
+	padding: 0 var(--space-2);
+	border: 0;
+	border-radius: var(--radius-pill);
+	background: var(--surface-tint);
+	color: var(--ink);
+	font-weight: var(--weight-bold);
+	letter-spacing: 0.08em;
+	line-height: 1;
+}
+@media (hover: hover) {
+	.kicker-more:hover { background: var(--surface-tint-strong); }
+}
+.kicker li:has(> .kicker-more) { align-items: center; }
+
+/* The ruled list for counts, top right on the photo (architect-hero: MODERN / SUSTAINABLE).
+   It takes its own column, so a long list grows the head instead of running into the cards.
+   The column stops at --facts-max and the labels break inside it, so an unbroken label never
+   widens the card into the title; the lead keeps at least --facts-lead-min beside it. */
+.screen-head:has(> .screen-facts) { grid-template-columns: minmax(min(100%, var(--facts-lead-min)), 1fr) auto; }
+.screen-head > .seg-bar { grid-column: 1; }
+.screen-facts {
+	grid-column: 2;
+	grid-row: 1 / span 2;
+	align-self: start;
+	margin-block-start: var(--space-2);
+	display: grid;
+	/* The counts share one auto column, so the widest ("1,285", five digits) sets it for every row. */
+	grid-template-columns: auto minmax(0, 1fr);
+	column-gap: var(--space-3);
+	max-inline-size: var(--facts-max);
+	padding: var(--space-3-5) var(--space-5) var(--space-3-5) var(--space-4);
+	border-radius: var(--radius-panel);
+	background: var(--surface-glass-strong);
+	-webkit-backdrop-filter: var(--glass-filter);
+	backdrop-filter: var(--glass-filter);
+	box-shadow: var(--shadow-rim);
+}
+.screen-facts li {
+	display: grid;
+	grid-template-columns: subgrid;
+	grid-column: 1 / -1;
+	align-items: baseline;
+	padding: var(--space-0-5) 0 var(--space-0-5) var(--space-3-5);
+	box-shadow: var(--rule-start);
+	font-size: var(--type-overline-size);
+	line-height: var(--type-overline-line);
+	letter-spacing: var(--type-overline-tracking);
+	font-weight: var(--weight-medium);
+	text-transform: uppercase;
+	overflow-wrap: anywhere;
+	hyphens: auto;
+}
+/* What the counts count, when that isn't the list on screen ("Whole list, 16"). */
+.screen-facts .facts-caption {
+	display: block;
+	padding-block-end: var(--space-1-5);
+	box-shadow: none;
+	color: var(--ink-secondary);
+}
+/* The screen's one charcoal key-facts card. */
+.screen-facts[data-surface="inverse"] {
+	background: var(--surface-inverse);
+	color: var(--ink-on-inverse);
+	-webkit-backdrop-filter: none;
+	backdrop-filter: none;
+	box-shadow: var(--shadow-lift);
+}
+.screen-facts[data-surface="inverse"] li { box-shadow: var(--rule-start-on-inverse); }
+.screen-facts[data-surface="inverse"] .facts-caption {
+	box-shadow: none;
+	color: var(--ink-on-inverse-secondary);
+}
+.screen-facts .n {
+	font-weight: var(--weight-bold);
+	letter-spacing: 0.04em;
+	font-variant-numeric: var(--numeric-figures);
+}
+
+/* "01 / 06": where the item stands in its list or run; the total steps back. */
+.position {
+	font-size: var(--type-label-size);
+	line-height: var(--type-label-line);
+	font-weight: var(--weight-semibold);
+	letter-spacing: 0.06em;
+	font-variant-numeric: var(--numeric-figures);
+	white-space: nowrap;
+}
+.position .of {
+	font-weight: var(--weight-regular);
+	color: var(--ink-secondary);
+}
+[data-surface="inverse"] .position .of { color: var(--ink-on-inverse-secondary); }
+/* In a kicker it takes the kicker's type; the number is the part that is current. */
+.kicker .position {
+	font-size: inherit;
+	line-height: inherit;
+	letter-spacing: inherit;
+	color: var(--ink);
+	font-weight: var(--weight-bold);
+}
+.kicker .position .of { font-weight: var(--type-kicker-weight); }
+
+/* ---------- Segmented glass bar ---------- */
+/* travel-hero's Destinations / Dates / Travelers + Search: cells split by a hairline, the
+   primary action at the end. */
+.seg-bar {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-self: start;
+	max-inline-size: 100%;
+	padding: var(--space-2) var(--space-2) var(--space-2) var(--space-2-5);
+	border-radius: var(--radius-bar);
+	background: var(--surface-glass-strong);
+	-webkit-backdrop-filter: var(--glass-filter);
+	backdrop-filter: var(--glass-filter);
+	box-shadow: var(--elevation-card);
+}
+.seg {
+	display: flex;
+	align-items: center;
+	gap: var(--space-3);
+	min-block-size: var(--seg-height);
+	padding: var(--space-1) var(--space-4);
+}
+.seg + .seg { box-shadow: var(--rule-beside); }
+.seg > svg { color: var(--ink); }
+.seg-text {
+	display: grid;
+	gap: var(--space-0-5);
+	min-inline-size: 0;
+}
+.seg-label {
+	font-size: var(--type-label-size);
+	line-height: var(--type-label-line);
+	font-weight: var(--weight-semibold);
+}
+.seg-value {
+	font-size: var(--type-caption-size);
+	line-height: var(--type-caption-line);
+	color: var(--ink-secondary);
+	font-variant-numeric: var(--numeric-figures);
+}
+.seg-actions {
+	margin-inline-start: auto;
+	padding-inline-start: var(--space-2-5);
+}
+
+/* ---------- Cards ---------- */
+/* Solid for reading; the one charcoal card per screen carries data-surface="inverse". */
+.card {
+	border-radius: var(--radius-card);
+	background: var(--surface-card);
+	-webkit-backdrop-filter: var(--glass-filter);
+	backdrop-filter: var(--glass-filter);
+	box-shadow: var(--elevation-card);
+}
+.card[data-surface="inverse"] {
+	background: var(--surface-inverse);
+	color: var(--ink-on-inverse);
+	box-shadow: var(--shadow-lift);
+}
+.card-head {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: var(--space-1-5) var(--space-5);
+}
+.card-head h2 {
+	font-size: var(--type-display-m-size);
+	line-height: var(--type-display-m-line);
+	letter-spacing: var(--type-display-m-tracking);
+}
+.card-note {
+	font-size: var(--type-caption-size);
+	line-height: var(--type-caption-line);
+	color: var(--ink-secondary);
+	font-variant-numeric: var(--numeric-figures);
+}
+[data-surface="inverse"] .card-note { color: var(--ink-on-inverse-secondary); }
+/* A section head with a left rule (MODERN / SUSTAINABLE); counts sit after it. */
+.ruled {
+	padding-inline-start: var(--space-3);
+	box-shadow: var(--rule-start);
+	font-family: var(--font-ui);
+	font-size: var(--type-overline-size);
+	line-height: var(--type-overline-line);
+	letter-spacing: var(--type-overline-tracking);
+	font-weight: var(--type-overline-weight);
+	text-transform: uppercase;
+}
+[data-surface="inverse"] .ruled { box-shadow: var(--rule-start-on-inverse); }
+
+/* A recipe or entry picture: a round crop, or the plate with an initial ("No photo yet"). */
+.thumb {
+	display: block;
+	flex: none;
+	inline-size: var(--thumb, var(--thumb-size));
+	block-size: var(--thumb, var(--thumb-size));
+	border-radius: var(--radius-round);
+	object-fit: cover;
+}
+.thumb.plate {
+	display: grid;
+	place-items: center;
+	background: var(--surface-tint-strong);
+	color: var(--ink);
+	font-family: var(--font-display);
+	font-weight: var(--weight-display);
+	font-size: calc(var(--thumb, var(--thumb-size)) * 0.5);
+	line-height: 1;
+}
+[data-surface="inverse"] .thumb.plate {
+	background: var(--surface-inverse-tint-strong);
+	color: var(--ink-on-inverse);
+}
+
+/* ---------- App bar, scrolled (wide) ---------- */
+/* Once the page scrolls, the bar stays reachable as a sticky capsule: the brand mark, the
+   nav, the actions. The surface is solid white, never the see-through glass, so
+   nothing reads through it. The bar spans every row to stay sticky (a grid item can't leave
+   its area), so the bar row holds its height, and the page doesn't jump. */
+@media (min-width: 1100px) {
+	.frame:has(> .app-bar[data-scrolled]) {
+		grid-template-rows: [bar] calc(max(var(--control-height-s), var(--target)) + var(--space-2)) [rail] auto [head] auto [body] auto;
+	}
+	.frame > .app-bar[data-scrolled] {
+		position: sticky;
+		inset-block-start: var(--space-3);
+		z-index: var(--z-rail);
+		grid-row: bar / -1;
+		align-self: start;
+		justify-self: center;
+		grid-template-columns: auto auto auto;
+		inline-size: max-content;
+		max-inline-size: 100%;
+		gap: var(--space-3);
+		padding: var(--space-1-5) var(--space-2) var(--space-1-5) var(--space-3);
+		border-radius: var(--radius-pill);
+		background: var(--surface-raised);
+		-webkit-backdrop-filter: var(--glass-filter);
+		backdrop-filter: var(--glass-filter);
+		box-shadow: var(--elevation-card);
+		animation: fp-fade-in var(--motion-glide) var(--ease-out);
+	}
+	.app-bar[data-scrolled] .brand { min-block-size: 0; }
+	.app-bar[data-scrolled] .brand-name {
+		position: absolute;
+		inline-size: 1px;
+		block-size: 1px;
+		overflow: hidden;
+		clip-path: inset(50%);
+		white-space: nowrap;
+	}
+	.app-bar[data-scrolled] .btn.secondary:not(:disabled) { box-shadow: var(--ring-control); }
+	.app-bar[data-scrolled] .app-nav {
+		background: none;
+		-webkit-backdrop-filter: none;
+		backdrop-filter: none;
+		box-shadow: none;
+	}
+}
+@media (prefers-reduced-motion: reduce) {
+	.frame > .app-bar[data-scrolled] { animation: none; }
+}
+
+/* ---------- Dock (phone) ---------- */
+/* The tab bar on phones: a floating pill of tabs, each an icon over a label, the current one a
+   charcoal pill, and a round charcoal add button beside it. It replaces the app nav below
+   1024px (from 1024 the app shows its top bar with the nav, from 1100 the scrolled capsule), and
+   sticks above the bottom edge and the home indicator. It sits at the frame's gutter
+   (--space-3-5, the frame's --pad-inline at phone widths) inside the app's own padding. Five
+   tabs fit at 375px; tabs size to their label (never under 44px wide, no inner padding or gap), so a long label borrows room from the short ones; Creative's five labels show in full from 360px. A label that still runs out of room is cut with an ellipsis, never dropped.
+   Below 360px the tabs are icon only (the label stays as the accessible name), which is what
+   fits five 44px tabs and the add button at 320px; there the dock also drops the gutter.
+   .dock[data-specimen] shows the dock at any window width (galleries, specimen pages).
+   .dock[data-hidden] slides it out while a text field has focus (cue.ts `hideOnType`): the
+   exit takes --motion-quick, the return --motion-glide, only transform and opacity move, and
+   visibility drops it from the tab order and the accessibility tree once it is gone. */
+.dock { display: none; }
+@media (max-width: 1023px) {
+	.app:has(> .dock) .app-nav { display: none; }
+	.dock { display: flex; }
+}
+.app:has(> .dock[data-specimen]) .app-nav { display: none; }
+.dock[data-specimen] { display: flex; }
+.dock {
+	position: sticky;
+	inset-block-end: max(var(--space-3), env(safe-area-inset-bottom));
+	z-index: var(--z-rail);
+	align-items: center;
+	gap: var(--space-2);
+	inline-size: min(100%, 30rem);
+	margin-inline: auto;
+	margin-block-start: var(--space-3);
+	padding-inline: max(var(--space-3-5), env(safe-area-inset-left)) max(var(--space-3-5), env(safe-area-inset-right));
+	transition:
+		transform var(--motion-glide) var(--ease-out),
+		opacity var(--motion-glide) var(--ease-out),
+		visibility 0s;
+}
+.dock[data-hidden] {
+	transform: translateY(calc(100% + max(var(--space-3), env(safe-area-inset-bottom))));
+	opacity: 0;
+	visibility: hidden;
+	pointer-events: none;
+	transition:
+		transform var(--motion-quick) var(--ease-out),
+		opacity var(--motion-quick) var(--ease-out),
+		visibility 0s var(--motion-quick);
+}
+@media (prefers-reduced-motion: reduce) {
+	.dock,
+	.dock[data-hidden] { transition: none; }
+}
+.dock-tabs {
+	display: flex;
+	flex: 1;
+	min-inline-size: 0;
+	gap: 0;
+	margin: 0;
+	padding: var(--space-1);
+	list-style: none;
+	border-radius: var(--radius-pill);
+	background: var(--surface-card);
+	-webkit-backdrop-filter: var(--glass-filter);
+	backdrop-filter: var(--glass-filter);
+	box-shadow: var(--elevation-card);
+}
+.dock-tabs li { flex: 1 1 auto; min-inline-size: var(--target-touch); }
+.dock-tabs a {
+	position: relative;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: var(--space-0-5);
+	min-block-size: calc(var(--target-touch) + var(--space-2));
+	padding-inline: var(--space-1);
+	border-radius: var(--radius-pill);
+	color: var(--ink);
+	text-decoration: none;
+	font-size: var(--type-overline-size);
+	line-height: 1.1;
+	font-weight: var(--weight-medium);
+}
+.dock-tabs a > span {
+	max-inline-size: 100%;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+.dock-tabs a[aria-current] {
+	background: var(--surface-inverse);
+	color: var(--ink-on-inverse);
+}
+.dock-tabs a[aria-current]:focus-visible {
+	outline-color: var(--focus-ring-on-inverse);
+	box-shadow: var(--focus-halo);
+}
+.dock-add {
+	display: grid;
+	place-items: center;
+	flex: none;
+	inline-size: calc(var(--target-touch) + var(--space-2));
+	block-size: calc(var(--target-touch) + var(--space-2));
+	padding: 0;
+	border: 0;
+	border-radius: var(--radius-round);
+	background: var(--surface-inverse);
+	color: var(--ink-on-inverse);
+	box-shadow: var(--shadow-lift);
+}
+.dock-add:focus-visible { box-shadow: var(--focus-halo); }
+.dock-add[aria-disabled="true"] { opacity: var(--disabled-opacity); box-shadow: none; }
+@media (max-width: 359px) {
+	.dock { padding-inline: env(safe-area-inset-left) env(safe-area-inset-right); }
+	.dock-tabs a > span {
+		position: absolute;
+		inline-size: 1px;
+		block-size: 1px;
+		clip-path: inset(50%);
+	}
+}
+
+/* ---------- Detail actions ---------- */
+/* The top-right pill of a detail screen (a note, an entry): a status label such as "Saved" and
+   one ··· button that opens the Menu primitive with the rest of the actions, Delete last as a
+   danger item. The button is <Button variant="quiet" icon aria-haspopup="menu">. */
+.detail-actions {
+	display: flex;
+	align-items: center;
+	gap: var(--space-1);
+	margin-inline-start: auto;
+	padding: var(--space-1) var(--space-1) var(--space-1) var(--space-1-5);
+	border-radius: var(--radius-pill);
+	background: var(--surface-glass-strong);
+	-webkit-backdrop-filter: var(--glass-filter);
+	backdrop-filter: var(--glass-filter);
+	box-shadow: var(--shadow-rim);
+}
+.detail-actions:has(> .btn.danger) { padding-inline-start: var(--space-1); }
+.detail-status {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--space-1-5);
+	min-block-size: var(--control-height-xs);
+	padding-inline: var(--space-2) var(--space-2-5);
+	font-size: var(--type-caption-size);
+	font-weight: var(--weight-medium);
+	font-variant-numeric: var(--numeric-figures);
+	color: var(--ink-secondary);
+}
+
+/* ---------- Reduced motion ---------- */
+/* The rail stays put instead of following the scroll. */
+@media (prefers-reduced-motion: reduce) {
+	.rail { position: relative; }
+}
+
+/* ==========================================================================
+   Widths. Wide: 1100 and up. Tablet: 768 to 1099. Phone: below 768. (The dock: below 1024.)
+   ========================================================================== */
+/* 1024 to 1099: the bar stays one row, brand mark left, nav centred, actions right; the
+   wordmark is visually hidden (still the link's name) until 1100, where it fits beside the
+   six-pill nav. Below 1024 the nav takes its own row and scrolls. */
+@media (min-width: 1024px) and (max-width: 1099px) {
+	.app-bar .brand-name {
+		position: absolute;
+		inline-size: 1px;
+		block-size: 1px;
+		overflow: hidden;
+		clip-path: inset(50%);
+		white-space: nowrap;
+	}
+}
+@media (max-width: 1023px) {
+	.app-bar { grid-template-columns: minmax(0, 1fr) auto; }
+	.app-nav {
+		grid-column: 1 / -1;
+		grid-row: 2;
+	}
+	.app-nav ul {
+		overflow-x: auto;
+		overscroll-behavior-x: contain;
+		scrollbar-width: none;
+		scroll-padding-inline: var(--scroll-fade);
+	}
+	.app-nav ul::-webkit-scrollbar { display: none; }
+}
+@media (max-width: 1099px) {
+	.app-nav a { padding-inline: var(--space-3); }
+	/* The wide haze from the left would cover the whole photo here, so it follows the head's
+	   type instead: soft top and bottom edges, fading out to the right. */
+	.stage::after {
+		background: linear-gradient(180deg, var(--scrim-text) 0, var(--scrim-text) calc(var(--bar-h) + var(--scrim-head-text)), var(--scrim-soft) calc(var(--bar-h) + var(--scrim-head-soft)), var(--scrim-clear) calc(var(--bar-h) + var(--scrim-head-clear)));
+	}
+	.screen-lead::before {
+		content: "";
+		position: absolute;
+		z-index: -1;
+		pointer-events: none;
+		inset: calc(-1 * var(--haze-bleed-block-start)) var(--haze-end, calc(-1 * var(--haze-bleed-inline-end))) calc(-1 * var(--haze-bleed-block-end)) var(--haze-start, calc(-1 * var(--haze-bleed-inline-start)));
+		background: linear-gradient(90deg, var(--scrim-text) 0, var(--scrim-text) calc(100% - var(--haze-fade)), var(--scrim-clear));
+		-webkit-mask-image: linear-gradient(180deg, transparent, var(--ink) var(--haze-bleed-block-start), var(--ink) calc(100% - var(--haze-bleed-block-end)), transparent);
+		mask-image: linear-gradient(180deg, transparent, var(--ink) var(--haze-bleed-block-start), var(--ink) calc(100% - var(--haze-bleed-block-end)), transparent);
+	}
+	.frame:not(:has(> .rail)) .screen-lead { --haze-start: calc(-1 * var(--pad-inline)); }
+	.frame:not(:has(> .stage)) .screen-lead::before { content: none; }
+	.screen-head > .seg-bar { grid-column: 1 / -1; }
+	.screen-facts { grid-row: 1; margin-block-start: 0; }
+	.seg { padding-inline: var(--space-3); }
+}
+
+@media (max-width: 767px) {
+	.app { padding: var(--space-2); }
+	.frame {
+		--pad-block: var(--space-3-5);
+		--pad-inline: var(--space-3-5);
+		--overlap: var(--stage-overlap-compact);
+		--photo-gap: var(--stage-photo-gap-compact);
+		border-radius: var(--radius-frame-compact);
+	}
+	/* The tile's phone scrim: it holds the bar and is gone by the end of the nav, so the photo
+	   shows clear between the nav and the head's own haze. */
+	.stage::after {
+		background: linear-gradient(180deg, var(--scrim-text) 0, var(--scrim-soft) var(--scrim-compact-soft), var(--scrim-clear) var(--scrim-compact-clear));
+	}
+	.frame,
+	.frame:has(> .rail) { grid-template-columns: [rail-start main-start] minmax(0, 1fr) [rail-end main-end]; }
+	.frame > .stage { grid-row: bar / body; }
+	.app-bar .brand-name {
+		position: absolute;
+		inline-size: 1px;
+		block-size: 1px;
+		overflow: hidden;
+		clip-path: inset(50%);
+		white-space: nowrap;
+	}
+	.app-nav { justify-self: stretch; }
+
+	/* Horizontal on the photo's lower edge. When its items don't fit it scrolls inside the
+	   capsule, a shade on the edge with more (the covers ride along with the items, so the
+	   shade shows only where there is more). The padding keeps badges on the items' corners
+	   inside the scroll box. */
+	.rail {
+		grid-row: rail;
+		grid-column: 1 / -1;
+		position: relative;
+		inset-block-start: auto;
+		flex-direction: row;
+		justify-content: space-between;
+		gap: 0;
+		align-self: auto;
+		margin-block-start: var(--photo-gap);
+		padding: var(--space-1) var(--space-2) var(--space-1) var(--space-1);
+		overflow-x: auto;
+		overscroll-behavior-x: contain;
+		scrollbar-width: none;
+		background:
+			linear-gradient(90deg, var(--surface-raised) 40%, transparent) left / var(--scroll-fade) 100% no-repeat local,
+			linear-gradient(270deg, var(--surface-raised) 40%, transparent) right / var(--scroll-fade) 100% no-repeat local,
+			radial-gradient(farthest-side at 0 50%, var(--scroll-shade), transparent) left / var(--space-4) 100% no-repeat scroll,
+			radial-gradient(farthest-side at 100% 50%, var(--scroll-shade), transparent) right / var(--space-4) 100% no-repeat scroll,
+			var(--surface-raised);
+	}
+	.rail::-webkit-scrollbar { display: none; }
+	.rail > * { flex: none; }
+	.screen { grid-row: head / span 2; }
+	.screen-head {
+		gap: var(--space-7);
+		padding-block: var(--space-10) calc(var(--overlap) * 0.4);
+	}
+	.frame:has(> .stage):not(:has(> .rail)) .screen-head { padding-block-start: var(--photo-gap); }
+	.screen-lead::before {
+		--haze-start: calc(-1 * var(--pad-inline));
+		--haze-end: calc(-1 * var(--pad-inline));
+		background: var(--scrim-text);
+	}
+	.screen-lead h1 { font-size: var(--type-display-xl-size-compact); }
+	.seg-bar {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr);
+		justify-self: stretch;
+		padding: var(--space-1-5);
+		border-radius: var(--radius-bar-compact);
+	}
+	.seg { padding-inline: var(--space-3); }
+	.seg + .seg { box-shadow: var(--rule-above); }
+	.seg-actions { margin: 0; padding: 0; }
+	.seg-actions .btn { inline-size: 100%; justify-content: space-between; }
+	.screen-head:has(> .screen-facts) { grid-template-columns: minmax(0, 1fr); }
+	.screen-facts { grid-column: 1; grid-row: auto; justify-self: stretch; max-inline-size: none; }
+	.card-head h2 {
+		font-size: var(--type-display-s-size);
+		line-height: var(--type-display-s-line);
+	}
+}
+
+/* ---------- Night stage (worlds, 2.1.0) ---------- */
+/* .app[data-world="…"][data-stage="night"]: the world's dark cinematic banner. The stage photo
+   runs full bleed as before, but the scrim turns into the world's night (tokens.css "Worlds"):
+   every scrim stop takes the world's veil at the same place, so the type keeps a guaranteed
+   backdrop exactly where the light scrim gave it one. Wide: the veil from the left up to
+   --scrim-reach plus the band behind the bar. Tablet and phone: the band, and a feathered night
+   plate behind the lead, the photo clear above it. Type on it turns light: white title, kicker
+   and lede in --ink-on-inverse(-secondary), the accent word in the world's glow. Controls keep
+   their own glass and ink; a primary pill on the night turns white with the night as its ink.
+   Without a hero photo (no figure.stage) the bar and the head sit on a flat night band.
+   data-stage="night" needs a data-world on the same element; without one there is no veil. */
+.app[data-stage="night"] :is(.frame > .stage, .screen-lead) {
+	--scrim: var(--world-night);
+	--scrim-strong: var(--world-veil-strong);
+	--scrim-text: var(--world-veil);
+	--scrim-soft: var(--world-veil-soft);
+	--scrim-clear: var(--world-veil-clear);
+}
+.app[data-stage="night"] .frame:not(:has(> .stage))::before {
+	content: "";
+	grid-row: bar / body;
+	grid-column: 1 / -1;
+	margin: calc(-1 * var(--pad-block)) calc(-1 * var(--pad-inline)) calc(-1 * var(--overlap) * 0.5);
+	background: var(--world-night);
+}
+/* Chrome on the night is the strong glass, as over a bare photo: plain glass turns grey there. */
+.app[data-stage="night"] :is(.app-bar, .screen-head) { --surface-glass: var(--surface-glass-strong); }
+.app[data-stage="night"] :is(.screen-lead :is(h1, .kicker, .lede), .app-bar .brand) {
+	--ink: var(--ink-on-inverse);
+	--ink-secondary: var(--ink-on-inverse-secondary);
+	--accent: var(--world-glow);
+	--surface-tint: var(--surface-inverse-tint);
+	--surface-tint-strong: var(--surface-inverse-tint-strong);
+	color: var(--ink);
+}
+.app[data-stage="night"] :is(.screen-lead, .app-bar > .brand, .app-bar > .app-actions) { --focus-color: var(--focus-ring-on-inverse); }
+.app[data-stage="night"] .screen-lead :is(.seg-bar, .card, [data-surface="solid"]) { --focus-color: var(--focus-ring); }
+.app[data-stage="night"] .brand-mark { box-shadow: var(--ring-on-inverse); }
+/* The key-facts card is the night on the night: a hairline keeps its edge. */
+.app[data-stage="night"] .screen-head > .screen-facts[data-surface="inverse"] { box-shadow: var(--ring-on-inverse), var(--shadow-lift); }
+/* The primary pill on the night: white, the night as its ink and in the arrow's circle. */
+.app[data-stage="night"] :is(.screen-lead, .app-bar > .app-actions) .btn.primary:not(:is(.seg-bar, .card, [data-surface]) *) {
+	background: var(--surface-raised);
+	color: var(--world-night);
+}
+.app[data-stage="night"] :is(.screen-lead, .app-bar > .app-actions) .btn.primary:not(:is(.seg-bar, .card, [data-surface]) *) .circle {
+	background: var(--world-night);
+	color: var(--ink-on-inverse);
+}
+@media (hover: hover) {
+	.app[data-stage="night"] :is(.screen-lead, .app-bar > .app-actions) .btn.primary:not(:is(.seg-bar, .card, [data-surface]) *):hover { background: var(--surface-sunken); }
+}
+/* The scrolled capsule is solid white again: the pill goes back to the night, the ring to ink. */
+@media (min-width: 1100px) {
+	.app[data-stage="night"] .app-bar[data-scrolled] > :is(.brand, .app-actions) { --focus-color: var(--focus-ring); }
+	.app[data-stage="night"] .app-bar[data-scrolled] .brand {
+		--ink: var(--surface-inverse);
+		--ink-secondary: var(--surface-inverse);
+	}
+	.app[data-stage="night"] .app-bar[data-scrolled] > .app-actions .btn.primary:not(:is(.seg-bar, .card, [data-surface]) *) {
+		background: var(--surface-inverse);
+		color: var(--ink-on-inverse);
+	}
+	.app[data-stage="night"] .app-bar[data-scrolled] > .app-actions .btn.primary:not(:is(.seg-bar, .card, [data-surface]) *) .circle {
+		background: var(--surface-raised);
+		color: var(--world-night);
+	}
+}
+@media (min-width: 1100px) and (hover: hover) {
+	.app[data-stage="night"] .app-bar[data-scrolled] > .app-actions .btn.primary:not(:is(.seg-bar, .card, [data-surface]) *):hover { background: var(--surface-inverse-hover); }
+}

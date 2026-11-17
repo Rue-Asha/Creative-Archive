@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { tick } from 'svelte';
+	import Button from '#lib/components/button/Button.svelte';
 	import { fold } from '#lib/text.ts';
 	import type { Id } from '#lib/types.ts';
-	import Icon from '#lib/ui/Icon.svelte';
 
 	// A chosen artist is a link (`id`, posted as artistId); anything else stays text. The server re-checks the id.
 	let {
@@ -69,10 +69,10 @@
 	{#if id !== null}
 		<input type="hidden" name="artistName" value={name} />
 		<span class="label" id="artist-label">Artist</span>
-		<span class="linked token" data-linked role="group" aria-labelledby="artist-label">
-			<span>{name}</span>
-			<button type="button" aria-label="Unlink artist" onclick={unlink}><Icon name="x" size={14} /></button>
-		</span>
+		<div class="linked">
+			<span class="chip" data-linked role="group" aria-labelledby="artist-label"><span>{name}</span></span>
+			<Button variant="quiet" size="s" onclick={unlink}>Unlink artist</Button>
+		</div>
 	{:else}
 		<label for="f-artist">Artist</label>
 		<div class="combo">
@@ -80,7 +80,6 @@
 				id="f-artist"
 				bind:this={input}
 				name="artistName"
-				class="control"
 				role="combobox"
 				aria-expanded={shown}
 				aria-controls="artist-options"
@@ -93,7 +92,7 @@
 				autocomplete="off"
 			/>
 			{#if shown}
-				<ul class="options liquid liquid-strong" id="artist-options" role="listbox" aria-label="Artists">
+				<ul class="options" id="artist-options" role="listbox" aria-label="Artists">
 					{#each matches as artist, i (artist.id)}
 						<!-- keys go through the input (aria-activedescendant); the pointer must not blur it before the click lands -->
 						<!-- svelte-ignore a11y_click_events_have_key_events -->
@@ -114,50 +113,87 @@
 </div>
 
 <style>
+	.field {
+		display: grid;
+		gap: var(--space-1-5);
+		min-inline-size: 0;
+	}
+
+	label,
 	.label {
-		font-size: var(--t-small);
-		font-weight: 600;
+		font-size: var(--type-label-size);
+		line-height: var(--type-label-line);
+		font-weight: var(--type-label-weight);
 	}
 
 	.combo {
 		position: relative;
 	}
 
+	input[role='combobox'] {
+		inline-size: 100%;
+		min-block-size: max(var(--control-height), var(--target));
+		padding: 0 var(--space-4);
+		border: 0;
+		border-radius: var(--radius-control);
+		background: var(--surface-raised);
+		box-shadow: var(--ring-control);
+		color: var(--ink);
+		font-size: var(--type-body-size);
+	}
+
+	input[role='combobox']:focus-visible {
+		outline: var(--focus-width) solid var(--focus-ring);
+		outline-offset: var(--focus-offset);
+	}
+
 	.options {
 		position: absolute;
 		inset-inline: 0;
-		inset-block-start: calc(100% + 6px);
-		z-index: 5;
-		padding: var(--s-2);
-		border-radius: var(--r-md);
+		inset-block-start: calc(100% + var(--space-1-5));
+		z-index: var(--z-menu);
+		display: grid;
+		gap: var(--space-0-5);
+		margin: 0;
+		padding: var(--space-1-5);
+		list-style: none;
+		border-radius: var(--radius-panel);
+		background: var(--surface-raised);
+		box-shadow: var(--elevation-menu);
 	}
 
 	.options li {
 		display: flex;
 		align-items: center;
-		min-block-size: 44px;
-		padding: 0 var(--s-3);
-		border-radius: var(--r-sm);
-		cursor: pointer;
+		min-block-size: max(var(--control-height-s), var(--target));
+		padding-inline: var(--space-3);
+		border-radius: var(--radius-item);
+		font-size: var(--type-body-s-size);
+		overflow-wrap: anywhere;
+		cursor: default;
 	}
 
-	.options li[aria-selected='true'],
-	.options li:hover {
-		background: var(--accent-soft);
+	.options li[aria-selected='true'] {
+		background: var(--surface-inverse);
+		color: var(--ink-on-inverse);
 	}
 
+	@media (hover: hover) {
+		.options li:not([aria-selected='true']):hover {
+			background: var(--surface-sunken);
+		}
+	}
+
+	/* the linked artist is a plain chip with a text button beside it (hi-fi), not a chip with a ×: unlinking is a choice */
 	.linked {
-		align-self: flex-start;
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: var(--space-2);
+		min-inline-size: 0;
 	}
 
-	.linked button {
-		display: grid;
-		place-items: center;
-		inline-size: 44px;
-		block-size: 44px;
-		border: 0;
-		border-radius: var(--r-pill);
-		background: transparent;
-		color: inherit;
+	.linked .chip {
+		padding-inline: var(--space-3-5);
 	}
 </style>

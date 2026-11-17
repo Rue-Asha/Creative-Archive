@@ -15,7 +15,7 @@ test('Scenario: HeroSlot error uses the error token', async ({ page }) => {
 	await expect(error).toHaveText('Unsupported image type');
 	const colours = await error.evaluate((el) => {
 		const probe = document.createElement('span');
-		probe.style.color = 'var(--error)';
+		probe.style.color = 'var(--danger)';
 		el.append(probe);
 		const token = getComputedStyle(probe).color;
 		probe.remove();
@@ -24,18 +24,15 @@ test('Scenario: HeroSlot error uses the error token', async ({ page }) => {
 	expect(colours.error).toBe(colours.token);
 });
 
-test('Scenario: Placeholders have no rim', async ({ page, request }) => {
-	await seed(request, { entries: [{ type: 'book', title: 'Kitchen Confidential' }] });
+test('Scenario: Placeholder plate shows the entry year', async ({ page, request }) => {
+	await seed(request, {
+		entries: [
+			{ type: 'anime', title: 'Frieren', details: { year: 2023 } },
+			{ type: 'book', title: 'Kitchen Confidential' }
+		]
+	});
+	await open(page, '/animanga/anime');
+	await expect(page.getByRole('img', { name: 'Frieren' })).toContainText('2023');
 	await open(page, '/books/books');
-
-	const radials = await page.getByRole('img', { name: 'Kitchen Confidential' }).evaluate((el) => getComputedStyle(el).backgroundImage.split('radial-gradient').length - 1);
-	expect(radials).toBe(0);
-
-	await open(page, '/settings');
-	const slot = page.getByRole('region', { name: 'Music' });
-	await expect(slot.getByText('No photo yet')).toBeVisible();
-	const empty = await slot.evaluate((el) =>
-		[el, ...el.querySelectorAll('*')].filter((node) => getComputedStyle(node).backgroundImage.includes('radial-gradient')).length
-	);
-	expect(empty).toBe(0);
+	await expect(page.getByRole('img', { name: 'Kitchen Confidential' })).toHaveText('KC');
 });

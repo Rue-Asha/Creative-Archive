@@ -1,0 +1,25 @@
+{
+	"version": "2.1.0",
+	"files": {
+		"src/lib/styles/fingerprint/tokens.css": "94bf68a8f7883160cee61e9c651e242c30b361769cf05c70cdad6ece55d96ea9",
+		"src/lib/styles/fingerprint/base.css": "f8778b2d5a4e93e9ccc21d74be6dcea9101e55dbfd1c808e1726840c2d9271ef",
+		"src/lib/styles/fingerprint/motion.css": "6946e3182aa1b395c52bd3a562a68a89f71137162a9236a99e4830afe244adbc",
+		"src/lib/styles/fingerprint/layout.css": "0ab40446d56fb681e9d0c0ef82a468bd745f83858c601aebdc9ba63e6328d99d",
+		"src/lib/styles/fingerprint/fonts.css": "3519aa741eaab0dd2330c1c16e46254df502d8803fc5b981f96ab610301d4f2d",
+		"DESIGN.md": "a05f5fdb054456a12596340ff00b6b41f32be00e033bfde64ca9a609d3c10479",
+		"DESIGN-reference.md": "0f6c262d949aac235df870e0d7a557c5fc3435a4f885e0fd366917e0bee0a04c",
+		"DESIGN.json": "22b5bf89296b09177403f5209668089f1b40b40404b0144a80590e83aa08edcb",
+		"scripts/fingerprint/banned.md": "b401597db8b2f174139513cafd767deba299628e85c04d154c4e8562376986ae",
+		"scripts/fingerprint/check-slop.mjs": "a6ce416c99b1067585ada76013e82c3b6f640229773b693d85a9f7c2dc54b4b2",
+		"scripts/fingerprint/check-drift.mjs": "3a1f8762c8f49847ed5ecc7672a8bcc03039d89533f38bd757581ef5edfffcf8",
+		".gitleaks.toml": "d034053e97df223e1e4128572c54f261cd8c71c7e10b38f6e05ebb74cb45d64c",
+		"static/fonts/fingerprint/gilda-display-latin.woff2": "d2b0a9deb02fe9d4d8348e4c4f470e53588175de06a563574af8d8c896b089e2",
+		"static/fonts/fingerprint/gilda-display-latin-ext.woff2": "1550b21a79ba2dcc033dc49a8d0befb8d8ac98a76b4bbe2948360c0cfe129dbc",
+		"static/fonts/fingerprint/dm-sans-latin.woff2": "ca72d2bcea8f4daa783dbdfa2d9b46068c3ce38168e05918fb867aa453b4f890",
+		"static/fonts/fingerprint/dm-sans-latin-ext.woff2": "5d18d31d23ada61ebee1d589b11d5da30db9e158f589d5e35221ba2b1a45de54",
+		"static/fonts/fingerprint/dm-sans-italic-latin.woff2": "d5c53a50536536971ea27318a590dbf723a190dd2f608e7a92929a021cc0ebaa",
+		"static/fonts/fingerprint/dm-sans-italic-latin-ext.woff2": "b72f7226650dcbc66e1e6ccdc9e53dc8c66107357eeac2d2a4ca18942c42f360",
+		"static/fonts/fingerprint/GildaDisplay-OFL.txt": "e8d94225bdcfecfb5a6e14bc0e2bb26fe48670f28ac46a7d676d9a90d8bfbe24",
+		"static/fonts/fingerprint/DMSans-OFL.txt": "9af36190332437f5ecd09974de43c1f7c77a310a996cdd8ceb25628b458840e1"
+	}
+}

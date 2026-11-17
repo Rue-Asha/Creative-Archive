@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onDestroy } from 'svelte';
+	import Field from '#lib/components/field/Field.svelte';
 	import { COPY } from '#lib/copy.ts';
 	import { TYPES } from './config.ts';
 	import { handlesFromUrl } from './handles.ts';
@@ -85,102 +86,62 @@
 	onDestroy(() => controller?.abort());
 </script>
 
-<section class="preview liquid" aria-label="URL preview">
-	<div class="field">
-		<label for="preview-url">Page URL</label>
-		<input
-			id="preview-url"
-			class="control"
-			type="text"
-			inputmode="url"
-			bind:value={url}
-			onchange={run}
-			onkeydown={key}
-			oninput={() => (invalid = false)}
-			placeholder="https://"
-			autocomplete="off"
-			autocapitalize="off"
-			spellcheck="false"
-			aria-invalid={invalid ? 'true' : undefined}
-			aria-describedby={invalid ? 'e-preview-url' : undefined}
-		/>
-		{#if invalid}<p class="error" id="e-preview-url" role="alert">{COPY.invalidUrl}</p>{/if}
-	</div>
+<section class="preview card" data-surface="solid" aria-label="URL preview">
+	<Field
+		id="preview-url"
+		label="Page URL"
+		inputmode="url"
+		bind:value={url}
+		onchange={run}
+		onkeydown={key}
+		oninput={() => (invalid = false)}
+		placeholder="https://"
+		autocomplete="off"
+		autocapitalize="off"
+		spellcheck={false}
+		error={invalid ? COPY.invalidUrl : undefined}
+	/>
 
 	<div class="status" role="status">
 		{#if phase === 'loading'}
-			<p class="note">Looking up the page…</p>
+			<p>Looking up the page…</p>
 		{:else if phase === 'done' && image === null}
-			<p class="note">{COPY.noPreview}</p>
+			<p>{COPY.noPreview}</p>
 		{/if}
 	</div>
 
 	{#if image}
-		<img class="thumb" src={image} alt="Page preview" />
+		<img class="found" src={image} alt="Page preview" />
 	{/if}
 </section>
 
 <style>
 	.preview {
-		display: flex;
-		flex-direction: column;
-		gap: var(--s-4);
-		padding: var(--s-6);
-		border-radius: var(--r-panel);
-		--field-error: var(--error);
-	}
-
-	.field {
-		display: flex;
-		flex-direction: column;
-		gap: var(--s-2);
-	}
-
-	label {
-		font-weight: 600;
-		font-size: var(--t-small);
-	}
-
-	.control {
-		inline-size: 100%;
-		min-block-size: 52px;
-		padding: 0 var(--s-5);
-		border-radius: var(--r-pill);
-		border: 1px solid var(--line);
-		background: var(--glass-thin);
-		font-size: var(--t-body);
-		transition: border-color var(--d-fast) var(--ease-out);
-	}
-
-	.control:focus-visible {
-		border-color: var(--accent);
-	}
-
-	.control[aria-invalid='true'] {
-		border-color: var(--field-error);
-	}
-
-	.error {
-		margin: 0;
-		color: var(--field-error);
-		font-size: var(--t-small);
+		display: grid;
+		gap: var(--space-3);
+		padding: var(--space-4);
 	}
 
 	.status:empty {
 		display: none;
 	}
 
-	.note {
-		margin: 0;
-		color: var(--ink-2);
-		font-size: var(--t-small);
-		padding-inline: var(--s-2);
+	.status p {
+		font-size: var(--type-caption-size);
+		line-height: var(--type-caption-line);
+		color: var(--ink-secondary);
 	}
 
-	.thumb {
-		max-inline-size: 160px;
-		max-block-size: 160px;
-		border-radius: var(--r-md);
+	.found {
+		inline-size: 6rem;
+		aspect-ratio: 1;
+		border-radius: var(--radius-panel);
 		object-fit: cover;
+	}
+
+	@media (min-width: 768px) {
+		.preview {
+			padding: var(--space-5);
+		}
 	}
 </style>

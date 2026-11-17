@@ -72,6 +72,9 @@ test('an album linked to an artist opens with the chip, and changing it saves th
 	});
 	await open(page, `/entries/${entries[2]}/edit`);
 	await expect(linked(page)).toHaveText(/SZA/);
+	// a plain chip and a text button beside it, as in the hi-fi
+	await expect(linked(page).getByRole('button')).toHaveCount(0);
+	await expect(page.getByRole('button', { name: 'Unlink artist' })).toHaveText('Unlink artist');
 	await page.getByRole('button', { name: 'Unlink artist' }).click();
 	await artist(page).fill('Sol');
 	await page.getByRole('option', { name: 'Solange' }).click();

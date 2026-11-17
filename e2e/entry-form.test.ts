@@ -50,10 +50,6 @@ test('Scenario: Status prefill reaches the piece form', async ({ page }) => {
 	await expect(page).toHaveURL(/\/entries\/\d+$/);
 	await open(page, `${new URL(page.url()).pathname}/edit`);
 	await expect(page.getByLabel('Status', { exact: true })).toHaveValue('owned');
-
-	await open(page, '/add/album?manual=1&status=want');
-	await expect(title(page)).toBeVisible();
-	await expect(page.getByLabel('Status', { exact: true })).toHaveCount(0);
 });
 
 test('Scenario: Empty title is not saved', async ({ page, request }) => {

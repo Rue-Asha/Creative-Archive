@@ -1,0 +1,10 @@
+track: feature
+triage: 'feature — from-scratch UI redesign of Creative Archive on fingerprint 1.0.0 (ecosystem-ui-revamp gates 3–8), plus bulk actions (status/tags in lists, move/remove in collections) and magazines as a full type. Appetite: several sessions, in phases (gate 4 wireframes, gate 5 hi-fi, then the build in waves).'
+base: main
+gate0: '2026-11-15'
+gate1: '2026-11-15'
+gate2: '2026-11-17'
+learnings:
+  - "a popover's `toggle` event fires 1–2 frames after it is painted; anything that depends on the resolved position-try (transform-origin of a flipped menu) belongs in a ResizeObserver, which runs after layout and before paint (fixer, redesign gate 7)"
+  - "a sheet that closes via history.back() leaves an async navigation; a test's next page.goto must wait for popstate or it aborts with ERR_ABORTED (fixer, redesign gate 7)"
+  - "gate-7 polish passes in three apps each read Rue's 'chrome text must not select' differently; state the family rule verbatim in every app's brief (orchestrator, redesign gate 7)"

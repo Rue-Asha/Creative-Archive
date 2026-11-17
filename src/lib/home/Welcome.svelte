@@ -1,9 +1,8 @@
 <script lang="ts">
+	import Button from '#lib/components/button/Button.svelte';
 	import { DOMAIN_LABEL, DOMAINS, type Domain } from '#lib/domains.ts';
 	import { TYPES } from '#lib/entries/config.ts';
-	import { reveal, stagger } from '#lib/motion.ts';
 	import type { EntryType } from '#lib/types.ts';
-	import ArrowButton from '#lib/ui/ArrowButton.svelte';
 	import Icon from '#lib/ui/Icon.svelte';
 
 	const FIRST: Record<Domain, EntryType> = { music: 'album', animanga: 'anime', books: 'book', fashion: 'piece' };
@@ -15,15 +14,14 @@
 	};
 </script>
 
-<section class="column welcome" data-column data-welcome aria-labelledby="welcome-title" use:reveal>
-	<h2 id="welcome-title" data-section-heading>Your archive starts here</h2>
+<section class="card welcome" data-surface="solid" aria-labelledby="welcome-title">
+	<div class="card-head"><h2 id="welcome-title">Your archive starts here</h2></div>
 	<ul>
-		{#each DOMAINS as domain, i (domain)}
-			<li class="liquid" data-welcome-domain={domain} use:reveal={{ delay: stagger(i) }}>
-				<Icon name={domain} size={28} />
-				<h3>{DOMAIN_LABEL[domain]}</h3>
+		{#each DOMAINS as domain (domain)}
+			<li>
+				<h3 class="ruled">{DOMAIN_LABEL[domain]}</h3>
 				<p>{LINE[domain]}</p>
-				<a href="/add/{FIRST[domain]}">Add your first {TYPES[FIRST[domain]].label.toLowerCase()} <ArrowButton decorative variant="outline" size="sm" /></a>
+				<Button size="s" href="/add/{FIRST[domain]}">Add your first {TYPES[FIRST[domain]].label.toLowerCase()}<Icon name="arrow-right" size={16} /></Button>
 			</li>
 		{/each}
 	</ul>
@@ -32,57 +30,32 @@
 <style>
 	.welcome {
 		display: grid;
-		gap: var(--s-5);
-	}
-
-	h2 {
-		font-size: var(--t-section);
+		gap: var(--space-5);
+		padding: var(--space-5);
+		min-inline-size: 0;
 	}
 
 	ul {
 		display: grid;
-		grid-template-columns: repeat(4, minmax(0, 1fr));
-		gap: var(--s-4);
+		grid-template-columns: repeat(auto-fit, minmax(min(100%, 14.5rem), 1fr));
+		gap: var(--space-4);
+		margin: 0;
+		padding: 0;
+		list-style: none;
 	}
 
 	li {
 		display: grid;
 		align-content: start;
-		gap: var(--s-3);
-		padding: var(--s-5);
-		border-radius: var(--r-card);
-		color: var(--accent);
-	}
-
-	h3 {
-		font-family: var(--font-display);
-		font-size: var(--t-display-3);
-		color: var(--ink);
+		justify-items: start;
+		gap: var(--space-2-5);
+		min-inline-size: 0;
+		padding: var(--space-4);
+		border-radius: var(--radius-panel);
+		background: var(--surface-sunken);
 	}
 
 	p {
-		color: var(--ink-2);
-		font-size: var(--t-small);
-	}
-
-	a {
-		display: inline-flex;
-		align-items: center;
-		gap: var(--s-2);
-		min-block-size: 44px;
-		font-size: var(--t-small);
-		font-weight: 600;
-		color: var(--ink);
-	}
-
-	@media (max-width: 1023px) {
-		ul {
-			grid-template-columns: repeat(2, minmax(0, 1fr));
-			gap: var(--s-3);
-		}
-
-		li {
-			padding: var(--s-4);
-		}
+		color: var(--ink-secondary);
 	}
 </style>

@@ -14,11 +14,13 @@ function sourceFiles(dir: string): string[] {
 	});
 }
 
-const files = sourceFiles(srcDir).map((path) => {
-	const text = readFileSync(path, 'utf8');
-	const styles = path.endsWith('.css') ? [text] : [...text.matchAll(/<style[^>]*>([\s\S]*?)<\/style>/g)].map((m) => m[1]);
-	return { path, name: relative(srcDir, path), css: styles.join('\n').replace(/\/\*[\s\S]*?\*\//g, '') };
-});
+const files = sourceFiles(srcDir)
+	.filter((path) => !path.includes('/styles/fingerprint/'))
+	.map((path) => {
+		const text = readFileSync(path, 'utf8');
+		const styles = path.endsWith('.css') ? [text] : [...text.matchAll(/<style[^>]*>([\s\S]*?)<\/style>/g)].map((m) => m[1]);
+		return { path, name: relative(srcDir, path), css: styles.join('\n').replace(/\/\*[\s\S]*?\*\//g, '') };
+	});
 
 const namedColours = new Set(
 	`aliceblue antiquewhite aqua aquamarine azure beige bisque black blanchedalmond blue blueviolet brown burlywood
@@ -60,7 +62,7 @@ describe('style rules', () => {
 	});
 
 	it('Scenario: Font sizes come from the type scale', () => {
-		const token = String.raw`var\(--t-[\w-]+\)`;
+		const token = String.raw`var\(--(?:t|type)-[\w-]+\)`;
 		const allowed = new RegExp(`^(${token}|0|inherit|calc\\((${token}|var\\(--display-scale\\)|[\\d.]+|[*/]|\\s)+\\))$`);
 		const found = files.flatMap((f) =>
 			[...f.css.matchAll(/font-size\s*:\s*([^;}]+)/g)]

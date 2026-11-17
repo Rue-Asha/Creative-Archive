@@ -20,3 +20,10 @@ cover-ember 1000 1000 #2a0c08 #f08a4b #ffd27a · cover-dusk 1000 1000 #17143a #e
 cover-violet 1000 1000 #0d0a24 #8d63f0 #2ec4d6 · cover-moss 1000 1000 #0d1a0c #b8c98c #e8b04a
 fashion-hero 1600 1000 #1b1715 #d8c3aa #7a4b37 · fashion-portrait 900 1200 #121212 #bfae9c #5a6a7a
 fashion-look 900 1200 #3a1f1a #ecd2c0 #b0563a
+
+Mood photos (one per world), downloaded once on 2026-11-15 from Wikimedia Commons (CC0 1.0), 2400 px rendition resized to 1920 px wide with sharp (mozjpeg).
+world-home.jpg | https://commons.wikimedia.org/wiki/File:Living_room_(Unsplash).jpg | author: Jarosław Ceborski jarson | licence: CC0 1.0 Universal Public Domain Dedication (https://creativecommons.org/publicdomain/zero/1.0/) | title: Living room (Unsplash)
+world-music.jpg | https://commons.wikimedia.org/wiki/File:Vintage_record_store_(Unsplash).jpg | author: Samuel Dixon samueldixon | licence: CC0 1.0 Universal Public Domain Dedication (https://creativecommons.org/publicdomain/zero/1.0/) | title: Vintage record store (Unsplash)
+world-animanga.jpg | https://commons.wikimedia.org/wiki/File:Shinjuku_-_Shinjuku255.jpg | author: lumoplank | licence: CC0 1.0 Universal Public Domain Dedication (https://creativecommons.org/publicdomain/zero/1.0/) | title: Shinjuku - Shinjuku255
+world-books.jpg | https://commons.wikimedia.org/wiki/File:Books_on_library_shelves,_Davison_Building,_Royal_Holloway_University_of_London,_Surrey_-_September_2026_-_01.jpg | author: Mertbiol | licence: CC0 1.0 Universal Public Domain Dedication (https://creativecommons.org/publicdomain/zero/1.0/) | title: Books on library shelves, Davison Building, Royal Holloway - 01
+world-fashion.jpg | https://commons.wikimedia.org/wiki/File:Clothes_hangers_on_railing_(Unsplash).jpg | author: Christian Fregnan christianfregnan | licence: CC0 1.0 Universal Public Domain Dedication (https://creativecommons.org/publicdomain/zero/1.0/) | title: Clothes hangers on railing (Unsplash)

@@ -1,75 +1,68 @@
 <script lang="ts">
 	import type { Domain } from '#lib/domains.ts';
 	import { LIST_GROUPS } from '#lib/entries/config.ts';
-	import Chip from '#lib/ui/Chip.svelte';
 
-	let { domain }: { domain: Domain } = $props();
+	// counts (by list slug) show after each label on the domain page; the list page's kicker has none
+	let { domain, counts }: { domain: Domain; counts?: Record<string, number> } = $props();
 
 	const groups = $derived(LIST_GROUPS[domain]);
+	const id = $props.id();
 </script>
 
-<nav class="tabs" class:grouped={groups.some((g) => g.label)} aria-label="Sub-types">
+{#snippet links(lists: (typeof LIST_GROUPS)[Domain][number]['lists'])}
+	<ul class="kicker">
+		{#each lists as list (list.slug)}
+			<li>
+				<a href="/{domain}/{list.slug}">{list.label}</a>
+				{#if counts}<span class="n">{(counts[list.slug] ?? 0).toLocaleString('en-GB')}</span>{/if}
+			</li>
+		{/each}
+	</ul>
+{/snippet}
+
+<nav class="tabs" aria-label="Sub-types">
 	{#each groups as group, i (i)}
 		{#if group.label}
-			{#if i > 0}<span class="divider" data-tab-divider role="separator"></span>{/if}
-			<div class="group" role="group" aria-labelledby="subtabs-{domain}-{i}" data-tab-group>
-				<span class="caption" id="subtabs-{domain}-{i}" data-tab-caption>{group.label}</span>
-				{#each group.lists as list (list.slug)}
-					<Chip href="/{domain}/{list.slug}" label={list.label} tone="glass" />
-				{/each}
+			<div class="group" role="group" aria-labelledby="{id}-{i}">
+				<span class="caption" id="{id}-{i}">{group.label}</span>
+				{@render links(group.lists)}
 			</div>
 		{:else}
-			{#each group.lists as list (list.slug)}
-				<Chip href="/{domain}/{list.slug}" label={list.label} tone="glass" />
-			{/each}
+			{@render links(group.lists)}
 		{/if}
 	{/each}
 </nav>
 
 <style>
-	.tabs {
-		display: flex;
-		flex-wrap: wrap;
-		gap: var(--s-2);
+	/* the count follows the link as plain text, so the link keeps the list's name */
+	.n {
+		margin-inline-start: var(--space-1-5);
+		font-weight: var(--weight-regular);
+		color: var(--ink-secondary);
 	}
 
-	.grouped {
-		flex-direction: column;
-		align-items: stretch;
-		gap: var(--s-3);
+	.tabs {
+		display: grid;
+		gap: var(--space-2);
+		justify-items: start;
 	}
 
 	.group {
-		display: flex;
-		flex-wrap: wrap;
-		align-items: center;
-		gap: var(--s-2);
+		display: grid;
+		gap: var(--space-0-5);
+		justify-items: start;
+	}
+
+	.tabs :global(.kicker a) {
+		min-block-size: var(--target);
 	}
 
 	.caption {
-		font-size: var(--t-small);
-		font-weight: 600;
-		color: var(--on-photo);
-		margin-inline-end: var(--s-1);
-	}
-
-	.divider {
-		block-size: 1px;
-		background: currentColor;
-		color: var(--on-photo);
-		opacity: 0.35;
-	}
-
-	@media (min-width: 1024px) {
-		.grouped {
-			flex-direction: row;
-			align-items: center;
-			gap: var(--s-4);
-		}
-
-		.divider {
-			inline-size: 1px;
-			block-size: 28px;
-		}
+		font-size: var(--type-overline-size);
+		line-height: var(--type-overline-line);
+		letter-spacing: var(--type-overline-tracking);
+		font-weight: var(--weight-medium);
+		text-transform: uppercase;
+		color: var(--ink-secondary);
 	}
 </style>

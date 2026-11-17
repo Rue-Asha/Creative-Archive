@@ -1,17 +1,16 @@
 <script lang="ts">
 	import { beforeNavigate } from '$app/navigation';
 	import { COPY } from '#lib/copy.ts';
-	import { DOMAIN_LABEL } from '#lib/domains.ts';
+	import Button from '#lib/components/button/Button.svelte';
 	import { listHref } from '#lib/entries/derive.ts';
 	import { TYPES } from '#lib/entries/config.ts';
 	import EntryForm from '#lib/entries/EntryForm.svelte';
+	import FormHead from '#lib/entries/FormHead.svelte';
 	import PreviewPanel from '#lib/entries/PreviewPanel.svelte';
 	import SearchPanel from '#lib/entries/SearchPanel.svelte';
 	import type { SearchResult } from '#lib/server/providers/types.ts';
 	import { toast } from '#lib/shell/toast.ts';
 	import type { EntryInput, MediaType } from '#lib/types.ts';
-	import Button from '#lib/ui/Button.svelte';
-	import Eyebrow from '#lib/ui/Eyebrow.svelte';
 	import type { PageProps } from './$types';
 
 	let { data, form }: PageProps = $props();
@@ -52,6 +51,20 @@
 	});
 
 	const action = $derived(data.manual ? '?/save&manual=1' : '?/save');
+	const word = $derived(data.type === 'brand' || data.type === 'site' ? 'brand or shop' : config.label.toLowerCase());
+	const lede = $derived(
+		picked
+			? 'Check the details, then save.'
+			: data.manual
+				? 'Fill in what you know; the title is all that is needed.'
+				: config.provider
+					? 'Search the catalogue, or add it by hand.'
+					: config.preview
+						? 'Paste a page link for a picture and a name, or fill the form by hand.'
+						: 'Give the look a title and, if you have one, where it came from.'
+	);
+	// the cards settle on a full page load only, never on in-app navigation
+	const settle = typeof document === 'undefined' || !document.documentElement.hasAttribute('data-hydrated');
 </script>
 
 <svelte:head>
@@ -59,11 +72,6 @@
 </svelte:head>
 
 {#snippet entryForm(values: Partial<EntryInput>, extra: Record<string, string>, prefilled: boolean)}
-	{#if form?.existingId}
-		<p class="notice liquid">
-			<a href="/entries/{form.existingId}">{COPY.already}</a>
-		</p>
-	{/if}
 	<!-- a failed save reloads the page at the action URL; without manual there it would swap the form for the search -->
 	<EntryForm
 		type={data.type}
@@ -74,16 +82,14 @@
 		{action}
 		hidden={extra}
 		{prefilled}
+		existingId={form?.existingId ?? null}
 		cancelHref={listHref(data.type)}
 	/>
 {/snippet}
 
-<div class="column page" data-column>
-	<header data-page-header>
-		<Eyebrow parts={[DOMAIN_LABEL[config.domain], 'Add']} tone="accent" />
-		<h1>New <em>{config.label.toLowerCase()}</em></h1>
-	</header>
+<FormHead type={data.type} last="Add" head="Add" {word} {lede} />
 
+<div class="screen-body" data-settle={settle ? '' : undefined}>
 	{#if data.manual}
 		{@render entryForm({ title: data.title }, {}, false)}
 	{:else if config.provider}
@@ -91,21 +97,23 @@
 			<SearchPanel type={data.type as MediaType} onpick={(result) => (picked = result)} />
 		</div>
 		{#if picked}
-			<section class="picked liquid" aria-label="Picked result">
-				<span class="thumb" class:square={config.domain === 'music'}>
-					{#if picked.coverUrl}<img src={picked.coverUrl} alt="" referrerpolicy="no-referrer" />{/if}
-				</span>
-				<div class="text">
-					<p class="title">{picked.title}</p>
-					{#if picked.creator}<p class="meta">{picked.creator}</p>{/if}
-					{#if picked.artist}
-						<label class="check">
-							<input type="checkbox" bind:checked={addArtist} />
-							<span>Add artist</span>
-						</label>
-					{/if}
+			<section class="picked card" data-surface="solid" aria-label="Picked result">
+				<div class="row">
+					<span class="art" class:square={config.domain === 'music'}>
+						{#if picked.coverUrl}<img src={picked.coverUrl} alt="" referrerpolicy="no-referrer" />{/if}
+					</span>
+					<div class="text">
+						<p class="title">{picked.title}</p>
+						{#if picked.creator}<p class="meta">{picked.creator}</p>{/if}
+					</div>
 				</div>
-				<Button variant="secondary" arrow={false} onclick={() => (picked = null)}>Choose another</Button>
+				{#if picked.artist}
+					<label class="check">
+						<input type="checkbox" bind:checked={addArtist} />
+						<span>Add artist</span>
+					</label>
+				{/if}
+				<div><Button variant="quiet" size="s" onclick={() => (picked = null)}>Choose another</Button></div>
 			</section>
 			{#key picked.externalId}
 				{@render entryForm(valuesOf(picked), hidden, true)}
@@ -118,91 +126,78 @@
 </div>
 
 <style>
-	.page {
-		display: flex;
-		flex-direction: column;
-		gap: var(--s-7);
-		padding-block-start: var(--nav-top);
-	}
-
-	h1 {
-		margin-block-start: var(--s-3);
-	}
-
-	.notice {
-		margin: 0;
-		padding: var(--s-4) var(--s-5);
-		border-radius: var(--r-md);
-	}
-
-	.notice a {
-		font-weight: 600;
-		text-decoration: underline;
-		text-underline-offset: 3px;
-	}
-
 	.picked {
+		display: grid;
+		gap: var(--space-3);
+		padding: var(--space-4);
+	}
+
+	.row {
 		display: flex;
 		align-items: center;
-		gap: var(--s-4);
-		padding: var(--s-4) var(--s-5);
-		border-radius: var(--r-panel);
+		gap: var(--space-4);
+		min-inline-size: 0;
 	}
 
-	.thumb {
+	.art {
+		display: block;
 		flex: none;
-		inline-size: 56px;
+		inline-size: 4.5rem;
 		aspect-ratio: 2 / 3;
-		border-radius: var(--r-xs);
+		border-radius: var(--radius-item);
 		overflow: hidden;
-		background: var(--surface-2);
+		background: var(--surface-sunken);
+		box-shadow: var(--ring-hairline);
 	}
 
-	.thumb.square {
+	.art.square {
 		aspect-ratio: 1;
 	}
 
-	.thumb img {
+	.art img {
 		inline-size: 100%;
 		block-size: 100%;
 		object-fit: cover;
 	}
 
 	.text {
-		flex: 1;
+		display: grid;
+		gap: var(--space-0-5);
 		min-inline-size: 0;
 	}
 
 	.title {
-		margin: 0;
-		font-weight: 600;
+		font-size: var(--type-title-size);
+		line-height: var(--type-title-line);
+		font-weight: var(--type-title-weight);
 		overflow-wrap: anywhere;
 	}
 
 	.meta {
-		margin: 0;
-		color: var(--ink-2);
-		font-size: var(--t-small);
+		font-size: var(--type-caption-size);
+		color: var(--ink-secondary);
+		overflow-wrap: anywhere;
 	}
 
 	.check {
 		display: inline-flex;
 		align-items: center;
-		gap: var(--s-2);
-		min-block-size: 44px;
-		font-size: var(--t-small);
-		font-weight: 600;
+		gap: var(--space-2-5);
+		justify-self: start;
+		min-block-size: max(var(--control-height-s), var(--target));
+		font-size: var(--type-label-size);
+		font-weight: var(--type-label-weight);
 	}
 
 	.check input {
-		inline-size: 20px;
-		block-size: 20px;
+		inline-size: 1.25rem;
+		block-size: 1.25rem;
 		accent-color: var(--accent);
 	}
 
-	@media (max-width: 1023px) {
+	@media (min-width: 768px) {
 		.picked {
-			flex-wrap: wrap;
+			padding: var(--space-4) var(--space-5);
 		}
 	}
 </style>

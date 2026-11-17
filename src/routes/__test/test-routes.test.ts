@@ -133,6 +133,15 @@ describe('test routes', () => {
 		expect(await seeded({})).toEqual({ entries: [], collections: [] });
 	});
 
+	it('counts reports status events by status as well', async () => {
+		await seeded({ entries: [{ type: 'anime', title: 'Frieren' }] });
+		getDb().prepare("INSERT INTO status_events (entry_id, status, at) SELECT id, 'progress', '2026-10-01T00:00:00.000Z' FROM entries").run();
+
+		const body = await (await counts({} as never)).json();
+		expect(body.status_events).toBe(1);
+		expect(body['status_events.progress']).toBe(1);
+	});
+
 	it('counts reports the rows of every table', async () => {
 		await seeded(FULL);
 

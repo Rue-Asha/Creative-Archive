@@ -1,197 +1,189 @@
 <script lang="ts">
 	import { tick } from 'svelte';
-	import { enhance } from '$app/forms';
-	import CollectionCard from '#lib/collections/CollectionCard.svelte';
-	import { reveal, stagger } from '#lib/motion.ts';
-	import Button from '#lib/ui/Button.svelte';
-	import Eyebrow from '#lib/ui/Eyebrow.svelte';
-	import GlassPanel from '#lib/ui/GlassPanel.svelte';
+	import Button from '#lib/components/button/Button.svelte';
+	import EmptyState from '#lib/components/empty-state/EmptyState.svelte';
+	import CollectionForm from '#lib/collections/CollectionForm.svelte';
+	import { appear, glide, rise, shift } from '#lib/motion.ts';
+	import Collage from '#lib/ui/Collage.svelte';
 	import type { PageProps } from './$types';
 
 	let { data, form }: PageProps = $props();
 
 	let creating = $state(false);
-	let name = $state<HTMLInputElement>();
+	// the form is fading out; "New collection" comes back once it is gone, so the head changes only once
+	let leaving = $state(false);
+	let list = $state<HTMLElement>();
 	const error = $derived(creating ? form?.errors?.name : undefined);
 
-	async function show() {
-		creating = true;
+	const fmt = (n: number) => n.toLocaleString('en-GB');
+	const plural = (n: number, one: string, other: string) => `${fmt(n)} ${n === 1 ? one : other}`;
+	const total = $derived(data.collections.reduce((sum, c) => sum + c.count, 0));
+
+	// the cards below the form glide from where they were when it comes or goes, so nothing jumps
+	async function reflow(change: () => void) {
+		const before = list?.getBoundingClientRect().top;
+		change();
 		await tick();
-		name?.focus();
+		if (list && before !== undefined) shift(list, before - list.getBoundingClientRect().top);
 	}
+
+	function close() {
+		leaving = true;
+		creating = false;
+	}
+
+	async function gone() {
+		await reflow(() => (leaving = false));
+		(document.querySelector('main [data-new]') as HTMLElement | null)?.focus();
+	}
+	// the new-collection form takes focus itself; the shown button lives in the head or in the empty state
 </script>
 
 <svelte:head><title>Collections · Creative Archive</title></svelte:head>
 
-<div class="page">
-	<header class="column head" data-column>
-		<Eyebrow parts={['Archive']} tone="accent" />
-		<div class="title-row">
-			<h1>Collections</h1>
-			<span class="count tnum">{data.collections.length}</span>
-			{#if !creating}<Button variant="accent" class="add" onclick={show}>New collection</Button>{/if}
-		</div>
-	</header>
+{#snippet add()}
+	<Button variant="primary" arrow data-new aria-expanded={creating} aria-controls="new-collection" onclick={() => reflow(() => (creating = true))}>New collection</Button>
+{/snippet}
 
+<div class="screen-head">
+	<div class="screen-lead">
+		<ul class="kicker">
+			<li>Archive</li>
+			<li>{plural(data.collections.length, 'collection', 'collections')}</li>
+		</ul>
+		<h1>All <em class="accent-word">collections</em></h1>
+		<p class="lede">Group entries of any kind into one place, in the order you choose.</p>
+		{#if !creating && !leaving && data.collections.length}<div class="actions">{@render add()}</div>{/if}
+	</div>
+	{#if data.collections.length}
+		<ul class="screen-facts" data-surface="inverse" aria-label="Collections at a glance">
+			<li class="facts-caption">Whole archive</li>
+			<li><span class="n figures">{fmt(data.collections.length)}</span>{data.collections.length === 1 ? 'Collection' : 'Collections'}</li>
+			<li><span class="n figures">{fmt(total)}</span>Entries inside</li>
+		</ul>
+	{/if}
+</div>
+
+<div class="screen-body" data-settle>
 	{#if creating}
-		<div class="column" data-column>
-			<GlassPanel strong>
-				<form
-					class="new"
-					method="POST"
-					action="?/create"
-					use:enhance={() =>
-						async ({ result, update }) => {
-							await update();
-							if (result.type === 'success') creating = false;
-						}}
-				>
-					<div class="field">
-						<label for="collection-name">Name</label>
-						<input id="collection-name" class="control" name="name" autocomplete="off" aria-invalid={error ? 'true' : undefined} aria-describedby={error ? 'collection-name-error' : undefined} bind:this={name} />
-						{#if error}<span class="error" id="collection-name-error">{error}</span>{/if}
-					</div>
-					<div class="field">
-						<label for="collection-description">Description</label>
-						<textarea id="collection-description" class="control" name="description" rows="1"></textarea>
-					</div>
-					<div class="actions">
-						<Button variant="secondary" arrow={false} onclick={() => (creating = false)}>Cancel</Button>
-						<Button type="submit" arrow={false}>Create</Button>
-					</div>
-				</form>
-			</GlassPanel>
+		<div id="new-collection" transition:appear onoutrostart={(e) => e.currentTarget.setAttribute('aria-hidden', 'true')} onoutroend={gone}>
+			<CollectionForm heading="New collection" note="Name and description" action="?/create" submit="Create" {error} oncancel={close} onsaved={close} />
 		</div>
 	{/if}
 
 	{#if data.collections.length}
-		<section class="column" data-column aria-label="All collections">
-			<ul class="grid">
-				{#each data.collections as collection, i (collection.id)}
-					<li use:reveal={{ delay: stagger(i) }}><CollectionCard {collection} /></li>
-				{/each}
-			</ul>
-		</section>
-	{:else if !creating}
-		<section class="column empty" data-column aria-label="No collections">
-			<h2>No collections yet</h2>
-			<p>Group entries of any kind into one place.</p>
-		</section>
+		<ul class="list" aria-label="Collections" bind:this={list}>
+			{#each data.collections as collection (collection.id)}
+				<li in:rise animate:glide>
+					<article class="card item" data-surface="solid" data-collection-card data-press>
+						<div class="collage"><Collage images={collection.collage} name={collection.name} label="{collection.name} collage" /></div>
+						<div class="info">
+							<h2 class="name"><a href="/collections/{collection.id}">{collection.name}</a></h2>
+							{#if collection.description}<p class="desc selectable">{collection.description}</p>{/if}
+							<p class="count figures" data-count data-unit={collection.count === 1 ? 'entry' : 'entries'} aria-label="{collection.count} {collection.count === 1 ? 'entry' : 'entries'}">{collection.count}</p>
+						</div>
+					</article>
+				</li>
+			{/each}
+		</ul>
+	{:else if !creating && !leaving}
+		<EmptyState title="No collections yet" body="Group entries of any kind into one place.">
+			{#snippet action()}{@render add()}{/snippet}
+		</EmptyState>
 	{/if}
 </div>
 
 <style>
-	.page {
-		display: grid;
-		grid-template-columns: minmax(0, 1fr);
-		gap: var(--s-6);
-		padding-block-start: var(--nav-top);
-	}
-
-	.head {
-		display: grid;
-		gap: var(--s-2);
-	}
-
-	.title-row {
-		display: flex;
-		flex-wrap: wrap;
-		align-items: baseline;
-		gap: var(--s-3);
-	}
-
-	.count {
-		font-size: var(--t-small);
-		font-weight: 600;
-		color: var(--ink-2);
-		padding: 2px 10px;
-		border-radius: var(--r-pill);
-		background: var(--accent-wash);
-		translate: 0 -4px;
-	}
-
-	.title-row :global(.add) {
-		margin-inline-start: auto;
-		align-self: center;
-	}
-
-	.new {
-		--field-error: var(--error);
-		display: grid;
-		gap: var(--s-4);
-		padding: var(--s-6);
-	}
-
-	.field {
-		display: flex;
-		flex-direction: column;
-		gap: 6px;
-	}
-
-	.field > label {
-		font-size: var(--t-small);
-		font-weight: 600;
-	}
-
-	.control {
-		inline-size: 100%;
-		min-block-size: 46px;
-		padding: 11px 14px;
-		border-radius: var(--r-sm);
-		border: 1px solid var(--line);
-		background: var(--glass-thin);
-		font-size: var(--t-body);
-		line-height: 1.45;
-		transition: border-color var(--d-fast) var(--ease-out);
-	}
-
-	textarea.control {
-		resize: vertical;
-		field-sizing: content;
-	}
-
-	.control:focus-visible {
-		border-color: var(--accent);
-		border-radius: var(--r-sm);
-	}
-
-	.control[aria-invalid='true'] {
-		border-color: var(--field-error);
-	}
-
-	.error {
-		font-size: var(--t-small);
-		font-weight: 500;
-		color: var(--field-error);
-	}
-
 	.actions {
 		display: flex;
-		justify-content: flex-end;
-		gap: var(--s-3);
+		flex-wrap: wrap;
+		gap: var(--space-3);
 	}
-
-	.grid {
+	.list {
 		display: grid;
-		grid-template-columns: repeat(2, minmax(0, 1fr));
-		gap: var(--s-6) var(--s-4);
+		grid-template-columns: minmax(0, 1fr);
+		gap: var(--space-4);
+		margin: 0;
+		padding: 0;
+		list-style: none;
 	}
-
-	.empty {
+	.item {
+		position: relative;
 		display: grid;
-		justify-items: start;
-		gap: var(--s-3);
-		padding-block: var(--s-8);
+		align-content: start;
+		gap: var(--space-4);
+		padding: var(--space-4);
+		min-inline-size: 0;
+		block-size: 100%;
 	}
-
-	.empty p {
-		color: var(--ink-2);
+	.collage :global(.collage) {
+		aspect-ratio: 16 / 10;
 	}
-
-	@media (min-width: 1024px) {
-		.grid {
-			grid-template-columns: repeat(4, minmax(0, 1fr));
-			gap: var(--s-7) var(--s-5);
+	.info {
+		display: grid;
+		gap: var(--space-2);
+		align-content: start;
+		min-inline-size: 0;
+		padding-inline: var(--space-1);
+	}
+	.name {
+		font-size: var(--type-display-s-size);
+		line-height: var(--type-display-s-line);
+		letter-spacing: var(--type-display-s-tracking);
+		overflow-wrap: anywhere;
+		display: -webkit-box;
+		-webkit-box-orient: vertical;
+		-webkit-line-clamp: 3;
+		line-clamp: 3;
+		overflow: hidden;
+	}
+	.name a {
+		color: var(--ink);
+		text-decoration: none;
+	}
+	.name a::after {
+		content: '';
+		position: absolute;
+		inset: 0;
+		border-radius: var(--radius-card);
+	}
+	.name a:focus-visible {
+		outline: 0;
+	}
+	.name a:focus-visible::after {
+		outline: var(--focus-width) solid var(--focus-ring);
+		outline-offset: var(--focus-offset);
+	}
+	.desc {
+		color: var(--ink-secondary);
+		overflow-wrap: anywhere;
+		display: -webkit-box;
+		-webkit-box-orient: vertical;
+		-webkit-line-clamp: 3;
+		line-clamp: 3;
+		overflow: hidden;
+	}
+	.count {
+		color: var(--ink-secondary);
+		font-size: var(--type-caption-size);
+		line-height: var(--type-caption-line);
+	}
+	.count::after {
+		content: ' ' attr(data-unit);
+	}
+	@media (hover: hover) {
+		.item:has(.name a:hover) {
+			background: var(--surface-raised);
+		}
+	}
+	@media (min-width: 640px) {
+		.list {
+			grid-template-columns: repeat(2, minmax(0, 1fr));
+		}
+	}
+	@media (min-width: 1100px) {
+		.list {
+			grid-template-columns: repeat(3, minmax(0, 1fr));
 		}
 	}
 </style>

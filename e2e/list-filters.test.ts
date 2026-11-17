@@ -7,9 +7,9 @@ test.beforeEach(async ({ page, request }) => {
 });
 
 const bar = (page: Page) => page.getByRole('toolbar', { name: 'Filters' });
-const chip = (page: Page, name: string) => bar(page).getByRole('button', { name, exact: true });
 const select = (page: Page, name: string) => bar(page).getByRole('combobox', { name, exact: true });
 const titles = cardTitles;
+const pick = (page: Page, control: string, label: string) => select(page, control).selectOption({ label });
 
 test('Scenario: Filter media by status', async ({ page, request }) => {
 	await seed(request, {
@@ -21,11 +21,11 @@ test('Scenario: Filter media by status', async ({ page, request }) => {
 	});
 	await open(page, '/music/albums');
 	await expect(titles(page)).toHaveCount(3);
-	await chip(page, 'Listened').click();
+	await pick(page, 'Status', 'Listened');
 
 	await expect(page).toHaveURL(/status=done/);
 	await expect(titles(page)).toHaveText(['Heard Too', 'Heard']);
-	await expect(chip(page, 'Listened')).toHaveAttribute('aria-pressed', 'true');
+	await expect(select(page, 'Status')).toHaveValue('done');
 });
 
 test('Scenario: Filter by tag', async ({ page, request }) => {
@@ -55,8 +55,8 @@ test('Scenario: Filter by minimum rating', async ({ page, request }) => {
 	await open(page, '/animanga/anime?rating=8');
 
 	await expect(titles(page)).toHaveText(['Eight', 'Nine and a quarter']);
-	await expect(select(page, 'Minimum rating')).toHaveValue('4');
-	await select(page, 'Minimum rating').selectOption({ label: '4.5+' });
+	await expect(select(page, 'Minimum rating')).toHaveValue('8');
+	await select(page, 'Minimum rating').selectOption({ label: '9 and up' });
 	await expect(page).toHaveURL(/rating=9/);
 	await expect(titles(page)).toHaveText(['Nine and a quarter']);
 });
@@ -71,7 +71,7 @@ test('Scenario: Filter brands and shops by kind', async ({ page, request }) => {
 	});
 	await open(page, '/fashion/brands-shops');
 	await expect(titles(page)).toHaveCount(3);
-	await chip(page, 'Site').click();
+	await pick(page, 'Kind', 'Site');
 
 	await expect(page).toHaveURL(/kind=site/);
 	await expect(titles(page)).toHaveText(['Web Zine']);
@@ -86,7 +86,7 @@ test('Scenario: Filter pieces by status', async ({ page, request }) => {
 		]
 	});
 	await open(page, '/fashion/pieces');
-	await chip(page, 'Wishlist').click();
+	await pick(page, 'Status', 'Wishlist');
 
 	await expect(page).toHaveURL(/status=wishlist/);
 	await expect(titles(page)).toHaveText(['Scarf']);
@@ -123,7 +123,7 @@ test('Scenario: Filter state survives reload and back', async ({ page, request }
 		]
 	});
 	await open(page, '/music/albums');
-	await chip(page, 'Listened').click();
+	await pick(page, 'Status', 'Listened');
 	await expect(page).toHaveURL(/status=done/);
 	await select(page, 'Sort').selectOption({ label: 'Title' });
 	await expect(page).toHaveURL(/sort=title/);
@@ -131,12 +131,12 @@ test('Scenario: Filter state survives reload and back', async ({ page, request }
 
 	await page.reload();
 	await page.locator('html[data-hydrated]').waitFor({ state: 'attached' });
-	await expect(chip(page, 'Listened')).toHaveAttribute('aria-pressed', 'true');
+	await expect(select(page, 'Status')).toHaveValue('done');
 	await expect(select(page, 'Sort')).toHaveValue('title');
 	await expect(titles(page)).toHaveText(['Beta', 'Zeta']);
 
 	const earlier = page.url();
-	await select(page, 'Minimum rating').selectOption({ label: '3+' });
+	await select(page, 'Minimum rating').selectOption({ label: '6 and up' });
 	await expect(page).toHaveURL(/rating=6/);
 	await expect(titles(page)).toHaveText(['Zeta']);
 
@@ -144,7 +144,7 @@ test('Scenario: Filter state survives reload and back', async ({ page, request }
 	await expect(page).toHaveURL(earlier);
 	await expect(titles(page)).toHaveText(['Beta', 'Zeta']);
 	await expect(select(page, 'Minimum rating')).toHaveValue('');
-	await expect(chip(page, 'Listened')).toHaveAttribute('aria-pressed', 'true');
+	await expect(select(page, 'Status')).toHaveValue('done');
 });
 
 test('Scenario: Filters matching nothing offer reset', async ({ page, request }) => {
@@ -155,7 +155,7 @@ test('Scenario: Filters matching nothing offer reset', async ({ page, request })
 		]
 	});
 	await open(page, '/music/albums');
-	await select(page, 'Minimum rating').selectOption({ label: '5+' });
+	await select(page, 'Minimum rating').selectOption({ label: '9 and up' });
 
 	await expect(page.getByText('Nothing matches')).toBeVisible();
 	await expect(cards(page)).toHaveCount(0);

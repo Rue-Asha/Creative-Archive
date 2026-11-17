@@ -1,0 +1,31 @@
+/* Gate 4 wireframe parts for the shell, Home, domain and Settings screens: fingerprint roles only, greyscale, hairlines instead of shadows. */
+.fw-page { display: grid; gap: var(--space-6); min-inline-size: 0; padding-block-start: var(--space-5); }
+.fw-page > * { min-inline-size: 0; }
+.fw-card { display: grid; gap: var(--space-4); background: var(--surface-card); border-radius: var(--radius-card-s); border: var(--stroke-hairline) solid var(--hairline); padding: var(--space-5); min-inline-size: 0; }
+.fw-card-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--space-1-5) var(--space-4); }
+.fw-card-head h2 { font-size: var(--type-display-s-size); line-height: var(--type-display-s-line); letter-spacing: var(--type-display-s-tracking); overflow-wrap: anywhere; }
+.fw-note { font-size: var(--type-caption-size); line-height: var(--type-caption-line); color: var(--ink-muted); font-variant-numeric: var(--numeric-figures); }
+
+.fw-btn { display: inline-flex; align-items: center; justify-content: center; gap: var(--space-2); min-block-size: max(var(--control-height), var(--target)); padding-inline: var(--space-5); border: 0; border-radius: var(--radius-control); background: var(--surface-control-solid); color: var(--ink); box-shadow: var(--ring-control); font-family: var(--font-ui); font-size: var(--type-label-size); line-height: var(--type-label-line); font-weight: var(--type-label-weight); text-decoration: none; max-inline-size: 100%; cursor: pointer; }
+.fw-btn.primary { background: var(--surface-inverse); color: var(--ink-on-inverse); box-shadow: none; }
+.fw-btn.quiet { background: transparent; box-shadow: none; }
+.fw-btn:disabled, .fw-btn[aria-disabled="true"] { opacity: var(--disabled-opacity); cursor: default; }
+.fw-icon { display: inline-grid; place-items: center; flex: none; inline-size: max(var(--control-height), var(--target)); block-size: max(var(--control-height), var(--target)); padding: 0; border: 0; border-radius: var(--radius-round); background: var(--surface-glass-strong); box-shadow: var(--ring-control); color: var(--ink); text-decoration: none; cursor: pointer; }
+.fw-icon[aria-current] { background: var(--surface-inverse); color: var(--ink-on-inverse); box-shadow: none; }
+.fw-icon:disabled, .fw-icon[aria-disabled="true"] { opacity: var(--disabled-opacity); cursor: default; }
+.fw-icon.s { inline-size: max(var(--control-height-xs), var(--target)); block-size: max(var(--control-height-xs), var(--target)); }
+
+.fw-chip { display: inline-flex; align-items: center; gap: var(--space-2); max-inline-size: 100%; min-block-size: max(var(--control-height-s), var(--target)); padding-inline: var(--space-4); border-radius: var(--radius-pill); background: var(--surface-sunken); color: var(--ink); box-shadow: var(--ring-hairline); font-size: var(--type-label-size); line-height: var(--type-label-line); font-weight: var(--type-label-weight); text-decoration: none; overflow-wrap: anywhere; }
+.fw-chip[aria-current], .fw-chip[aria-pressed="true"] { background: var(--surface-inverse); color: var(--ink-on-inverse); box-shadow: none; }
+.fw-chip .n { font-variant-numeric: var(--numeric-figures); color: var(--ink-muted); font-weight: var(--weight-regular); }
+.fw-chip[aria-current] .n, .fw-chip[aria-pressed="true"] .n { color: var(--ink-on-inverse-secondary); }
+
+.fw-menu { display: grid; min-inline-size: 12rem; max-inline-size: min(20rem, 100%); padding: var(--space-1-5); border-radius: var(--radius-item); background: var(--surface-raised); box-shadow: var(--ring-hairline); z-index: var(--z-menu); list-style: none; margin: 0; }
+.fw-menu a { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); min-block-size: max(var(--control-height-s), var(--target)); padding-inline: var(--space-3); border-radius: var(--radius-text); color: var(--ink); text-decoration: none; font-size: var(--type-label-size); }
+
+.fw-empty { display: grid; justify-items: start; gap: var(--space-3); padding-block: var(--space-6); }
+.fw-empty h2 { font-size: var(--type-display-s-size); line-height: var(--type-display-s-line); overflow-wrap: anywhere; }
+.fw-empty p { max-inline-size: 40ch; color: var(--ink-secondary); }
+
+.fw-states { display: grid; gap: var(--space-6); min-inline-size: 0; }
+.fw-states > h2 { font-size: var(--type-display-s-size); line-height: var(--type-display-s-line); }

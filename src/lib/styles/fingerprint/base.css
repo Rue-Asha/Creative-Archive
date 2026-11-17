@@ -1,0 +1,147 @@
+/* Base styles on fingerprint tokens: reset, type defaults, links, selection, the focus ring,
+   targets and a reduced-motion floor. Load after fonts.css and tokens.css. The reset uses
+   :where() so any app rule overrides it without a specificity fight. */
+
+/* ---------- Reset ---------- */
+*, *::before, *::after { box-sizing: border-box; }
+html {
+	-webkit-text-size-adjust: 100%;
+	text-size-adjust: 100%;
+	/* Gilda Display has one weight and no italic; a synthesised bold or slant is never wanted. */
+	font-synthesis: none;
+	-webkit-tap-highlight-color: transparent;
+	/* Apps with a sticky bar set these, so a focused element never scrolls under it (WCAG 2.4.11). */
+	scroll-padding-block: var(--sticky-block-start, 0) var(--sticky-block-end, 0);
+}
+body {
+	margin: 0;
+	min-width: 0;
+	min-height: 100dvh;
+	background: var(--surface-page);
+	color: var(--ink);
+	overflow-wrap: break-word;
+}
+:where(h1, h2, h3, h4, h5, h6, p, figure, blockquote, dl, dd) { margin: 0; }
+:where(ul, ol) { margin: 0; padding: 0; list-style: none; }
+:where(img, picture, video, canvas) { display: block; max-width: 100%; height: auto; }
+:where(svg) { flex: none; }
+:where(button, input, select, textarea) { font: inherit; letter-spacing: inherit; color: inherit; }
+:where(button, [role="button"], summary, label[for], select) { touch-action: manipulation; }
+:where(button:not(:disabled), [role="button"], summary, select) { cursor: pointer; }
+:where(table) { border-collapse: collapse; }
+:where(textarea) { resize: vertical; }
+[hidden] { display: none !important; }
+/* Words break between syllables only where the language is known. */
+:where([lang="de"]) { hyphens: auto; hyphenate-limit-chars: 10 4 4; }
+
+/* ---------- Type ---------- */
+/* The working UI defaults to body-s; running text opts into body (.type-body). */
+body {
+	font-family: var(--font-ui);
+	font-size: var(--type-body-s-size);
+	line-height: var(--type-body-s-line);
+	font-weight: var(--weight-regular);
+}
+/* One display title per screen; h2 is a section title. Lower headings carry no default,
+   because in this direction they are overlines or titles depending on where they sit. */
+:where(h1) {
+	font-family: var(--font-display);
+	font-weight: var(--weight-display);
+	font-size: var(--type-display-xl-size);
+	line-height: var(--type-display-xl-line);
+	letter-spacing: var(--type-display-xl-tracking);
+	text-wrap: balance;
+}
+:where(h2) {
+	font-family: var(--font-display);
+	font-weight: var(--weight-display);
+	font-size: var(--type-display-m-size);
+	line-height: var(--type-display-m-line);
+	letter-spacing: var(--type-display-m-tracking);
+	text-wrap: balance;
+}
+:where(h3, h4, h5, h6) { font-size: inherit; font-weight: inherit; }
+:where(strong, b) { font-weight: var(--weight-semibold); }
+:where(code, kbd, samp, pre) { font-family: var(--font-mono); font-size: 0.93em; }
+:where(p) { text-wrap: pretty; }
+
+/* The roles as classes, for markup that does not map to a heading. */
+.type-display-xl, .type-display-l, .type-display-m, .type-display-s, .type-figure {
+	font-family: var(--font-display);
+	font-weight: var(--weight-display);
+}
+.type-display-xl { font-size: var(--type-display-xl-size); line-height: var(--type-display-xl-line); letter-spacing: var(--type-display-xl-tracking); text-wrap: balance; }
+.type-display-l { font-size: var(--type-display-l-size); line-height: var(--type-display-l-line); letter-spacing: var(--type-display-l-tracking); text-wrap: balance; }
+.type-display-m { font-size: var(--type-display-m-size); line-height: var(--type-display-m-line); letter-spacing: var(--type-display-m-tracking); text-wrap: balance; }
+.type-display-s { font-size: var(--type-display-s-size); line-height: var(--type-display-s-line); letter-spacing: var(--type-display-s-tracking); }
+.type-figure { font-size: var(--type-figure-size); line-height: var(--type-figure-line); letter-spacing: var(--type-figure-tracking); font-variant-numeric: var(--numeric-figures); }
+.type-title { font-family: var(--font-ui); font-size: var(--type-title-size); line-height: var(--type-title-line); font-weight: var(--type-title-weight); }
+.type-body { font-family: var(--font-ui); font-size: var(--type-body-size); line-height: var(--type-body-line); }
+.type-body-s { font-family: var(--font-ui); font-size: var(--type-body-s-size); line-height: var(--type-body-s-line); }
+.type-label { font-family: var(--font-ui); font-size: var(--type-label-size); line-height: var(--type-label-line); font-weight: var(--type-label-weight); }
+.type-caption { font-family: var(--font-ui); font-size: var(--type-caption-size); line-height: var(--type-caption-line); }
+.type-kicker, .type-overline { font-family: var(--font-ui); text-transform: uppercase; }
+.type-kicker { font-size: var(--type-kicker-size); line-height: var(--type-kicker-line); letter-spacing: var(--type-kicker-tracking); font-weight: var(--type-kicker-weight); }
+.type-overline { font-size: var(--type-overline-size); line-height: var(--type-overline-line); letter-spacing: var(--type-overline-tracking); font-weight: var(--type-overline-weight); }
+.figures { font-variant-numeric: var(--numeric-figures); }
+/* The one word in the app's accent inside a display title. */
+.accent-word { font-style: normal; color: var(--accent); }
+
+/* ---------- Links and selection ---------- */
+:where(a) { color: inherit; text-underline-offset: 0.2em; text-decoration-thickness: var(--stroke-hairline); }
+:where(a:hover) { text-decoration-thickness: var(--stroke-rule); }
+::selection { background: var(--selection); color: var(--selection-ink); }
+
+/* ---------- Focus ---------- */
+/* Always visible, outside the element so content never hides it. Dark surfaces mark
+   themselves with data-surface="inverse" and get the white ring. */
+:focus-visible {
+	outline: var(--focus-width) solid var(--focus-color, var(--focus-ring));
+	outline-offset: var(--focus-offset);
+}
+[data-surface="inverse"] {
+	--focus-color: var(--focus-ring-on-inverse);
+	--selection: var(--selection-on-inverse);
+	--selection-ink: var(--ink-on-inverse);
+}
+/* A dark control on a light surface: white ring with an ink halo, so the ring reads on both. */
+[data-focus="halo"]:focus-visible {
+	outline-color: var(--focus-ring-on-inverse);
+	box-shadow: var(--focus-halo);
+}
+
+/* ---------- Targets ---------- */
+/* --target is 24px on fine pointers and 44px on touch (tokens.css). .hit grows an element's
+   target invisibly to --target, centred, so a small control keeps its look and line. */
+.target { min-width: var(--target); min-height: var(--target); }
+.hit { position: relative; }
+.hit::before {
+	content: "";
+	position: absolute;
+	left: 50%;
+	top: 50%;
+	width: max(100%, var(--target));
+	height: max(100%, var(--target));
+	translate: -50% -50%;
+}
+.sr-only {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	padding: 0;
+	margin: -1px;
+	overflow: hidden;
+	clip-path: inset(50%);
+	white-space: nowrap;
+	border: 0;
+}
+
+/* ---------- Reduced motion ---------- */
+/* A floor for every app rule, not only motion.css: movement goes, colour and opacity that
+   explain a state stay. */
+@media (prefers-reduced-motion: reduce) {
+	html { scroll-behavior: auto; }
+	*, *::before, *::after {
+		transition-property: color, background-color, border-color, outline-color, opacity !important;
+	}
+}

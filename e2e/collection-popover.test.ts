@@ -1,7 +1,8 @@
 import { expect, test, type Page } from '@playwright/test';
-import { calm, cardTitles, cards, countSaves, open, reset, seed } from './helpers.ts';
+import { calm, cards, countSaves, open, reset, seed } from './helpers.ts';
 
 const popover = (page: Page) => page.getByRole('menu', { name: 'Add to collection' });
+const newDialog = (page: Page) => page.getByRole('dialog', { name: 'New collection' });
 const toggle = (page: Page) => page.getByRole('button', { name: 'Add to collection' });
 
 test.beforeEach(async ({ page, request }) => {
@@ -25,7 +26,7 @@ test('Scenario: Add an entry from its detail page', async ({ page, request }) =>
 
 	await expect(item).toHaveAttribute('aria-checked', 'true');
 	await open(page, `/collections/${id}`);
-	await expect(cardTitles(page)).toHaveText(['Blonde']);
+	await expect(page.getByRole('region', { name: 'In order' }).getByRole('listitem').getByRole('link')).toHaveText(['Blonde']);
 });
 
 test('Scenario: Create a collection from the popover', async ({ page, request }) => {
@@ -34,10 +35,12 @@ test('Scenario: Create a collection from the popover', async ({ page, request })
 	} = await seed(request, { entries: [{ type: 'album', title: 'Blonde' }] });
 	await open(page, `/entries/${album}`);
 	await toggle(page).click();
-	await popover(page).getByRole('button', { name: 'New collection' }).click();
-	await popover(page).getByLabel('Name').fill('Late Night');
-	await popover(page).getByRole('button', { name: 'Create' }).click();
+	await popover(page).getByRole('menuitem', { name: 'New collection' }).click();
+	await newDialog(page).getByLabel('Name').fill('Late Night');
+	await newDialog(page).getByRole('button', { name: 'Create' }).click();
 
+	await expect(newDialog(page)).toHaveCount(0);
+	await toggle(page).click();
 	await expect(popover(page).getByRole('menuitemcheckbox', { name: 'Late Night' })).toHaveAttribute('aria-checked', 'true');
 	await open(page, '/collections');
 	const card = cards(page).filter({ hasText: 'Late Night' });
@@ -123,12 +126,12 @@ test('Scenario: Failed save in the popover shows a toast and reverts (typeless 4
 	await page.route(/\?\/newCollection$/, (route) => route.fulfill(csrf));
 	await open(page, `/entries/${album}`);
 	await toggle(page).click();
-	await popover(page).getByRole('button', { name: 'New collection' }).click();
-	await popover(page).getByLabel('Name').fill('Late Night');
-	await popover(page).getByRole('button', { name: 'Create' }).click();
+	await popover(page).getByRole('menuitem', { name: 'New collection' }).click();
+	await newDialog(page).getByLabel('Name').fill('Late Night');
+	await newDialog(page).getByRole('button', { name: 'Create' }).click();
 
 	await expect(page.getByRole('status').filter({ hasText: "Couldn't save — try again" })).toBeVisible();
-	await expect(popover(page).getByLabel('Name')).toBeVisible();
+	await expect(newDialog(page).getByLabel('Name')).toBeVisible();
 	await expect(popover(page).getByRole('menuitemcheckbox', { name: 'Late Night' })).toHaveCount(0);
 	await saved(1);
 	await page.reload();

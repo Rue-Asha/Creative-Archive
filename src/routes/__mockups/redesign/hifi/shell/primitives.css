@@ -1,0 +1,637 @@
+/* The fingerprint's menu and primitive mirrors (button, field, select, list-row, empty-state, sheet, toast) as plain classes for the gate 5 mockups: Design-System specimen/shell.css, fingerprint tokens only. Hi-fi parts use them as the DESIGN-reference markup shows (a.btn.primary.arrow, .field, .menu, dialog[data-sheet]); the build copies the Svelte primitives instead. */
+/* ---------- Menu ---------- */
+/* A menu under its button (status, collections): a popover in the top layer anchored to the
+   button, flipping above it when there is no room below. White, lifted, the checked item in
+   charcoal like the current item everywhere else; the check mark keeps it off colour alone. */
+.menu {
+	position: fixed;
+	position-try-fallbacks: flip-block;
+	inset: auto;
+	top: anchor(bottom);
+	left: anchor(left);
+	margin: var(--space-1-5) 0;
+	display: grid;
+	gap: var(--space-0-5);
+	min-inline-size: max(220px, anchor-size(width));
+	max-inline-size: min(320px, 100vw - 2 * var(--space-4));
+	padding: var(--space-1-5);
+	border: 0;
+	border-radius: var(--radius-panel);
+	background: var(--surface-raised);
+	box-shadow: var(--elevation-menu);
+	color: var(--ink);
+}
+.menu:not(:popover-open) { display: none; }
+.menu-item {
+	display: flex;
+	align-items: center;
+	gap: var(--space-2-5);
+	min-block-size: max(var(--control-height-s), var(--target));
+	padding: 0 var(--space-3-5) 0 var(--space-3);
+	border: 0;
+	border-radius: var(--radius-item);
+	background: none;
+	color: var(--ink);
+	font-size: var(--type-body-s-size);
+	text-align: start;
+}
+.menu-item > svg { flex: none; visibility: hidden; }
+.menu-item[aria-checked="true"] {
+	background: var(--surface-inverse);
+	color: var(--ink-on-inverse);
+}
+.menu-item[aria-checked="true"] > svg { visibility: visible; }
+.menu-item:focus-visible { outline-offset: calc(-1 * var(--focus-width)); }
+.menu-item[aria-checked="true"]:focus-visible { outline-color: var(--focus-ring-on-inverse); box-shadow: var(--focus-halo); }
+@media (hover: hover) {
+	.menu-item:not([aria-checked="true"]):hover { background: var(--surface-sunken); }
+}
+.menu-rule {
+	block-size: var(--stroke-hairline);
+	margin: var(--space-1) var(--space-2);
+	background: var(--hairline);
+}
+
+/* ==========================================================================
+   Primitives, mirrored from primitives/<name>/*.svelte (scoped there, class-scoped here).
+   ========================================================================== */
+
+/* ---------- button (Button.svelte) ---------- */
+.btn {
+	--h: max(var(--control-height), var(--target));
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: var(--space-2);
+	min-block-size: var(--h);
+	min-inline-size: var(--h);
+	padding: 0 var(--space-4);
+	border: 0;
+	border-radius: var(--radius-control);
+	background: var(--surface-glass-strong);
+	box-shadow: var(--shadow-rim);
+	color: var(--ink);
+	font-family: var(--font-ui);
+	font-size: var(--type-label-size);
+	line-height: var(--type-label-line);
+	font-weight: var(--type-label-weight);
+	text-decoration: none;
+	white-space: nowrap;
+	user-select: none;
+	-webkit-user-select: none;
+}
+.btn.s {
+	--h: max(var(--control-height-s), var(--target));
+	padding-inline: var(--space-3-5);
+}
+.btn.primary {
+	background: var(--surface-inverse);
+	box-shadow: none;
+	color: var(--ink-on-inverse);
+}
+.btn.primary:focus-visible { box-shadow: var(--focus-halo); }
+.btn.glass {
+	background: var(--surface-glass);
+	-webkit-backdrop-filter: var(--glass-filter);
+	backdrop-filter: var(--glass-filter);
+}
+.btn.quiet {
+	background: transparent;
+	box-shadow: none;
+	color: inherit;
+	padding-inline: var(--space-3);
+}
+.btn.danger {
+	background: var(--danger-soft);
+	box-shadow: var(--ring-danger);
+	color: var(--danger);
+}
+[data-surface="solid"] .btn.secondary:not(:disabled) {
+	background: var(--surface-control-solid);
+	box-shadow: none;
+}
+.btn.icon {
+	inline-size: var(--h);
+	padding: 0;
+	border-radius: var(--radius-round);
+}
+.btn.arrow {
+	--circle: calc(var(--h) - var(--space-3));
+	padding-block: var(--space-1-5);
+	padding-inline: var(--space-5) var(--space-1-5);
+	gap: var(--space-3);
+}
+.btn .circle {
+	display: grid;
+	place-items: center;
+	inline-size: var(--circle);
+	block-size: var(--circle);
+	border-radius: var(--radius-round);
+	background: var(--surface-inverse);
+	color: var(--ink-on-inverse);
+}
+.btn.primary .circle {
+	background: var(--surface-raised);
+	color: var(--ink);
+}
+@media (hover: hover) {
+	.btn:hover { background: var(--surface-raised); }
+	.btn.primary:hover { background: var(--surface-inverse-hover); }
+	.btn.glass:hover { background: var(--surface-glass-strong); }
+	.btn.quiet:hover { background: var(--surface-tint); }
+	[data-surface="inverse"] .btn.quiet:hover { background: var(--surface-inverse-tint-strong); }
+	.btn.danger:hover { background: var(--surface-raised); }
+	[data-surface="solid"] .btn.secondary:not(:disabled):hover { background: var(--surface-control-solid-hover); }
+}
+.btn:disabled,
+.btn[aria-disabled="true"] { cursor: default; }
+.btn:disabled {
+	background: var(--surface-tint);
+	box-shadow: none;
+	color: var(--ink-secondary);
+	opacity: var(--disabled-opacity);
+}
+.btn:disabled .circle {
+	background: var(--surface-tint-strong);
+	color: var(--ink-secondary);
+}
+
+/* ---------- field (Field.svelte) ---------- */
+.field {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr);
+	gap: var(--space-1-5);
+	min-inline-size: 0;
+}
+.field > label {
+	font-size: var(--type-label-size);
+	line-height: var(--type-label-line);
+	font-weight: var(--type-label-weight);
+	color: var(--ink);
+}
+.field .control {
+	display: flex;
+	align-items: center;
+	gap: var(--space-2);
+	min-block-size: max(var(--control-height), var(--target));
+	padding-inline: var(--space-4);
+	border-radius: var(--radius-control);
+	background: var(--surface-raised);
+	box-shadow: var(--ring-control);
+}
+.field .control:has(input:focus-visible) {
+	outline: var(--focus-width) solid var(--focus-color, var(--focus-ring));
+	outline-offset: var(--focus-offset);
+}
+.field input {
+	flex: 1;
+	min-inline-size: 0;
+	block-size: 100%;
+	padding: 0;
+	border: 0;
+	background: none;
+	font-size: var(--type-body-size);
+	font-variant-numeric: var(--numeric-figures);
+}
+.field input:focus-visible { outline: 0; }
+.field input::placeholder {
+	color: var(--ink-muted);
+	opacity: 1;
+}
+.field .affix {
+	display: inline-flex;
+	flex: none;
+	color: var(--ink-secondary);
+}
+.field .hint {
+	font-size: var(--type-caption-size);
+	line-height: var(--type-caption-line);
+	color: var(--ink-secondary);
+}
+.field .error,
+.form-error {
+	font-size: var(--type-caption-size);
+	line-height: var(--type-caption-line);
+	font-weight: var(--weight-semibold);
+	color: var(--danger);
+}
+:is(.field .error, .form-error) svg {
+	display: inline;
+	vertical-align: -0.15em;
+	margin-inline-end: var(--space-1);
+}
+.field.invalid.pill .control { box-shadow: var(--ring-danger); }
+:is(.field.line, .field.figure) .control {
+	padding-inline: 0;
+	border-radius: 0;
+	background: none;
+	box-shadow: none;
+	border-block-end: var(--stroke-rule) solid var(--edge-control);
+}
+.field.figure .control {
+	align-items: baseline;
+	gap: var(--space-2-5);
+	inline-size: fit-content;
+	max-inline-size: 100%;
+	border-block-end: 0;
+}
+.field.figure input {
+	field-sizing: content;
+	flex: none;
+	min-inline-size: 1.6ch;
+	padding-block-end: var(--space-1);
+	border-block-end: var(--stroke-rule) solid var(--edge-control);
+	font-family: var(--font-display);
+	font-weight: var(--weight-display);
+	font-size: var(--type-figure-size);
+	line-height: var(--type-figure-line);
+	letter-spacing: var(--type-figure-tracking);
+}
+.field.figure .affix {
+	font-family: var(--font-display);
+	font-size: var(--type-display-s-size);
+	line-height: 1;
+}
+.field.figure > label {
+	font-size: var(--type-overline-size);
+	letter-spacing: var(--type-kicker-tracking);
+	text-transform: uppercase;
+	color: var(--ink-secondary);
+}
+.field.invalid:is(.line, .figure) .control,
+.field.invalid.figure input { border-block-end-color: var(--danger); }
+.field.invalid.figure .control { border-block-end: 0; }
+/* On the charcoal card. */
+[data-surface="inverse"] .field { color: var(--ink-on-inverse); }
+[data-surface="inverse"] .field :is(label, .hint, .affix) { color: var(--ink-on-inverse-secondary); }
+[data-surface="inverse"] :is(.field.line .control, .field.figure input) { border-block-end-color: var(--edge-control-on-inverse); }
+[data-surface="inverse"] .field input::placeholder { color: var(--ink-on-inverse-muted); }
+[data-surface="inverse"] .field .error { color: var(--danger-on-inverse); }
+[data-surface="inverse"] :is(.field.invalid.line .control, .field.invalid.figure input) { border-block-end-color: var(--danger-on-inverse); }
+
+/* ---------- select (Select.svelte) ---------- */
+.field.select .control {
+	position: relative;
+	display: grid;
+	align-items: center;
+	padding: 0;
+	background: none;
+	box-shadow: none;
+}
+.field.select select {
+	grid-area: 1 / 1;
+	inline-size: 100%;
+	min-block-size: max(var(--control-height), var(--target));
+	padding-block: 0;
+	padding-inline: var(--space-4) var(--space-10);
+	border: 0;
+	border-radius: var(--radius-control);
+	background: var(--surface-raised);
+	box-shadow: var(--ring-control);
+	color: var(--ink);
+	font-size: var(--type-body-size);
+	text-overflow: ellipsis;
+	appearance: none;
+	-webkit-appearance: none;
+}
+.field.select .control > svg {
+	grid-area: 1 / 1;
+	justify-self: end;
+	margin-inline-end: var(--space-4);
+	pointer-events: none;
+	color: var(--ink);
+}
+@media (hover: hover) {
+	.field.select select:not(:disabled):hover { background: var(--surface-sunken); }
+}
+
+/* ---------- list-row (ListRow.svelte) ---------- */
+/* A row is its own size container: below 22rem the value (an amount, a count) drops under
+   the title instead of squeezing it, so a long name and a long amount both read. */
+.row {
+	container: row / inline-size;
+	display: flex;
+	align-items: center;
+	gap: var(--space-1);
+	min-block-size: max(var(--control-height), var(--target));
+	padding-inline-end: var(--space-1-5);
+	border-radius: var(--radius-panel);
+	background: var(--surface-glass-strong);
+	box-shadow: var(--shadow-rim);
+	color: var(--ink);
+}
+.row:not(:has(> .action)) { padding-inline-end: 0; }
+.row > .main {
+	flex: 1;
+	display: flex;
+	align-items: center;
+	gap: var(--space-3);
+	min-inline-size: 0;
+	align-self: stretch;
+	padding: var(--space-3) var(--space-4);
+	border: 0;
+	border-radius: inherit;
+	background: none;
+	color: inherit;
+	font: inherit;
+	text-align: start;
+	text-decoration: none;
+}
+.row.interactive > .main { cursor: pointer; }
+@media (hover: hover) {
+	.row.interactive:not(.current):has(> .main:hover) { background: var(--surface-hover); }
+}
+.row .leading {
+	display: grid;
+	place-items: center;
+	flex: none;
+}
+.row .text {
+	display: grid;
+	gap: var(--space-0-5);
+	flex: 1;
+	min-inline-size: 0;
+}
+.row .title {
+	font-size: var(--type-title-size);
+	line-height: var(--type-title-line);
+	font-weight: var(--type-title-weight);
+}
+.row .meta {
+	font-size: var(--type-caption-size);
+	line-height: var(--type-caption-line);
+	color: var(--ink-secondary);
+}
+.row .value {
+	flex: 0 1 auto;
+	max-inline-size: 45%;
+	font-weight: var(--weight-semibold);
+	font-variant-numeric: var(--numeric-figures);
+	text-align: end;
+	overflow-wrap: anywhere;
+}
+@container row (max-width: 22rem) {
+	.row > .main {
+		flex-wrap: wrap;
+		row-gap: var(--space-0-5);
+	}
+	.row .value {
+		flex-basis: 100%;
+		max-inline-size: none;
+		text-align: start;
+	}
+}
+.row > .action {
+	display: flex;
+	flex: none;
+}
+.row.current {
+	background: var(--surface-inverse);
+	box-shadow: none;
+	color: var(--ink-on-inverse);
+}
+.row.current .meta { color: var(--ink-on-inverse-secondary); }
+[data-surface="inverse"] .row:not(.current) { color: var(--ink-on-inverse); }
+[data-surface="inverse"] .row:not(.current) .meta { color: var(--ink-on-inverse-secondary); }
+
+/* ---------- empty-state (EmptyState.svelte) ---------- */
+.empty {
+	display: grid;
+	justify-items: start;
+	gap: var(--space-2);
+	max-inline-size: var(--measure);
+	padding: var(--space-8) var(--space-6);
+	border-radius: var(--radius-card);
+	background: var(--surface-card);
+	box-shadow: var(--shadow-rim);
+}
+.empty > .title {
+	font-family: var(--font-display);
+	font-weight: var(--weight-display);
+	font-size: var(--type-display-s-size);
+	line-height: var(--type-display-s-line);
+	letter-spacing: var(--type-display-s-tracking);
+	text-wrap: balance;
+}
+.empty > .body {
+	font-size: var(--type-body-size);
+	line-height: var(--type-body-line);
+	color: var(--ink-secondary);
+}
+.empty > .action {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--space-2);
+	margin-block-start: var(--space-3);
+}
+/* Inside a card the card is the surface; a second one would nest. */
+.card .empty {
+	padding-inline: 0;
+	background: none;
+	box-shadow: none;
+}
+
+/* ---------- sheet (Sheet.svelte) ---------- */
+html:has(dialog[data-sheet][open]) { overflow: hidden; }
+dialog[data-sheet] {
+	flex-direction: column;
+	inline-size: 100%;
+	max-inline-size: none;
+	max-block-size: min(88dvh, 100% - var(--space-6));
+	margin: auto 0 0;
+	padding: 0;
+	border: 0;
+	border-radius: var(--radius-card) var(--radius-card) 0 0;
+	background: var(--surface-glass-strong);
+	-webkit-backdrop-filter: var(--glass-filter);
+	backdrop-filter: var(--glass-filter);
+	box-shadow: var(--elevation-card);
+	color: var(--ink);
+	overflow: hidden;
+	animation: sheet-rise-full var(--motion-settle) var(--ease-out);
+}
+dialog[data-sheet][open] { display: flex; }
+dialog[data-sheet]::backdrop {
+	background: var(--surface-tint-strong);
+	animation: fp-fade-in var(--motion-settle) var(--ease-out);
+}
+dialog[data-sheet] > header {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: var(--space-3);
+	padding: var(--space-5) var(--space-4) var(--space-3) var(--space-5);
+}
+dialog[data-sheet] > header .kicker {
+	display: block;
+	margin-block-end: var(--space-1);
+	font-size: var(--type-kicker-size);
+	line-height: var(--type-kicker-line);
+	letter-spacing: var(--type-kicker-tracking);
+	font-weight: var(--type-kicker-weight);
+	text-transform: uppercase;
+	color: var(--ink-secondary);
+}
+dialog[data-sheet] > header h2 {
+	font-size: var(--type-display-s-size);
+	line-height: var(--type-display-s-line);
+	letter-spacing: var(--type-display-s-tracking);
+}
+dialog[data-sheet] .close {
+	display: grid;
+	place-items: center;
+	flex: none;
+	inline-size: max(var(--control-height-s), var(--target));
+	block-size: max(var(--control-height-s), var(--target));
+	margin-block-start: calc(-1 * var(--space-1));
+	border: 0;
+	border-radius: var(--radius-round);
+	background: var(--surface-raised);
+	box-shadow: var(--ring-hairline);
+	color: var(--ink);
+}
+@media (hover: hover) {
+	dialog[data-sheet] .close:hover { background: var(--surface-sunken); }
+}
+dialog[data-sheet] > .body {
+	flex: 1;
+	min-block-size: 0;
+	overflow: auto;
+	overscroll-behavior: contain;
+	padding: var(--space-1) var(--space-5) var(--space-5);
+}
+dialog[data-sheet] > footer {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: flex-end;
+	gap: var(--space-2);
+	padding: var(--sheet-footer-padding-block-start) var(--sheet-footer-padding-inline)
+		calc(var(--sheet-footer-padding-block-end) + env(safe-area-inset-bottom));
+	box-shadow: var(--sheet-footer-rule);
+}
+dialog[data-sheet].dialog {
+	inline-size: min(calc(var(--measure) * 0.75), 100% - 2 * var(--space-4));
+	margin: auto;
+	border-radius: var(--radius-card);
+	animation-name: sheet-rise;
+}
+@media (min-width: 768px) {
+	dialog[data-sheet].sheet {
+		inline-size: min(var(--measure), 100% - 2 * var(--space-8));
+		max-block-size: min(86dvh, 100% - var(--space-16));
+		margin: auto;
+		border-radius: var(--radius-card);
+		animation-name: sheet-rise;
+	}
+	dialog[data-sheet] > header { padding: var(--space-6) var(--space-5) var(--space-3) var(--space-6); }
+	dialog[data-sheet] > .body { padding-inline: var(--space-6); }
+	dialog[data-sheet] > footer { padding-inline: var(--sheet-footer-padding-inline-wide); }
+}
+@keyframes sheet-rise-full { from { transform: translateY(100%); } }
+@keyframes sheet-rise { from { opacity: 0; transform: translateY(var(--settle-rise)); } }
+
+/* ---------- toast (Toaster.svelte) ---------- */
+.toaster {
+	position: fixed;
+	z-index: var(--z-toast);
+	inset-inline: var(--space-4);
+	inset-block-end: calc(var(--space-4) + env(safe-area-inset-bottom));
+	display: grid;
+	justify-items: center;
+	gap: var(--space-2);
+	pointer-events: none;
+}
+.toaster .list {
+	display: grid;
+	justify-items: center;
+	gap: var(--space-2);
+	inline-size: 100%;
+}
+.toaster .list:empty { display: none; }
+/* Only the newest toast of each region shows. Older ones wait behind it as one peeking edge
+   and come forward when it goes; the region already announced them. */
+.toaster .list {
+	grid-template-areas: "stack";
+	align-items: end;
+}
+.toaster .list > .toast { grid-area: stack; }
+/* The older ones are transformed, which paints them over an untransformed front toast. */
+.toaster .list > .toast:last-child {
+	position: relative;
+	z-index: var(--z-raised);
+}
+.toaster .list > .toast:not(:last-child) {
+	transform-origin: 50% 0;
+	translate: 0 calc(-1 * var(--space-2));
+	scale: var(--toast-stack-scale);
+	background: var(--surface-inverse-raised);
+}
+.toaster .list > .toast:not(:last-child) > * { visibility: hidden; }
+.toaster .list > .toast:nth-last-child(n + 3) { visibility: hidden; }
+.toast {
+	display: flex;
+	align-items: center;
+	gap: var(--space-2);
+	inline-size: min(100%, calc(var(--measure) * 0.75));
+	min-block-size: max(var(--control-height), var(--target));
+	padding: var(--space-1-5) var(--space-1-5) var(--space-1-5) var(--space-4);
+	border-radius: var(--radius-panel);
+	background: var(--surface-inverse);
+	box-shadow: var(--elevation-menu);
+	color: var(--ink-on-inverse);
+	pointer-events: auto;
+	animation: toast-enter var(--motion-glide) var(--ease-out);
+}
+.toast .mark {
+	display: flex;
+	color: var(--danger-on-inverse);
+}
+.toast .message {
+	flex: 1;
+	min-inline-size: 0;
+	padding-block: var(--space-2);
+	font-size: var(--type-body-s-size);
+	line-height: var(--type-body-s-line);
+}
+.toast :is(.action, .dismiss) {
+	display: grid;
+	place-items: center;
+	flex: none;
+	min-block-size: max(var(--control-height-xs), var(--target));
+	border: 0;
+	border-radius: var(--radius-control);
+	font-size: var(--type-label-size);
+	line-height: var(--type-label-line);
+	font-weight: var(--type-label-weight);
+}
+.toast .action {
+	padding-inline: var(--space-3-5);
+	background: var(--surface-raised);
+	color: var(--ink);
+}
+.toast .dismiss {
+	inline-size: max(var(--control-height-xs), var(--target));
+	border-radius: var(--radius-round);
+	background: transparent;
+	color: var(--ink-on-inverse);
+}
+@media (hover: hover) {
+	.toast .action:hover { background: var(--surface-sunken); }
+	.toast .dismiss:hover { background: var(--surface-inverse-tint-strong); }
+}
+@keyframes toast-enter { from { opacity: 0; transform: translateY(var(--settle-rise)); } }
+
+@media (prefers-reduced-motion: reduce) {
+	dialog[data-sheet].sheet,
+	dialog[data-sheet].dialog { animation-name: fp-fade-in; }
+	.toast { animation-name: fp-fade-in; }
+}
+
+/* Phone: below 768, as ../layout.css. */
+@media (max-width: 767px) {
+	.specimen-bar { padding-inline: var(--space-4); }
+	.btn.arrow { padding-inline-start: var(--space-4); gap: var(--space-2-5); }
+	/* While a toast is up the app gains its height at the end, so the last actions can scroll
+	   clear of it instead of sitting under it. */
+	.app:has(> .toaster .toast) { padding-block-end: calc(var(--space-2) + var(--toast-clearance)); }
+}

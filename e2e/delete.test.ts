@@ -1,7 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
-import { calm, counts, open, reset, seed } from './helpers.ts';
+import { calm, counts, open, openEntryMenu, reset, seed } from './helpers.ts';
 
-const dialog = (page: Page) => page.getByRole('dialog');
+const dialog = (page: Page) => page.getByRole('alertdialog');
 const toast = (page: Page) => page.getByRole('status').filter({ hasText: 'Deleted' });
 
 test.beforeEach(async ({ page, request }) => {
@@ -14,7 +14,8 @@ test('Scenario: Delete asks first and returns to the list', async ({ page, reque
 		entries: [id]
 	} = await seed(request, { entries: [{ type: 'album', title: 'Blonde', image: true, tags: ['summer'] }] });
 	await open(page, `/entries/${id}`);
-	await page.getByRole('button', { name: 'Delete' }).click();
+	await openEntryMenu(page);
+	await page.getByRole('menuitem', { name: 'Delete' }).click();
 
 	await expect(dialog(page)).toBeVisible();
 	await expect(dialog(page)).toContainText('Blonde');
@@ -35,7 +36,8 @@ test('Scenario: Cancelled delete keeps the entry', async ({ page, request }) => 
 		entries: [id]
 	} = await seed(request, { entries: [{ type: 'album', title: 'Blonde' }] });
 	await open(page, `/entries/${id}`);
-	await page.getByRole('button', { name: 'Delete' }).click();
+	await openEntryMenu(page);
+	await page.getByRole('menuitem', { name: 'Delete' }).click();
 	await dialog(page).getByRole('button', { name: 'Cancel' }).click();
 
 	await expect(dialog(page)).toHaveCount(0);
@@ -49,24 +51,26 @@ test('Scenario: Toast confirms delete', async ({ page, request }) => {
 		entries: [id]
 	} = await seed(request, { entries: [{ type: 'book', title: 'Norwegian Wood' }] });
 	await open(page, `/entries/${id}`);
-	await page.getByRole('button', { name: 'Delete' }).click();
+	await openEntryMenu(page);
+	await page.getByRole('menuitem', { name: 'Delete' }).click();
 	await dialog(page).getByRole('button', { name: 'Delete' }).click();
 
 	await expect(page).toHaveURL(/\/books\/books$/);
 	await expect(toast(page)).toBeVisible();
 });
 
-test('Escape cancels and hands focus back to the Delete button', async ({ page, request }) => {
+test('Escape cancels and hands focus back to the entry menu', async ({ page, request }) => {
 	const {
 		entries: [id]
 	} = await seed(request, { entries: [{ type: 'album', title: 'Blonde' }] });
 	await open(page, `/entries/${id}`);
-	await page.getByRole('button', { name: 'Delete' }).click();
+	await openEntryMenu(page);
+	await page.getByRole('menuitem', { name: 'Delete' }).click();
 	await expect(dialog(page).getByRole('button', { name: 'Cancel' })).toBeFocused();
 	await page.keyboard.press('Escape');
 
 	await expect(dialog(page)).toHaveCount(0);
-	await expect(page.getByRole('button', { name: 'Delete' })).toBeFocused();
+	await expect(page.getByRole('button', { name: 'Entry menu' })).toBeFocused();
 });
 
 test('each type returns to its own list', async ({ page, request }) => {
@@ -81,7 +85,8 @@ test('each type returns to its own list', async ({ page, request }) => {
 
 	for (const [i, id] of entries.entries()) {
 		await open(page, `/entries/${id}`);
-		await page.getByRole('button', { name: 'Delete' }).click();
+		await openEntryMenu(page);
+		await page.getByRole('menuitem', { name: 'Delete' }).click();
 		await dialog(page).getByRole('button', { name: 'Delete' }).click();
 
 		await expect(page).toHaveURL(lists[i]);
@@ -93,7 +98,8 @@ test('a double click on the confirm button deletes once and lands on the list', 
 		entries: [id]
 	} = await seed(request, { entries: [{ type: 'album', title: 'Blonde' }] });
 	await open(page, `/entries/${id}`);
-	await page.getByRole('button', { name: 'Delete' }).click();
+	await openEntryMenu(page);
+	await page.getByRole('menuitem', { name: 'Delete' }).click();
 	await dialog(page).getByRole('button', { name: 'Delete' }).dblclick();
 
 	await expect(page).toHaveURL(/\/music\/albums$/);
@@ -110,7 +116,8 @@ test('deleting an artist keeps the artist name on its albums', async ({ page, re
 		]
 	});
 	await open(page, `/entries/${artist}`);
-	await page.getByRole('button', { name: 'Delete' }).click();
+	await openEntryMenu(page);
+	await page.getByRole('menuitem', { name: 'Delete' }).click();
 	await dialog(page).getByRole('button', { name: 'Delete' }).click();
 	await expect(page).toHaveURL(/\/music\/artists$/);
 	await open(page, `/entries/${album}`);
