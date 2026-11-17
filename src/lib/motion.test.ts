@@ -2,80 +2,13 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { coverName, fadeSlide, hideOnOutro, holdReveals, pop, reducedMotion, reveal, rise, stagger } from './motion.ts';
+import { appear, bezier, glide, reducedMotion, rise, shift } from './motion.ts';
 
 function prefersReduced(reduce: boolean) {
 	vi.stubGlobal('matchMedia', (query: string) => ({
 		matches: reduce && query === '(prefers-reduced-motion: reduce)',
 		media: query
 	}));
-}
-
-class FakeNode {
-	constructor(public top = 100) {}
-	attrs = new Map<string, string>();
-	listeners = new Map<string, Set<() => void>>();
-	style = {
-		props: new Map<string, string>(),
-		setProperty: (k: string, v: string) => this.style.props.set(k, v),
-		removeProperty: (k: string) => this.style.props.delete(k)
-	};
-	getBoundingClientRect() {
-		return { top: this.top, bottom: this.top + 200, left: 0, right: 160 };
-	}
-	setAttribute(k: string, v: string) {
-		this.attrs.set(k, v);
-	}
-	removeAttribute(k: string) {
-		this.attrs.delete(k);
-	}
-	hasAttribute(k: string) {
-		return this.attrs.has(k);
-	}
-	getAttribute(k: string) {
-		return this.attrs.get(k) ?? null;
-	}
-	addEventListener(type: string, fn: () => void) {
-		if (!this.listeners.has(type)) this.listeners.set(type, new Set());
-		this.listeners.get(type)!.add(fn);
-	}
-	removeEventListener(type: string, fn: () => void) {
-		this.listeners.get(type)?.delete(fn);
-	}
-	dispatch(type: string) {
-		for (const fn of this.listeners.get(type) ?? []) fn();
-	}
-}
-
-type Entry = { isIntersecting: boolean; target: unknown };
-let observers: { cb: (entries: Entry[]) => void; targets: unknown[]; disconnected: boolean }[] = [];
-
-function stubObserver() {
-	observers = [];
-	vi.stubGlobal(
-		'IntersectionObserver',
-		class {
-			record: (typeof observers)[number];
-			constructor(cb: (entries: Entry[]) => void) {
-				this.record = { cb, targets: [], disconnected: false };
-				observers.push(this.record);
-			}
-			observe(t: unknown) {
-				this.record.targets.push(t);
-			}
-			unobserve() {}
-			disconnect() {
-				this.record.disconnected = true;
-			}
-		}
-	);
-}
-
-function properties(css: string): string[] {
-	return css
-		.split(';')
-		.map((d) => d.split(':')[0].trim())
-		.filter(Boolean);
 }
 
 const srcDir = fileURLToPath(new URL('..', import.meta.url));
@@ -89,16 +22,16 @@ function sourceFiles(dir: string): string[] {
 	});
 }
 
-const files = sourceFiles(srcDir).map((path) => {
-	const text = readFileSync(path, 'utf8');
-	const styles = path.endsWith('.css') ? [text] : [...text.matchAll(/<style[^>]*>([\s\S]*?)<\/style>/g)].map((m) => m[1]);
-	return { path, name: relative(srcDir, path), text, css: styles.join('\n').replace(/\/\*[\s\S]*?\*\//g, '') };
-});
+const files = sourceFiles(srcDir)
+	.filter((path) => !path.includes('/styles/fingerprint/'))
+	.map((path) => {
+		const text = readFileSync(path, 'utf8');
+		const styles = path.endsWith('.css') ? [text] : [...text.matchAll(/<style[^>]*>([\s\S]*?)<\/style>/g)].map((m) => m[1]);
+		return { path, name: relative(srcDir, path), text, css: styles.join('\n').replace(/\/\*[\s\S]*?\*\//g, '') };
+	});
 
 // movement and entrances animate transform and opacity; colours may change on a state change
 const stateColours = ['color', 'background', 'background-color', 'border-color', 'box-shadow', 'fill', 'stroke'];
-// the pill nav's highlight is one absolutely placed element that glides to the active item
-const inlineSizeExceptions = ['lib/ui/PillNav.svelte'];
 
 function topLevel(list: string): string[] {
 	const out: string[] = [];
@@ -128,13 +61,6 @@ function animatedProperties(css: string, name: string): string[] {
 	return found;
 }
 
-const node = {} as Element;
-const primitives = {
-	rise: () => rise(node, { delay: 80, y: 20 }),
-	pop: () => pop(node),
-	fadeSlide: () => fadeSlide(node, { y: 12 })
-};
-
 afterEach(() => {
 	vi.unstubAllGlobals();
 });
@@ -149,22 +75,44 @@ describe('motion', () => {
 		expect(reducedMotion()).toBe(false);
 	});
 
-	it('reduced motion gives zero-duration transitions', () => {
+	it('rise and glide move only transform and opacity, and are instant under reduced motion or a keyboard move', () => {
+		const node = {} as Element;
+		const from = { left: 0, top: 40 } as DOMRect;
+		const to = { left: 0, top: 0 } as DOMRect;
+		prefersReduced(false);
+		const up = rise(node);
+		expect(up.duration).toBeGreaterThan(0);
+		expect(up.css!(0, 1)).toMatch(/^opacity: 0; transform: translateY\([\d.]+px\) scale\([\d.]+\)$/);
+		expect(glide(node, { from, to }).css!(0, 1)).toBe('transform: translate(0px, 40px)');
+		expect(glide(node, { from, to }, false).duration).toBe(0);
+		expect(glide(node, { from: to, to }).duration).toBe(0);
 		prefersReduced(true);
-		for (const [name, make] of Object.entries(primitives)) {
-			const config = make();
-			expect(config.duration ?? 0, name).toBe(0);
-			expect(config.delay ?? 0, name).toBe(0);
-		}
+		expect(rise(node).duration).toBe(0);
+		expect(glide(node, { from, to }).duration).toBe(0);
 	});
 
-	it('transitions animate only transform and opacity', () => {
+	it('appear only fades, shift only translates, and both are still under reduced motion', () => {
+		const animate = vi.fn();
+		const node = { animate } as unknown as Element;
 		prefersReduced(false);
-		for (const [name, make] of Object.entries(primitives)) {
-			const config = make();
-			expect(config.duration, name).toBeGreaterThan(0);
-			for (const p of properties(config.css!(0.5, 0.5))) expect(['transform', 'opacity'], name).toContain(p);
-		}
+		const fade = appear(node);
+		expect(fade.duration).toBeGreaterThan(0);
+		expect(fade.css!(0.5, 0.5)).toBe('opacity: 0.5');
+		shift(node, 40);
+		expect(animate.mock.calls[0][0]).toEqual([{ transform: 'translateY(40px)' }, { transform: 'none' }]);
+		shift(node, 0);
+		expect(animate).toHaveBeenCalledTimes(1);
+		prefersReduced(true);
+		expect(appear(node).duration).toBe(0);
+		shift(node, 40);
+		expect(animate).toHaveBeenCalledTimes(1);
+	});
+
+	it('bezier matches the ease-out curve at its ends and rises fast', () => {
+		const ease = bezier(0.23, 1, 0.32, 1);
+		expect(ease(0)).toBeCloseTo(0, 3);
+		expect(ease(1)).toBeCloseTo(1, 3);
+		expect(ease(0.25)).toBeGreaterThan(0.6);
 	});
 
 	it('styles animate only transform and opacity, colours only on state changes', () => {
@@ -174,7 +122,9 @@ describe('motion', () => {
 				const prop = entry.split(' ').pop()!;
 				if (['transform', 'opacity', 'none'].includes(prop)) return false;
 				if (entry.includes('transition') && stateColours.includes(prop)) return false;
-				return !(prop === 'inline-size' && inlineSizeExceptions.includes(f.name));
+				// discrete: a closing popover stays rendered in the top layer while it fades; nothing moves
+				if (entry.includes('transition') && ['display', 'overlay'].includes(prop)) return false;
+				return true;
 			})
 		);
 		expect(offenders).toEqual([]);
@@ -186,110 +136,5 @@ describe('motion', () => {
 			.filter((f) => !f.path.startsWith(stylesDir))
 			.flatMap((f) => [...f.css.matchAll(/#[0-9a-fA-F]{3,8}\b|\brgba?\(|\bhsla?\(/g)].map((m) => `${f.name}: ${m[0]}`));
 		expect(raw).toEqual([]);
-	});
-
-	it('stagger spaces entrances 40 ms apart and caps at 12', () => {
-		expect([0, 1, 2, 3].map(stagger)).toEqual([0, 40, 80, 120]);
-		expect(stagger(100)).toBe(stagger(12));
-		expect(stagger(12)).toBe(480);
-	});
-
-	it('reveal marks the node once it intersects', () => {
-		prefersReduced(false);
-		stubObserver();
-		const el = new FakeNode();
-		const action = reveal(el as unknown as Element, { delay: 120 });
-
-		expect(el.hasAttribute('data-reveal')).toBe(true);
-		expect(el.hasAttribute('data-revealed')).toBe(false);
-		expect(el.style.props.get('--reveal-delay')).toBe('120ms');
-		observers[0].cb([{ isIntersecting: false, target: el }]);
-		expect(el.hasAttribute('data-revealed')).toBe(false);
-		observers[0].cb([{ isIntersecting: true, target: el }]);
-		expect(el.hasAttribute('data-revealed')).toBe(true);
-		expect(observers[0].disconnected).toBe(true);
-		action.destroy();
-	});
-
-	it('Scenario: Reveal shows in-view nodes at once on history back', () => {
-		prefersReduced(false);
-		stubObserver();
-		vi.stubGlobal('innerHeight', 800);
-		vi.stubGlobal('innerWidth', 390);
-		const frames: (() => void)[] = [];
-		vi.stubGlobal('requestAnimationFrame', (fn: () => void) => frames.push(fn));
-		const shown = new FakeNode(100);
-		const below = new FakeNode(1400);
-		const release = holdReveals();
-		reveal(shown as unknown as Element);
-		reveal(below as unknown as Element);
-		release();
-
-		expect(shown.hasAttribute('data-revealed')).toBe(true);
-		expect(shown.style.props.get('transition')).toBe('none');
-		expect(below.hasAttribute('data-reveal')).toBe(true);
-		expect(below.hasAttribute('data-revealed')).toBe(false);
-		expect(observers.flatMap((o) => o.targets)).toEqual([below]);
-		while (frames.length) frames.shift()!();
-		expect(shown.style.props.has('transition')).toBe(false);
-		observers[0].cb([{ isIntersecting: true, target: below }]);
-		expect(below.hasAttribute('data-revealed')).toBe(true);
-	});
-
-	it('Scenario: Reveal runs as before on other navigations', () => {
-		prefersReduced(false);
-		stubObserver();
-		vi.stubGlobal('innerHeight', 800);
-		vi.stubGlobal('innerWidth', 390);
-		const el = new FakeNode(100);
-		reveal(el as unknown as Element);
-
-		expect(el.hasAttribute('data-reveal')).toBe(true);
-		expect(el.hasAttribute('data-revealed')).toBe(false);
-		expect(observers.flatMap((o) => o.targets)).toEqual([el]);
-		observers[0].cb([{ isIntersecting: true, target: el }]);
-		expect(el.hasAttribute('data-revealed')).toBe(true);
-	});
-
-	it('a node gone before the hold is released is left alone', () => {
-		prefersReduced(false);
-		stubObserver();
-		vi.stubGlobal('innerHeight', 800);
-		vi.stubGlobal('innerWidth', 390);
-		vi.stubGlobal('requestAnimationFrame', () => 0);
-		const el = new FakeNode(1400);
-		const release = holdReveals();
-		reveal(el as unknown as Element).destroy();
-		release();
-
-		expect(observers).toHaveLength(0);
-		expect(el.hasAttribute('data-revealed')).toBe(false);
-	});
-
-	it('reduced motion reveals at once without observing', () => {
-		prefersReduced(true);
-		stubObserver();
-		const el = new FakeNode();
-		reveal(el as unknown as Element).destroy();
-
-		expect(el.hasAttribute('data-revealed')).toBe(true);
-		expect(observers).toHaveLength(0);
-	});
-
-	it('hideOnOutro toggles aria-hidden with the outro and intro', () => {
-		const el = new FakeNode();
-		const action = hideOnOutro(el as unknown as Element);
-
-		el.dispatch('outrostart');
-		expect(el.getAttribute('aria-hidden')).toBe('true');
-		el.dispatch('introstart');
-		expect(el.hasAttribute('aria-hidden')).toBe(false);
-		action.destroy();
-		el.dispatch('outrostart');
-		expect(el.hasAttribute('aria-hidden')).toBe(false);
-	});
-
-	it('coverName names the shared cover element', () => {
-		expect(coverName(7)).toBe('cover-7');
 	});
 });

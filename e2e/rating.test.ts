@@ -1,60 +1,137 @@
 import { expect, test, type Page } from '@playwright/test';
-import { calm, countSaves, open, rate, recordSaves, reset, seed } from './helpers.ts';
+import { calm, countSaves, open, recordSaves, reset, seed } from './helpers.ts';
 
 declare global {
 	interface Window {
-		__starAnims: { star: number }[];
+		__confirmDraws: number;
 	}
 }
 
-// Svelte transitions and the components' own motion all go through Element.animate; star is the index of the star
-// the animated element sits in, -1 for anything else.
-async function recordAnimations(page: Page) {
+// the confirm line is the ::after of [data-confirm-line]; count its entry animation starting (draw, or the fade under reduced motion)
+async function recordConfirmLine(page: Page) {
 	await page.addInitScript(() => {
-		window.__starAnims = [];
-		const animate = Element.prototype.animate;
-		Element.prototype.animate = function (this: Element, ...args: Parameters<typeof animate>) {
-			const slider = this.closest('[role="slider"]');
-			window.__starAnims.push({ star: slider ? [...slider.children].findIndex((child) => child.contains(this)) : -1 });
-			return animate.apply(this, args);
-		};
+		window.__confirmDraws = 0;
+		document.addEventListener(
+			'animationstart',
+			(event) => {
+				if (['fp-draw', 'fp-fade-in'].includes(event.animationName) && event.pseudoElement === '::after') window.__confirmDraws++;
+			},
+			true
+		);
 	});
 }
 
-const slider = (page: Page) => page.getByRole('slider', { name: 'Rating', exact: true });
-const starAnimations = (page: Page) => page.evaluate(() => window.__starAnims.filter((a) => a.star >= 0).map((a) => a.star));
+const field = (page: Page) => page.getByRole('spinbutton', { name: 'Rating', exact: true });
+const more = (page: Page) => page.getByRole('button', { name: 'Rating: one more' });
+const less = (page: Page) => page.getByRole('button', { name: 'Rating: one less' });
+const draws = (page: Page) => page.evaluate(() => window.__confirmDraws);
 
 test.beforeEach(async ({ page, request }) => {
 	await calm(page);
 	await reset(request);
 });
 
-test('Scenario: Rate in half stars through the adapter', async ({ page, request }) => {
+test('Scenario: Type a rating with two decimals', async ({ page, request }) => {
 	const {
 		entries: [id]
 	} = await seed(request, { entries: [{ type: 'album', title: 'Blonde' }] });
 	const saved = countSaves(page);
 	const saves = recordSaves(page);
 	await open(page, `/entries/${id}`);
-	await rate(slider(page), 5, 'left');
+	await field(page).fill('8.75');
+	await field(page).press('Enter');
 
-	await expect(slider(page)).toHaveAttribute('aria-valuenow', '4.5');
-	await expect(slider(page)).toHaveAttribute('aria-valuetext', '4.5 of 5');
 	await saved(1);
-	expect(saves()).toEqual(['rating rating=9']);
+	expect(saves()).toEqual(['rating rating=8.75']);
 	await page.reload();
-	await expect(slider(page)).toHaveAttribute('aria-valuenow', '4.5');
-	await expect(slider(page)).toHaveAttribute('aria-valuetext', '4.5 of 5');
+	await expect(field(page)).toHaveValue('8.75');
+	await expect(field(page)).toHaveAttribute('aria-valuenow', '8.75');
+	await expect(field(page)).toHaveAttribute('aria-valuetext', '8.75 of 10');
 });
 
-test('the right half of a star rates it whole', async ({ page, request }) => {
+test('Scenario: Steps and arrow keys change the rating', async ({ page, request }) => {
+	const {
+		entries: [rated, unrated]
+	} = await seed(request, {
+		entries: [
+			{ type: 'book', title: 'Norwegian Wood', rating: 7 },
+			{ type: 'book', title: 'Kafka on the Shore' }
+		]
+	});
+	const saves = recordSaves(page);
+	await open(page, `/entries/${rated}`);
+	await more(page).click();
+	await more(page).click();
+	await expect(field(page)).toHaveValue('7.5');
+	await field(page).focus();
+	await page.keyboard.press('ArrowDown');
+	await expect(field(page)).toHaveValue('7.25');
+	await field(page).blur();
+	await expect.poll(() => saves()).toEqual(['rating rating=7.25', 'rating rating=7.5', 'rating rating=7.25']);
+	await page.reload();
+	await expect(field(page)).toHaveValue('7.25');
+
+	await open(page, `/entries/${unrated}`);
+	await more(page).click();
+	await expect(field(page)).toHaveValue('0.25');
+	await expect.poll(() => saves()).toEqual(['rating rating=7.25', 'rating rating=7.5', 'rating rating=7.25', 'rating rating=0.25']);
+	await page.reload();
+	await expect(field(page)).toHaveValue('0.25');
+});
+
+test('Scenario: Step buttons stop at the ends', async ({ page, request }) => {
+	const {
+		entries: [top, bottom]
+	} = await seed(request, {
+		entries: [
+			{ type: 'album', title: 'Blonde', rating: 10 },
+			{ type: 'album', title: 'Nikes Remixed', rating: 0 }
+		]
+	});
+
+	await open(page, `/entries/${top}`);
+	await expect(more(page)).toBeDisabled();
+	await expect(less(page)).toBeEnabled();
+	await open(page, `/entries/${bottom}`);
+	await expect(less(page)).toBeDisabled();
+	await expect(more(page)).toBeEnabled();
+	for (const button of [less(page), more(page)]) {
+		const box = (await button.boundingBox())!;
+		expect(box.width).toBeGreaterThanOrEqual(44);
+		expect(box.height).toBeGreaterThanOrEqual(44);
+	}
+});
+
+test('Scenario: Too many decimals are rejected inline', async ({ page, request }) => {
+	const {
+		entries: [id]
+	} = await seed(request, { entries: [{ type: 'album', title: 'Blonde', rating: 7 }] });
+	const saves = recordSaves(page);
+	await open(page, `/entries/${id}`);
+	await field(page).fill('8.755');
+	await field(page).press('Enter');
+	await expect(page.getByText('Rating must be between 0 and 10 with up to two decimals')).toBeVisible();
+	await page.waitForTimeout(300);
+
+	expect(saves()).toEqual([]);
+	await page.reload();
+	await expect(field(page)).toHaveValue('7');
+});
+
+test('Scenario: Zero is a rating', async ({ page, request }) => {
 	const {
 		entries: [id]
 	} = await seed(request, { entries: [{ type: 'album', title: 'Blonde' }] });
+	const saved = countSaves(page);
 	await open(page, `/entries/${id}`);
-	await rate(slider(page), 3, 'right');
+	await field(page).fill('0');
+	await field(page).press('Enter');
+	await saved(1);
+	await page.reload();
 
-	await expect(slider(page)).toHaveAttribute('aria-valuenow', '3');
+	await expect(field(page)).toHaveValue('0');
+	await open(page, '/music/albums');
+	await expect(page.getByText('0 / 10')).toBeVisible();
 });
 
 test('Scenario: Clear the rating', async ({ page, request }) => {
@@ -65,29 +142,13 @@ test('Scenario: Clear the rating', async ({ page, request }) => {
 	await open(page, `/entries/${id}`);
 	await page.getByRole('button', { name: 'Clear rating' }).click();
 
-	await expect(slider(page)).toHaveAttribute('aria-valuenow', '0');
-	await expect(slider(page)).toHaveAttribute('aria-valuetext', 'Not rated');
+	await expect(field(page)).toHaveValue('');
+	await expect(field(page)).toHaveAttribute('aria-valuetext', 'Not rated');
 	await expect(page.getByRole('button', { name: 'Clear rating' })).toHaveCount(0);
 	await saved(1);
 	await page.reload();
-	await expect(slider(page)).toHaveAttribute('aria-valuetext', 'Not rated');
-	await expect(slider(page)).toHaveAttribute('aria-valuetext', 'Not rated');
-});
-
-test('Scenario: Keyboard rates with arrow keys through the adapter', async ({ page, request }) => {
-	const {
-		entries: [id]
-	} = await seed(request, { entries: [{ type: 'book', title: 'Norwegian Wood' }] });
-	const saved = countSaves(page);
-	await open(page, `/entries/${id}`);
-	await slider(page).focus();
-	for (let i = 0; i < 3; i++) await page.keyboard.press('ArrowRight');
-	await page.keyboard.press('ArrowLeft');
-
-	await expect(slider(page)).toHaveAttribute('aria-valuenow', '1');
-	await saved(4);
-	await page.reload();
-	await expect(slider(page)).toHaveAttribute('aria-valuenow', '1');
+	await expect(field(page)).toHaveValue('');
+	await expect(field(page)).toHaveAttribute('aria-valuetext', 'Not rated');
 });
 
 test('a failed save does not block the saves after it', async ({ page, request }) => {
@@ -99,27 +160,28 @@ test('a failed save does not block the saves after it', async ({ page, request }
 	await open(page, `/entries/${id}`);
 	await page.getByRole('button', { name: /^Status:/ }).click();
 	await page.getByRole('menuitemradio', { name: 'Listened' }).click();
-	await rate(slider(page), 5, 'left');
+	await field(page).fill('4.5');
+	await field(page).press('Enter');
 
-	await expect(slider(page)).toHaveAttribute('aria-valuenow', '4.5');
+	await expect(field(page)).toHaveValue('4.5');
 	await saved(1);
 	await page.reload();
-	await expect(slider(page)).toHaveAttribute('aria-valuenow', '4.5');
+	await expect(field(page)).toHaveValue('4.5');
 });
 
-test('Delete clears the rating from the keyboard', async ({ page, request }) => {
+test('Escape leaves the typed text and keeps the saved rating', async ({ page, request }) => {
 	const {
 		entries: [id]
 	} = await seed(request, { entries: [{ type: 'book', title: 'Norwegian Wood', rating: 7 }] });
-	const saved = countSaves(page);
+	const saves = recordSaves(page);
 	await open(page, `/entries/${id}`);
-	await slider(page).focus();
-	await page.keyboard.press('Delete');
+	await field(page).fill('3');
+	await field(page).press('Escape');
 
-	await expect(slider(page)).toHaveAttribute('aria-valuetext', 'Not rated');
-	await saved(1);
-	await page.reload();
-	await expect(slider(page)).toHaveAttribute('aria-valuetext', 'Not rated');
+	await expect(field(page)).toHaveValue('7');
+	await field(page).blur();
+	await page.waitForTimeout(300);
+	expect(saves()).toEqual([]);
 });
 
 test('the rating action refuses a type without ratings', async ({ page, request }) => {
@@ -137,29 +199,20 @@ test('the rating action refuses a type without ratings', async ({ page, request 
 	expect(res).toContain('failure');
 });
 
-test('Scenario: Star fill animates on rate', async ({ page, request }) => {
-	await page.emulateMedia({ reducedMotion: 'no-preference' });
-	await recordAnimations(page);
+test('Scenario: Typed rating draws the confirm line', async ({ page, request }) => {
+	await recordConfirmLine(page);
 	const {
 		entries: [id]
 	} = await seed(request, { entries: [{ type: 'album', title: 'Blonde', rating: 8 }] });
 	await open(page, `/entries/${id}`);
-	expect(await starAnimations(page)).toEqual([]);
-	await rate(slider(page), 5, 'left');
+	expect(await draws(page)).toBe(0);
+	await field(page).fill('8.75');
+	await field(page).press('Enter');
 
-	await expect.poll(() => starAnimations(page)).toEqual([4]);
-	await expect(slider(page)).toHaveAttribute('aria-valuenow', '4.5');
-});
-
-test('Scenario: Reduced motion fills stars instantly', async ({ page, request }) => {
-	await recordAnimations(page);
-	const {
-		entries: [id]
-	} = await seed(request, { entries: [{ type: 'album', title: 'Blonde', rating: 8 }] });
-	await open(page, `/entries/${id}`);
-	await rate(slider(page), 5, 'left');
-
-	await expect(slider(page)).toHaveAttribute('aria-valuenow', '4.5');
-	await expect(slider(page)).toHaveAttribute('aria-valuetext', '4.5 of 5');
-	expect(await starAnimations(page)).toEqual([]);
+	await expect.poll(() => draws(page)).toBe(1);
+	await expect(field(page)).toHaveValue('8.75');
+	await more(page).click();
+	await expect(field(page)).toHaveValue('9');
+	await page.waitForTimeout(400);
+	expect(await draws(page)).toBe(1);
 });

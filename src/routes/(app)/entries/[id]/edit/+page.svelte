@@ -1,24 +1,26 @@
 <script lang="ts">
-	import { DOMAIN_LABEL } from '#lib/domains.ts';
 	import { TYPES } from '#lib/entries/config.ts';
 	import EntryForm from '#lib/entries/EntryForm.svelte';
-	import Eyebrow from '#lib/ui/Eyebrow.svelte';
+	import FormHead from '#lib/entries/FormHead.svelte';
 	import type { PageProps } from './$types';
 
 	let { data, form }: PageProps = $props();
 	const config = $derived(TYPES[data.type]);
+	const word = $derived(data.type === 'brand' || data.type === 'site' ? 'brand or shop' : config.label.toLowerCase());
+	const lede = $derived(
+		config.status === 'media'
+			? 'Status, rating and progress stay on the entry page. Cancel returns to the entry.'
+			: 'Change what you stored. Cancel returns to the entry.'
+	);
 </script>
 
 <svelte:head>
 	<title>Edit {data.heading} · Creative Archive</title>
 </svelte:head>
 
-<div class="column page" data-column>
-	<header data-page-header>
-		<Eyebrow parts={[DOMAIN_LABEL[config.domain], 'Edit']} tone="accent" />
-		<h1>Edit <em>{config.label.toLowerCase()}</em></h1>
-	</header>
+<FormHead type={data.type} last={data.heading} lastHref="/entries/{data.id}" head="Edit" {word} {lede} />
 
+<div class="screen-body">
 	{#key data.id}
 		<EntryForm
 			type={data.type}
@@ -27,20 +29,8 @@
 			artists={data.artists}
 			tags={data.tags}
 			action="?/save"
+			mode="edit"
 			cancelHref="/entries/{data.id}"
 		/>
 	{/key}
 </div>
-
-<style>
-	.page {
-		display: flex;
-		flex-direction: column;
-		gap: var(--s-7);
-		padding-block-start: var(--nav-top);
-	}
-
-	h1 {
-		margin-block-start: var(--s-3);
-	}
-</style>

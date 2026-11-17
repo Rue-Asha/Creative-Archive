@@ -1,18 +1,24 @@
 <script lang="ts">
 	import { applyAction, deserialize } from '$app/forms';
 	import { invalidateAll } from '$app/navigation';
+	import { COPY } from '#lib/copy.ts';
 	import { TYPES } from '#lib/entries/config.ts';
-	import { starsFromRating, statusLabel } from '#lib/entries/derive.ts';
+	import { statusLabel } from '#lib/entries/derive.ts';
 	import { clampProgress } from '#lib/entries/progress.ts';
 	import type { Entry, EntryType } from '#lib/types.ts';
 	import Card from '#lib/ui/Card.svelte';
 	import ProgressControl from '#lib/ui/ProgressControl.svelte';
 	import { createWriteQueue } from '#lib/shell/writeQueue.ts';
-	import { tilt } from './tilt.ts';
 
 	type Shape = 'square' | 'portrait' | 'tall';
 
-	let { entry, shape }: { entry: Entry; shape?: Shape } = $props();
+	let {
+		entry,
+		shape,
+		level = 3,
+		typed = false,
+		selectable
+	}: { entry: Entry; shape?: Shape; level?: 3 | 4; typed?: boolean; selectable?: { selected: boolean; ontoggle: (e: MouseEvent | KeyboardEvent) => void } } = $props();
 
 	const KIND_LABEL = { brand: 'Brand', shop: 'Shop', site: 'Site' } as const;
 	const PROGRESS_LABEL = { episodes: 'Episodes', chapters: 'Chapters', volumes: 'Volumes' } as const;
@@ -23,7 +29,10 @@
 		if (entry.status === 'none') return undefined;
 		return statusLabel(entry.type, entry.status) ?? (entry.kind ? KIND_LABEL[entry.kind] : undefined);
 	});
-	const meta = $derived.by(() => {
+	const chipState = $derived(
+		entry.status === 'progress' ? 'doing' : entry.status === 'none' || entry.status === null || !statusLabel(entry.type, entry.status) ? undefined : entry.status
+	);
+	const maker = $derived.by(() => {
 		const d = entry.details;
 		if (entry.type === 'album' || entry.type === 'song') return entry.artistName ?? undefined;
 		if (entry.type === 'book') return d.authors?.join(', ') || undefined;
@@ -31,6 +40,10 @@
 		if (entry.type === 'anime' || entry.type === 'manga') return d.year ? String(d.year) : undefined;
 		return undefined;
 	});
+	// a shelf mixing types names each card's type first ("Album · Marlene Okafor")
+	const meta = $derived(
+		typed ? (maker ? COPY.typedMeta.replace('{type}', TYPES[entry.type].label).replace('{maker}', maker) : TYPES[entry.type].label) : maker
+	);
 
 	// the key that finishes the work (episodes, or chapters); only a work in progress gets a control
 	const key = $derived(entry.status === 'progress' ? TYPES[entry.type].progress[0] : undefined);
@@ -61,42 +74,28 @@
 	}
 </script>
 
-<div class="entry" use:tilt>
-	<Card
-		href="/entries/{entry.id}"
-		title={entry.title}
-		image={entry.imageId === null ? null : `/images/${entry.imageId}`}
-		{chip}
-		{meta}
-		tint={null}
-		coverId={entry.id}
-		rating={starsFromRating(entry.rating)}
-		shape={shape ?? shapeOf(entry.type)}
-	>
-		{#if key && progress}
-			<ProgressControl
-				label={PROGRESS_LABEL[key]}
-				{current}
-				total={progress.total}
-				tone="glass"
-				onstep={(delta) => move(current + delta, { delta: String(delta) })}
-				onset={(value) => move(value, { value: String(value) })}
-			/>
-		{/if}
-	</Card>
-</div>
-
-<style>
-	/* the wrapper only carries the tilt action; the card inside is the box */
-	.entry {
-		display: contents;
-	}
-
-	/* under reduced motion a hovered card stays put (the CSS lift would otherwise still apply) */
-	@media (prefers-reduced-motion: reduce) {
-		.entry :global([data-card]:hover),
-		.entry :global([data-card]:hover .media img) {
-			transform: none;
-		}
-	}
-</style>
+<Card
+	href="/entries/{entry.id}"
+	title={entry.title}
+	image={entry.imageId === null ? null : `/images/${entry.imageId}`}
+	{chip}
+	state={chipState}
+	{meta}
+	coverId={entry.id}
+	rating={entry.rating}
+	year={entry.details.year ?? null}
+	{selectable}
+	{level}
+	shape={shape ?? shapeOf(entry.type)}
+>
+	{#if key && progress}
+		<ProgressControl
+			label={PROGRESS_LABEL[key]}
+			name="{PROGRESS_LABEL[key]}, {entry.title}"
+			{current}
+			total={progress.total}
+			onstep={(delta) => move(current + delta, { delta: String(delta) })}
+			onset={(value) => move(value, { value: String(value) })}
+		/>
+	{/if}
+</Card>

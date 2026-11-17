@@ -8,7 +8,7 @@ test.beforeEach(async ({ page, request }) => {
 
 test('Scenario: Create a magazine from the Add menu', async ({ page }) => {
 	await open(page, '/fashion');
-	await page.getByRole('button', { name: 'Add' }).click();
+	await page.getByRole('main').getByRole('button', { name: 'Add' }).click();
 	await page.getByRole('menu', { name: 'Add to Fashion' }).getByRole('menuitem', { name: 'Magazine' }).click();
 	await expect(page).toHaveURL(/\/add\/magazine$/);
 
@@ -25,8 +25,9 @@ test('Scenario: Create a magazine from the Add menu', async ({ page }) => {
 	await expect(cardTitles(page)).toHaveText(['Vestoj']);
 
 	await open(page, '/');
-	const recent = shelf(page, 'Recently added · Fashion');
-	await expect(recent.getByRole('heading', { level: 2 })).toHaveText(/Recently added\s*·?\s*Fashion/);
+	const recent = shelf(page, 'Fashion');
+	// under Home's "Recently added" (h2) each domain's shelf is an h3
+	await expect(recent.getByRole('heading', { level: 3 })).toHaveText('Fashion');
 	await expect(recent).toContainText('Vestoj');
 });
 
@@ -43,7 +44,10 @@ test('Scenario: Empty magazines list offers Add', async ({ page }) => {
 	await open(page, '/fashion/magazines');
 
 	await expect(cards(page)).toHaveCount(0);
-	await expect(page.getByRole('link', { name: 'Add', exact: true })).toHaveAttribute('href', '/add/magazine');
+	const empty = page.locator('main .empty').filter({ has: page.getByRole('heading', { name: 'No magazines yet' }) });
+	await expect(empty).toHaveCount(1);
+	await expect(empty.getByRole('link', { name: 'Add', exact: true })).toHaveAttribute('href', '/add/magazine');
+	await expect(page.locator('main').getByRole('link', { name: 'Add', exact: true })).toHaveCount(1);
 });
 
 test('Scenario: Fashion welcome names magazines', async ({ page }) => {

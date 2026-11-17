@@ -30,14 +30,14 @@ One personal archive across consumption domains and fashion references, with a s
 
 ## Capabilities and Constraints
 
-- Ten item types in four domains: Music (Album, Artist, Song), Animanga (Anime, Manga), Books (Book), Fashion (Brand/Shop/Site as one type with a Kind and one combined list, Influencer, Piece, Look).
+- Item types in four domains: Music (Album, Artist, Song), Animanga (Anime, Manga), Books (Book), Fashion (Brand/Shop/Site as one type with a Kind and one combined list, Influencer, Magazine, Piece, Look). Magazines have their own list and add form like the other Fashion types.
 - Create by catalogue search and pick (media), by URL preview (fashion), or by hand (all). Edit and delete with confirmation.
 - Status: media has none, want, in progress, done, dropped (labels per domain: listen, watch, read), and can be given an initial status when added; pieces have wishlist (cool pieces worth remembering), owned (the Wardrobe), gone. Adding from Wardrobe creates an Owned piece. Status changes keep a dated history.
 - Progress: anime episodes, manga chapters and volumes, totals may be unknown ("n / ?"); typed or stepped; reaching the total offers "Mark as watched" / "Mark as read".
 - Rating: media only (artists included), a number out of 10 with up to two decimals (e.g. 8.75), clearable; former star ratings were converted by doubling.
 - Tags: free, global, case- and accent-insensitive dedupe. Collections: named, mixed types, no duplicates, entries manually reorderable (new ones go last); descriptions show on the collections index too.
 - Artists link to albums and songs; an artist page lists its works.
-- Lists per type with status, kind, tag and minimum-rating filters, sorting, and a status-grouped view; the state lives in the URL. Brands and shops are one list filtered by Kind; the old Brands and Shops URLs redirect to it.
+- Lists per type with status, kind, tag and minimum-rating filters, sorting, and a status-grouped view; the state lives in the URL. Select mode in a list applies bulk actions: set a status, add or remove a tag on several entries in one step. In a collection, Select mode moves several entries (top, bottom, before another) or removes them in one step; single entries move up or down, or by drag on the desktop. Brands and shops are one list filtered by Kind; the old Brands and Shops URLs redirect to it.
 - Images: jpeg, png, webp, gif, avif, heif up to 16 MB (no HEIC), converted to WebP; placeholder with title initials when absent. One hero photo per world (Home and each domain), configured in Settings.
 - Writes are optimistic with a background queue; failures revert and show "Couldn't save — try again". Unsaved form changes prompt "Discard changes?".
 - Constraints: single user, no authentication, no pagination, English copy, accessibility-first interaction (see below). Server fetches of user URLs are restricted to public http(s) hosts.

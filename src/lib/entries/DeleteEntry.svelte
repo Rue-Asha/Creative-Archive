@@ -1,30 +1,16 @@
 <script lang="ts">
-	import { tick } from 'svelte';
 	import { applyAction, enhance, type SubmitFunction } from '$app/forms';
+	import Button from '#lib/components/button/Button.svelte';
+	import Sheet from '#lib/components/sheet/Sheet.svelte';
 	import { COPY } from '#lib/copy.ts';
-	import { fadeSlide, hideOnOutro } from '#lib/motion.ts';
 	import { toast } from '#lib/shell/toast.ts';
-	import Button from '#lib/ui/Button.svelte';
+	import Icon from '#lib/ui/Icon.svelte';
 
-	let { title, typeLabel }: { title: string; typeLabel: string } = $props();
+	// `trigger` false: the page opens it from its own menu through `open`
+	let { title, typeLabel, open = $bindable(false), trigger = true }: { title: string; typeLabel: string; open?: boolean; trigger?: boolean } = $props();
 
-	let open = $state(false);
+	const formId = $props.id();
 	let deleting = $state(false);
-	let dialog = $state<HTMLDivElement>();
-	let opener: Element | null = null;
-
-	async function show() {
-		opener = document.activeElement;
-		open = true;
-		await tick();
-		dialog?.querySelector('button')?.focus();
-	}
-
-	async function close() {
-		open = false;
-		await tick();
-		(opener as HTMLElement | null)?.focus();
-	}
 
 	const submit: SubmitFunction = ({ cancel }) => {
 		if (deleting) return cancel();
@@ -35,107 +21,37 @@
 			deleting = false;
 		};
 	};
-
-	function keys(event: KeyboardEvent) {
-		if (event.key === 'Escape') {
-			event.preventDefault();
-			close();
-		} else if (event.key === 'Tab') {
-			const items = [...dialog!.querySelectorAll<HTMLElement>('button:not(:disabled)')];
-			const at = items.indexOf(document.activeElement as HTMLElement);
-			const next = items[(at + (event.shiftKey ? -1 : 1) + items.length) % items.length];
-			event.preventDefault();
-			next.focus();
-		}
-	}
 </script>
 
-<div class="trigger" inert={open} aria-hidden={open ? 'true' : undefined}>
-	<button type="button" class="quiet" onclick={show}>Delete</button>
-</div>
+{#if trigger}<Button variant="danger" onclick={() => (open = true)}>Delete</Button>{/if}
 
-{#if open}
-	<div class="overlay" role="presentation" onpointerdown={(e) => e.target === e.currentTarget && close()}>
-		<div
-			class="dialog liquid liquid-strong"
-			role="dialog"
-			aria-modal="true"
-			tabindex="-1"
-			aria-labelledby="delete-title"
-			bind:this={dialog}
-			onkeydown={keys}
-			transition:fadeSlide={{ y: 14 }}
-			use:hideOnOutro
-		>
-			<h2 id="delete-title">Delete this {typeLabel.toLowerCase()}?</h2>
-			<p class="name">{title}</p>
-			<p>It leaves your collections and its history goes with it.</p>
-			<form method="POST" action="?/delete" use:enhance={submit}>
-				<Button variant="secondary" arrow={false} onclick={close}>Cancel</Button>
-				<Button type="submit" arrow={false} disabled={deleting}>Delete</Button>
-			</form>
-		</div>
-	</div>
-{/if}
+<Sheet bind:open alert mode="sheet" title="Delete this {typeLabel.toLowerCase()}?">
+	<p class="name">{title}</p>
+	<p>It leaves your collections and its history goes with it.</p>
+	<form id={formId} method="POST" action="?/delete" use:enhance={submit}></form>
+	{#snippet actions()}
+		<Button variant="secondary" autofocus onclick={() => (open = false)}>Cancel</Button>
+		<Button variant="danger" type="submit" form={formId} disabled={deleting}><Icon name="trash" size={16} />Delete</Button>
+	{/snippet}
+</Sheet>
 
 <style>
-	.quiet {
-		min-block-size: 48px;
-		padding: 0 var(--s-4);
-		border: 0;
-		background: transparent;
-		font-size: var(--t-small);
-		font-weight: 600;
-		color: var(--ink-2);
-		text-decoration: underline;
-		text-underline-offset: 3px;
-	}
-
-	.quiet:hover {
-		color: var(--ink);
-	}
-
-	.overlay {
-		position: fixed;
-		inset: 0;
-		z-index: 80;
-		display: grid;
-		place-items: center;
-		padding: var(--s-4);
-		background: var(--scrim-end);
-	}
-
-	.dialog {
-		display: grid;
-		gap: var(--s-3);
-		inline-size: min(100%, 440px);
-		padding: var(--s-7);
-		border-radius: var(--r-panel);
-	}
-
-	h2 {
-		font-size: var(--t-display-3);
-	}
-
+	/* the thing being deleted, set as the dialog's display line (hi-fi) */
 	.name {
-		font-weight: 600;
-		display: -webkit-box;
-		-webkit-line-clamp: 2;
-		line-clamp: 2;
-		-webkit-box-orient: vertical;
-		overflow: hidden;
+		font-family: var(--font-display);
+		font-weight: var(--weight-display);
+		font-size: var(--type-display-s-size);
+		line-height: var(--type-display-s-line);
+		color: var(--ink);
 		overflow-wrap: anywhere;
+		display: -webkit-box;
+		-webkit-box-orient: vertical;
+		-webkit-line-clamp: 4;
+		line-clamp: 4;
+		overflow: hidden;
 	}
 
-	p:last-of-type {
-		color: var(--ink-2);
-	}
-
-	form {
-		display: flex;
-		flex-wrap: wrap;
-		justify-content: flex-end;
-		gap: var(--s-3);
-		margin-block-start: var(--s-4);
+	p {
+		margin-block-end: var(--space-3);
 	}
 </style>

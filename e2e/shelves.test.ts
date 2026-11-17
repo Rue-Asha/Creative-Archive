@@ -33,41 +33,10 @@ test('Scenario: Shelves view groups media by status', async ({ page, request }) 
 
 	await toggle(page, 'Grid').click();
 	await expect(page).not.toHaveURL(/view=/);
-	await expect(page.getByRole('heading', { level: 2 })).toHaveCount(0);
+	// no shelf headings: the grid's one h2 is its own (hidden) name
+	await expect(page.getByRole('heading', { level: 2 })).toHaveText(['Manga list']);
+	await expect(page.locator('[data-shelf]')).toHaveCount(0);
 	await expect(cards(page)).toHaveCount(3);
-});
-
-test('Scenario: Shelf headers stick on desktop', async ({ page, request }, info) => {
-	test.skip(info.project.name !== 'desktop', 'sticky headers are a desktop layout');
-	await calm(page);
-	await reset(request);
-	await seed(request, { entries: [{ type: 'manga', title: 'Planned', status: 'want' }, { type: 'manga', title: 'Ongoing', status: 'progress' }] });
-	await open(page, '/animanga/manga?view=shelves');
-
-	const positions = await page.getByRole('heading', { level: 2 }).evaluateAll((els) =>
-		els.map((el) => {
-			for (let node: Element | null = el; node; node = node.parentElement) if (getComputedStyle(node).position === 'sticky') return 'sticky';
-			return getComputedStyle(el).position;
-		})
-	);
-	expect(positions).toEqual(['sticky', 'sticky']);
-});
-
-test('Scenario: Shelf headers do not stick on phone', async ({ page, request }, info) => {
-	test.skip(info.project.name !== 'phone', 'phone layout');
-	await calm(page);
-	await reset(request);
-	await seed(request, { entries: [{ type: 'manga', title: 'Planned', status: 'want' }, { type: 'manga', title: 'Ongoing', status: 'progress' }] });
-	await open(page, '/animanga/manga?view=shelves');
-
-	const positions = await page.getByRole('heading', { level: 2 }).evaluateAll((els) =>
-		els.map((el) => {
-			for (let node: Element | null = el; node; node = node.parentElement) if (getComputedStyle(node).position === 'sticky') return 'sticky';
-			return getComputedStyle(el).position;
-		})
-	);
-	expect(positions).toHaveLength(2);
-	for (const position of positions) expect(position).not.toBe('sticky');
 });
 
 const DRAG = 400;

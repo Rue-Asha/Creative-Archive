@@ -1,0 +1,120 @@
+/* Motion signature (brief/rounds.md, "Motion signature (5.3)"): press, the pill glide, the
+   cards settling once, the rating line. Everything is opt-in through data attributes, so a
+   control without a hook stays still; keyboard and high-frequency changes get no hook.
+   Only transform, opacity and clip-path move. backdrop-filter never animates. */
+
+/* ---------- Hover: colour only ---------- */
+/* Rows, links and quiet buttons change colour on hover and never move. */
+[data-hover] {
+	transition: background-color var(--motion-quick) var(--ease-out), color var(--motion-quick) var(--ease-out);
+}
+
+/* ---------- 1. Press ---------- */
+/* Pills scale to 0.97 and round icon buttons to 0.95 while pressed. */
+[data-press] {
+	transition:
+		transform var(--motion-quick) var(--ease-out),
+		background-color var(--motion-quick) var(--ease-out),
+		color var(--motion-quick) var(--ease-out);
+}
+[data-press]:not(:disabled):active { transform: scale(var(--press-scale)); }
+[data-press="round"]:not(:disabled):active { transform: scale(var(--press-scale-round)); }
+[data-press]:disabled { transform: none; }
+
+/* The arrow in the white circle moves, the circle stays. "out" is the link-out arrow. */
+[data-nudge] { transition: transform var(--motion-quick) var(--ease-out); }
+@media (hover: hover) and (pointer: fine) {
+	:is(a, button, [data-press]):hover [data-nudge] { transform: translateX(var(--nudge)); }
+	:is(a, button, [data-press]):hover [data-nudge="out"] {
+		transform: translate(calc(var(--nudge) * 2 / 3), calc(var(--nudge) * -2 / 3));
+	}
+}
+
+/* ---------- 2. The pill glides ---------- */
+/* The pill script (primitives) lays an inert, aria-hidden copy of the track over it
+   ([data-pill-ghost]): charcoal with white labels, clipped to the current option through
+   --pill-clip. Pill and label colour move as one clip, so no label vanishes or turns grey
+   mid-glide, and clip-path retargets when a second click interrupts. The script sets these
+   attributes itself, so without it the static charcoal pill stays. It sets
+   [data-pill-instant] for keyboard activation and layout changes, which jump.
+   The selectors carry the host so they outrank an app's own item and current-item rules. */
+[data-pill-host], [data-pill-track] { position: relative; }
+[data-pill-host] > [data-pill-ghost] {
+	position: absolute;
+	grid-area: auto;
+	margin: 0;
+	pointer-events: none;
+	background: var(--surface-inverse);
+	box-shadow: none;
+	-webkit-backdrop-filter: none;
+	backdrop-filter: none;
+	clip-path: var(--pill-clip, inset(50%));
+	transition: clip-path var(--motion-glide) var(--ease-in-out);
+}
+[data-pill-host] > [data-pill-ghost][data-pill-instant] { transition: none; }
+[data-pill-host] > [data-pill-ghost] [data-pill-item] {
+	background: none;
+	color: var(--ink-on-inverse);
+	box-shadow: none;
+	transition: none;
+}
+[data-pill-host] > [data-pill-track] [data-pill-item]:is([aria-current], [aria-pressed="true"]) {
+	background-color: transparent;
+	color: var(--ink);
+}
+/* The glide is the feedback; a label shrinking under a still pill reads as a glitch. */
+[data-pill-host] > [data-pill-track] [data-pill-item]:active { transform: none; }
+
+/* ---------- 3. The cards settle ---------- */
+/* The cards that overlap the photo's lower edge rise into place, 60ms apart. The app sets
+   [data-settle] on their parent for a full page load only, never on in-app navigation or a
+   data refresh; the animation never blocks input. */
+@keyframes fp-settle { from { opacity: 0; transform: translateY(var(--settle-rise)); } }
+@keyframes fp-fade-in { from { opacity: 0; } }
+@keyframes fp-fade-out { to { opacity: 0; } }
+[data-settle] > * { animation: fp-settle var(--motion-settle) var(--ease-out) backwards; }
+[data-settle] > :nth-child(2) { animation-delay: var(--motion-stagger); }
+[data-settle] > :nth-child(3) { animation-delay: calc(var(--motion-stagger) * 2); }
+[data-settle] > :nth-child(n + 4) { animation-delay: calc(var(--motion-stagger) * 3); }
+
+/* ---------- 4. The rating is confirmed ---------- */
+/* An accent line draws under the number, holds, and fades. The script sets
+   [data-confirmed] on the field when a typed rating is committed and differs from the saved
+   one (removing it first, with a reflow, to restart), and --confirm-x/-w/-bottom to sit the
+   line under the input. Arrow stepping and Escape save without it. */
+@keyframes fp-draw { from { clip-path: inset(0 100% 0 0); } }
+[data-confirm-line] { position: relative; }
+[data-confirm-line]::after {
+	content: "";
+	position: absolute;
+	left: var(--confirm-x, 0);
+	bottom: var(--confirm-bottom, 0);
+	width: var(--confirm-w, 100%);
+	height: var(--stroke-strong);
+	background: var(--accent);
+	opacity: 0;
+	pointer-events: none;
+}
+[data-surface="inverse"] [data-confirm-line]::after,
+[data-surface="inverse"][data-confirm-line]::after { background: var(--accent-on-inverse); }
+[data-confirm-line][data-confirmed]::after {
+	opacity: 1;
+	animation:
+		fp-draw var(--motion-glide) var(--ease-out),
+		fp-fade-out var(--motion-quick) var(--ease-out) calc(var(--motion-glide) + var(--motion-hold)) forwards;
+}
+
+/* ---------- Reduced motion ---------- */
+/* Movement goes; colour and opacity that explain a state stay. Press and the nudge are gone,
+   the pill jumps, the settle is a fade in place, the rating line fades in and out. */
+@media (prefers-reduced-motion: reduce) {
+	[data-press]:not(:disabled):active,
+	[data-press="round"]:not(:disabled):active { transform: none; }
+	[data-press] { transition-property: background-color, color; }
+	[data-nudge],
+	:is(a, button, [data-press]):hover [data-nudge],
+	:is(a, button, [data-press]):hover [data-nudge="out"] { transform: none; transition: none; }
+	[data-pill-host] > [data-pill-ghost] { transition: none; }
+	[data-settle] > * { animation-name: fp-fade-in; }
+	[data-confirm-line][data-confirmed]::after { animation-name: fp-fade-in, fp-fade-out; }
+}

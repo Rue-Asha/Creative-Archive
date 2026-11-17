@@ -1,0 +1,129 @@
+/* What the app adds on top of the fingerprint's base: only fields take the text cursor (prose stays selectable but shows the
+   default one), and nothing but the fields and what Rue wrote (an entry's note, a collection's description, marked
+   .selectable) starts a selection on a double-click, a drag or a long press (Rue, gate 7, the rule Notes has): headings,
+   kickers, ledes, labels, meta lines and links are chrome. A modal dialog gets `user-select: text` from Chrome's UA sheet,
+   so it is named too; WebKit inherits -webkit-user-select, so the fields and the prose opt back in. */
+html {
+	cursor: default;
+}
+
+input,
+textarea,
+[contenteditable]:not([contenteditable='false']) {
+	cursor: auto;
+}
+
+html,
+dialog {
+	-webkit-user-select: none;
+	user-select: none;
+	-webkit-touch-callout: none;
+}
+
+:where(input, textarea, [contenteditable]:not([contenteditable='false']), .selectable) {
+	-webkit-user-select: text;
+	user-select: text;
+	-webkit-touch-callout: default;
+}
+
+/* A card presses in as one (motion.css press hook); a control inside it presses on its own, and the cards of a shelf
+   being dragged stay still. */
+[data-card][data-press]:not(:disabled):has(.btn:active),
+[data-dragging] [data-press]:not(:disabled):active {
+	transform: none;
+}
+
+/* The night stage (fingerprint 2.1.0; Rue, gate 7, 2026-11-17, direction B): a domain's screens are its world's night
+   banner. The fingerprint turns only the lead's title, kicker and lede and the brand light; the rest of the head's
+   loose text is set here. Every crop and height below comes from fingerprint tokens. */
+.app[data-world='music'] {
+	--photo-x: 62%;
+	--photo-y: 40%;
+}
+.app[data-world='animanga'] {
+	--photo-x: 50%;
+	--photo-y: 45%;
+}
+.app[data-world='books'] {
+	--photo-x: 60%;
+	--photo-y: 40%;
+}
+.app[data-world='fashion'] {
+	--photo-x: 60%;
+	--photo-y: 30%;
+}
+
+/* A taller banner: the type sits at its foot and the photo reads above it. Forms (add, edit) keep the short head,
+   they are working screens. */
+@media (min-width: 768px) {
+	.app[data-stage='night'] .frame:has(> .stage) .screen-head:not(.form-head) {
+		min-block-size: clamp(calc(var(--facts-max) + var(--stage-overlap)), 34vw, calc(var(--facts-max) * 2));
+		align-content: end;
+	}
+	.app[data-stage='night'] .frame:not(:has(> .stage)) .screen-head:not(.form-head) {
+		min-block-size: clamp(calc(var(--facts-max) + var(--space-16)), 28vw, calc(var(--facts-max) + var(--stage-overlap) + var(--space-16)));
+		align-content: end;
+	}
+}
+@media (max-width: 767px) {
+	.app[data-stage='night'] .frame:not(:has(.form-head)) {
+		--photo-gap: calc(var(--stage-overlap) * 2);
+	}
+}
+/* Tablet: the fingerprint's band runs past the bar into the lead's plate, so the veil covered the whole banner. The band
+   stops after the bar as on wide screens, and the lead starts the phone's photo gap down the head, so a strip of clear
+   photo stays above the title however tall the lead grows (the stage grows with it). */
+@media (min-width: 768px) and (max-width: 1099px) {
+	.app[data-stage='night'] .frame > .stage::after {
+		background: linear-gradient(180deg, var(--scrim-text) 0, var(--scrim-text) var(--bar-h), var(--scrim-soft) calc(var(--bar-h) + var(--scrim-bar-soft)), var(--scrim-clear) calc(var(--bar-h) + var(--scrim-bar-clear)));
+	}
+	.app[data-stage='night'] .frame:has(> .stage) .screen-head:not(.form-head) {
+		padding-block-start: calc(var(--stage-overlap) * 2);
+	}
+}
+
+/* In a world the night stands in for charcoal in the dark pill's focus halo and the modal scrim too. */
+.app[data-stage='night'] {
+	--focus-halo: 0 0 0 calc(var(--focus-offset) + var(--focus-width)) var(--surface-inverse);
+	--dialog-scrim: color-mix(in srgb, var(--surface-inverse) 12%, transparent);
+}
+
+/* Fashion's sub-type group names sit on the veil like the kicker they head. */
+.app[data-stage='night'] .screen-lead .tabs .caption {
+	color: var(--ink-on-inverse-secondary);
+}
+.app[data-stage='night'] .screen-lead .lede a {
+	text-decoration-color: var(--ink-on-inverse-secondary);
+}
+
+/* The entry's breadcrumb sits above the lead, on its own band of the veil. */
+.app[data-stage='night'] .screen-head > .bar {
+	--scrim-text: var(--world-veil);
+	--scrim-clear: var(--world-veil-clear);
+}
+.app[data-stage='night'] .screen-head > .bar .kicker {
+	--ink: var(--ink-on-inverse);
+	--ink-secondary: var(--ink-on-inverse-secondary);
+	--focus-color: var(--focus-ring-on-inverse);
+}
+
+/* A wrapped kicker never opens a line on an orphan dash (Rue, gate 7): each dash hangs in the gap before its part, so
+   the dash of a part that starts a line falls past the list's start edge, where it is clipped; the clip leaves room
+   for the focus ring. The touch-size links already space the lines, so the rows close up. */
+:is(ul, ol).kicker {
+	font-size: var(--type-kicker-size);
+	column-gap: calc(0.6em + 1em + 0.85em);
+	row-gap: 0;
+	clip-path: inset(calc(-1 * (var(--focus-offset) + var(--focus-width))));
+}
+:is(ul, ol).kicker > li {
+	position: relative;
+}
+:is(ul, ol).kicker > li + li::before {
+	position: absolute;
+	inset-block: 0;
+	inset-inline-end: calc(100% + 0.85em);
+	display: flex;
+	align-items: center;
+	margin-inline-end: 0;
+}

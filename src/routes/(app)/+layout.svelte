@@ -1,13 +1,18 @@
 <script lang="ts">
-	import { onNavigate } from '$app/navigation';
+	import '#lib/styles/fingerprint/tokens.css';
+	import '#lib/styles/fingerprint/fonts.css';
+	import '#lib/styles/fingerprint/base.css';
+	import '#lib/styles/fingerprint/motion.css';
+	import '#lib/styles/fingerprint/layout.css';
+	import '#lib/styles/app.css';
+	import { beforeNavigate, afterNavigate, pushState } from '$app/navigation';
 	import { page } from '$app/state';
-	import { onMount, type Snippet } from 'svelte';
-	import { DOMAINS, WORLD_NAMES, type World } from '#lib/domains.ts';
-	import { schemes } from '#lib/styles/tokens.ts';
-	import { WORLDS, worldAttrs } from '#lib/styles/worlds.ts';
+	import type { Snippet } from 'svelte';
+	import { DOMAINS, WORLD_NAMES, type Domain, type World } from '#lib/domains.ts';
 	import AppNav from '#lib/shell/AppNav.svelte';
-	import { pageTransition, trackCoverClicks } from '#lib/shell/morph.ts';
-	import { activeSection } from '#lib/shell/nav.ts';
+	import { activeSection, rememberShelves, restoreShelves } from '#lib/shell/nav.ts';
+	import PhotoFrame from '#lib/shell/PhotoFrame.svelte';
+	import PlusSheet from '#lib/shell/PlusSheet.svelte';
 	import Toast from '#lib/shell/Toast.svelte';
 
 	let { children }: { children: Snippet } = $props();
@@ -17,84 +22,34 @@
 	const world = $derived<World>(
 		WORLD_NAMES.find((w) => w === page.data.world) ?? DOMAINS.find((d) => d === page.url.pathname.split('/')[1]) ?? 'home'
 	);
-	const scheme = $derived(WORLDS[world].scheme);
+	const section = $derived(activeSection(page.url.pathname, world));
+	const image = $derived(page.data.heroes?.[world] ?? null);
+	// the sheet offers the world's types; Collections and Settings sit in the home world and offer all of them
+	const scope = $derived<Domain | 'all'>(world === 'home' ? 'all' : world);
+	const list = $derived(page.url.pathname.split('/')[2]);
+	const inert = $derived(/^\/add\//.test(page.url.pathname) || /^\/entries\/\d+\/edit\/?$/.test(page.url.pathname));
+	let sheet = $state(false);
 
-	onNavigate(pageTransition);
-	onMount(trackCoverClicks);
+	function openSheet() {
+		pushState('', { plus: true } as App.PageState);
+		sheet = true;
+	}
+
+	// shelf rows come back where they were left when history goes back
+	beforeNavigate(({ from }) => from && rememberShelves(from.url));
+	afterNavigate(({ type, to }) => {
+		if (type === 'popstate' && to) restoreShelves(to.url);
+	});
 </script>
 
-<svelte:head>
-	<!-- the transition pseudo-elements hang off html, outside the world's scheme block -->
-	{@html `<style>html,body{background:${schemes[scheme].ground}}html{--shadow-float:${schemes[scheme]['shadow-float']}}</style>`}
-</svelte:head>
+<svelte:head><meta name="theme-color" content={page.data.themes[world]} /></svelte:head>
 
-<div class="app" {...worldAttrs(world)} data-world={world} style:color-scheme={scheme}>
-	<AppNav section={activeSection(page.url.pathname, world)} />
-	<main>
-		{@render children()}
-	</main>
-	<Toast />
-</div>
-
-<style>
-	.app {
-		position: relative;
-		min-block-size: 100dvh;
-		overflow-x: clip;
-		/* what a screen without a full-bleed hero pads its top by to clear the floating nav */
-		--nav-top: 96px;
-	}
-
-	/* minmax(0, 1fr): a shelf row's nowrap content must not widen the page's one track */
-	main {
-		display: grid;
-		grid-template-columns: minmax(0, 1fr);
-		gap: var(--s-10);
-		padding-block-end: var(--s-11);
-	}
-
-	/* the root crossfade is quick; a morphing cover takes its time */
-	:global {
-		::view-transition-group(root) {
-			animation-duration: var(--d-base);
-		}
-
-		::view-transition-group(*) {
-			animation-duration: var(--d-slow);
-			animation-timing-function: var(--ease-out);
-		}
-
-		/* a cover keeps the card's corners and the detail cover's shadow all the way, and a 4/5 card cover
-		   crops into a 2/3 detail cover instead of stretching */
-		::view-transition-group(*.cover) {
-			border-radius: var(--r-card);
-			overflow: clip;
-			box-shadow: var(--shadow-float);
-		}
-
-		::view-transition-old(*.cover),
-		::view-transition-new(*.cover) {
-			block-size: 100%;
-			object-fit: cover;
-		}
-
-		/* a cover with no card to land on (morph.ts) fades with the root crossfade, as part of the page */
-		:root[data-morph='fade']::view-transition-group(*.cover) {
-			animation-duration: var(--d-base);
-			border-radius: 0;
-			overflow: visible;
-			box-shadow: none;
-		}
-	}
-
-	@media (max-width: 1023px) {
-		.app {
-			--nav-top: 76px;
-		}
-
-		main {
-			gap: var(--s-9);
-			padding-block-end: calc(var(--tabbar-h) + 56px);
-		}
-	}
-</style>
+<PhotoFrame {world} {image}>
+	{#snippet bar()}<AppNav part="bar" {section} />{/snippet}
+	{@render children()}
+	{#snippet dock()}<AppNav part="dock" {section} plus={inert ? 'inert' : 'shown'} expanded={sheet} onplus={openSheet} />{/snippet}
+	{#snippet after()}
+		<PlusSheet {scope} list={world === 'fashion' ? list : undefined} bind:open={sheet} />
+		<Toast />
+	{/snippet}
+</PhotoFrame>

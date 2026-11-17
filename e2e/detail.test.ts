@@ -1,5 +1,5 @@
-import { expect, test, type Locator } from '@playwright/test';
-import { calm, expectCurrent, expectWorld, open, reset, seed } from './helpers.ts';
+import { expect, test } from '@playwright/test';
+import { calm, expectCurrent, expectWorld, open, openEntryMenu, reset, seed } from './helpers.ts';
 
 test.beforeEach(async ({ page, request }) => {
 	await calm(page);
@@ -27,7 +27,7 @@ test('Scenario: Detail shows every filled field', async ({ page, request }) => {
 	await expect(page.getByText('Maison Example')).toBeVisible();
 	await expect(page.getByRole('link', { name: 'brand.example/coat' })).toHaveAttribute('href', 'https://brand.example/coat');
 	await expect(page.getByText('240 EUR')).toBeVisible();
-	await expect(page.getByText('Owned', { exact: true })).toBeVisible();
+	await expect(page.getByRole('button', { name: 'Status: Owned' })).toBeVisible();
 	await expect(page.getByText('winter', { exact: true })).toBeVisible();
 	await expect(page.getByText('Ästhetik', { exact: true })).toBeVisible();
 	await expect(page.getByText('Bought in Paris, runs large.')).toBeVisible();
@@ -86,7 +86,7 @@ test('Scenario: Fashion entries without status or rating show no controls', asyn
 
 		await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
 		await expect(page.getByRole('button', { name: /^Status/ })).toHaveCount(0);
-		await expect(page.getByRole('slider')).toHaveCount(0);
+		await expect(page.getByRole('spinbutton')).toHaveCount(0);
 		await expect(page.getByRole('group', { name: /Episodes|Chapters|Volumes/ })).toHaveCount(0);
 	}
 });
@@ -103,118 +103,27 @@ test('the cover shows the photo, or a placeholder with initials, and Edit links 
 
 	await open(page, `/entries/${withImage}`);
 	await expect(page.getByRole('img', { name: 'Blonde', exact: true })).toHaveAttribute('src', /^\/images\/\d+$/);
-	await expect(page.getByRole('link', { name: 'Edit' })).toHaveAttribute('href', `/entries/${withImage}/edit`);
+	await openEntryMenu(page);
+	await expect(page.getByRole('menuitem', { name: 'Edit' })).toHaveAttribute('href', `/entries/${withImage}/edit`);
 
 	await open(page, `/entries/${without}`);
 	await expect(page.getByRole('img', { name: 'Nikes Remixed' })).not.toHaveAttribute('src');
 	await expect(page.getByRole('img', { name: 'Nikes Remixed' }).getByText('NR')).toBeVisible();
 });
 
-test('detail lays out as a cover and a panel side by side on desktop and stacks on phone', async ({ page, request }, info) => {
+test('detail shows the cover beside the facts on desktop, above them on the phone, and never overflows sideways', async ({ page, request }, info) => {
 	const {
 		entries: [id]
-	} = await seed(request, { entries: [{ type: 'album', title: 'Blonde', image: true }] });
+	} = await seed(request, { entries: [{ type: 'album', title: 'Blonde', image: true, details: { year: 2016 } }] });
 	await open(page, `/entries/${id}`);
 	const cover = (await page.getByRole('img', { name: 'Blonde', exact: true }).boundingBox())!;
-	const panel = (await page.getByRole('region', { name: 'Blonde', exact: true }).boundingBox())!;
+	const panel = (await page.getByRole('region', { name: 'Album', exact: true }).boundingBox())!;
+	const facts = (await page.getByText('Year', { exact: true }).boundingBox())!;
 
 	if (info.project.name === 'desktop') {
-		expect(panel.x).toBeGreaterThan(cover.x + cover.width - 1);
+		expect(facts.x).toBeGreaterThan(cover.x + cover.width - 1);
 		expect(cover.width).toBeLessThanOrEqual(401);
-	} else {
-		expect(panel.y).toBeGreaterThan(cover.y + cover.height - 1);
-		expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
-	}
-});
-
-const centreY = async (locator: Locator) => {
-	const box = (await locator.boundingBox())!;
-	return box.y + box.height / 2;
-};
-
-test('Scenario: Phone detail shows the title above the fold', async ({ page, request }, info) => {
-	test.skip(info.project.name !== 'phone');
-	const longTitle = Array.from({ length: 30 }, (_, i) => `word${i}`).join(' ').slice(0, 180);
-	const {
-		entries: [manga, long]
-	} = await seed(request, {
-		entries: [
-			{ type: 'manga', title: 'Vagabond', image: true },
-			{ type: 'book', title: longTitle, image: true }
-		]
-	});
-
-	for (const [id, title] of [[manga, 'Vagabond'], [long, longTitle]] as const) {
-		await open(page, `/entries/${id}`);
-		const cover = (await page.getByRole('img', { name: title, exact: true }).boundingBox())!;
-		const heading = (await page.getByRole('heading', { level: 1 }).boundingBox())!;
-		expect(cover.width).toBeLessThanOrEqual(240.5);
-		expect(heading.y).toBeLessThan(844);
-	}
-});
-
-test('Scenario: Desktop controls share one row', async ({ page, request }, info) => {
-	test.skip(info.project.name !== 'desktop');
-	const {
-		entries: [id]
-	} = await seed(request, {
-		entries: [{ type: 'anime', title: 'Frieren', status: 'progress', rating: 8, progress: { episodes: { current: 3, total: 28 } } }]
-	});
-	await open(page, `/entries/${id}`);
-	const panel = page.getByRole('region', { name: 'Frieren', exact: true });
-
-	const status = await centreY(panel.getByRole('button', { name: /^Status/ }));
-	const stars = await centreY(panel.getByRole('slider', { name: 'Rating' }));
-	const progress = panel.getByRole('group', { name: 'Episodes', exact: true });
-	const buttons = progress.getByRole('button');
-	expect(await buttons.count()).toBeGreaterThan(1);
-	expect(Math.abs(status - stars)).toBeLessThanOrEqual(2);
-	for (const button of await buttons.all()) expect(Math.abs((await centreY(button)) - status)).toBeLessThanOrEqual(2);
-});
-
-test('Scenario: Detail without progress keeps its controls row', async ({ page, request }, info) => {
-	test.skip(info.project.name !== 'desktop');
-	const {
-		entries: [id]
-	} = await seed(request, { entries: [{ type: 'album', title: 'Blonde', status: 'done', rating: 10 }] });
-	await open(page, `/entries/${id}`);
-	const panel = page.getByRole('region', { name: 'Blonde', exact: true });
-
-	const status = await centreY(panel.getByRole('button', { name: /^Status/ }));
-	const stars = await centreY(panel.getByRole('slider', { name: 'Rating' }));
-	expect(Math.abs(status - stars)).toBeLessThanOrEqual(2);
-});
-
-test('Scenario: Delete is a quiet action on the actions row', async ({ page, request }) => {
-	const {
-		entries: [id]
-	} = await seed(request, { entries: [{ type: 'album', title: 'Blonde' }] });
-	await open(page, `/entries/${id}`);
-	const edit = (await page.getByRole('link', { name: 'Edit' }).boundingBox())!;
-	const remove = page.getByRole('button', { name: 'Delete' });
-	const box = (await remove.boundingBox())!;
-
-	expect(Math.abs(box.y - edit.y)).toBeLessThanOrEqual(2);
-	const style = await remove.evaluate((el) => {
-		const s = getComputedStyle(el);
-		return { bg: s.backgroundColor, border: s.borderTopWidth, style: s.borderTopStyle };
-	});
-	expect(style.bg).toBe('rgba(0, 0, 0, 0)');
-	expect(style.border === '0px' || style.style === 'none').toBe(true);
-});
-
-test('Scenario: Detail backdrop fades out without a crease', async ({ page, request }) => {
-	const {
-		entries: [id]
-	} = await seed(request, { entries: [{ type: 'album', title: 'Blonde', image: true }] });
-	await open(page, `/entries/${id}`);
-
-	const backdrop = await page.getByRole('main').locator('[aria-hidden="true"]:has(> img)').first().evaluate((el) => {
-		const mask = getComputedStyle(el).maskImage;
-		const overlay = getComputedStyle(el, '::after');
-		return { stops: (mask.match(/rgba?\(/g) ?? []).length, overlay: overlay.content, overlayImage: overlay.backgroundImage };
-	});
-	expect(backdrop.stops).toBeGreaterThanOrEqual(5);
-	expect(backdrop.overlay).toBe('none');
-	expect(backdrop.overlayImage).toBe('none');
+	} else expect(facts.y).toBeGreaterThan(cover.y + cover.height - 1);
+	expect(panel.x).toBeLessThanOrEqual(cover.x);
+	expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(page.viewportSize()!.width);
 });

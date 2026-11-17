@@ -1,0 +1,713 @@
+{
+	"schemaVersion": 2,
+	"generatedAt": "2026-11-13T08:41:30.407Z",
+	"title": "Design System: Design fingerprint",
+	"extensions": {
+		"colorMeta": {
+			"accent": {
+				"role": "primary",
+				"displayName": "Rosemary (default accent)",
+				"canonical": "#527752",
+				"oklch": "oklch(53.1% 0.071 144.5)",
+				"tonalRamp": [
+					"#070D07",
+					"#1C2B1C",
+					"#344C34",
+					"#4E704E",
+					"#739372",
+					"#9DB69C",
+					"#C5D7C5",
+					"#E7EFE7"
+				],
+				"note": "The accent follows <html data-accent>; see accentSets."
+			},
+			"surface-inverse": {
+				"role": "neutral",
+				"displayName": "Charcoal",
+				"canonical": "#1D1D1F",
+				"oklch": "oklch(23.2% 0.004 286.1)",
+				"tonalRamp": [
+					"#0B0B0C",
+					"#262627",
+					"#454546",
+					"#666668",
+					"#89898B",
+					"#AEAEAF",
+					"#D1D1D2",
+					"#EEEEEF"
+				]
+			},
+			"ink": {
+				"role": "neutral",
+				"displayName": "Ink",
+				"canonical": "#1D1D1F",
+				"oklch": "oklch(23.2% 0.004 286.1)",
+				"tonalRamp": [
+					"#0B0B0C",
+					"#262627",
+					"#454546",
+					"#666668",
+					"#89898B",
+					"#AEAEAF",
+					"#D1D1D2",
+					"#EEEEEF"
+				]
+			},
+			"ink-secondary": {
+				"role": "neutral",
+				"displayName": "Warm Graphite",
+				"canonical": "#423E3A",
+				"oklch": "oklch(36.6% 0.009 67.6)",
+				"tonalRamp": [
+					"#0C0B0A",
+					"#282624",
+					"#474442",
+					"#696561",
+					"#8C8884",
+					"#B0ADAA",
+					"#D3D0CE",
+					"#EFEEED"
+				]
+			},
+			"surface-page": {
+				"role": "neutral",
+				"displayName": "Warm Stone",
+				"canonical": "#E7E2DC",
+				"oklch": "oklch(91.5% 0.010 72.7)",
+				"tonalRamp": [
+					"#0C0B0A",
+					"#282624",
+					"#474441",
+					"#696561",
+					"#8C8884",
+					"#B0ADAA",
+					"#D3D0CE",
+					"#EFEEEC"
+				]
+			},
+			"surface-sunken": {
+				"role": "neutral",
+				"displayName": "Sunken Linen",
+				"canonical": "#F4F1ED",
+				"oklch": "oklch(95.9% 0.006 75.4)",
+				"tonalRamp": [
+					"#0C0B0A",
+					"#272625",
+					"#464542",
+					"#686662",
+					"#8B8986",
+					"#AFAEAB",
+					"#D2D1CF",
+					"#EFEEED"
+				]
+			},
+			"scrim": {
+				"role": "neutral",
+				"displayName": "Photo Haze",
+				"canonical": "#F6F3EF",
+				"oklch": "oklch(96.5% 0.006 75.4)",
+				"tonalRamp": [
+					"#0C0B0A",
+					"#272625",
+					"#464542",
+					"#686662",
+					"#8B8986",
+					"#AFAEAB",
+					"#D2D1CF",
+					"#EFEEED"
+				]
+			},
+			"edge-control": {
+				"role": "neutral",
+				"displayName": "Control Edge",
+				"canonical": "#86807A",
+				"oklch": "oklch(60.3% 0.012 67.6)",
+				"tonalRamp": [
+					"#0C0B0A",
+					"#282624",
+					"#484440",
+					"#6A6560",
+					"#8D8883",
+					"#B1ADA9",
+					"#D3D0CD",
+					"#F0EEEC"
+				]
+			},
+			"danger": {
+				"role": "error",
+				"displayName": "Signal Red",
+				"canonical": "#B42318",
+				"oklch": "oklch(50.0% 0.182 29.5)",
+				"tonalRamp": [
+					"#1C0301",
+					"#490E09",
+					"#7C1F16",
+					"#B23024",
+					"#D75E4E",
+					"#EE9182",
+					"#FFBEB3",
+					"#FFE3DB"
+				]
+			},
+			"surface-glass": {
+				"role": "neutral",
+				"displayName": "White Glass",
+				"canonical": "rgba(255, 255, 255, 0.58)",
+				"note": "Chrome on the frame or a scrim; over bare photo use surface-glass-strong. Always with --glass-filter."
+			},
+			"surface-frame": {
+				"role": "neutral",
+				"displayName": "Frame Glass",
+				"canonical": "rgba(248, 246, 243, 0.62)",
+				"note": "The frame over the photo, with --glass-filter."
+			}
+		},
+		"accentSets": {
+			"rosemary": {
+				"app": "Rues-Cooking-Hub",
+				"mapping": "confirmed at the app's gate 5 (Rue, 2026-11-16)",
+				"default": true,
+				"accent": "#527752",
+				"accent-ink": "#FFFFFF",
+				"accent-text": "#3D5A3E",
+				"accent-soft": "#D8EDD8",
+				"accent-on-inverse": "#759475",
+				"oklch": "oklch(53.1% 0.071 144.5)",
+				"tonalRamp": [
+					"#070D07",
+					"#1C2B1C",
+					"#344C34",
+					"#4E704E",
+					"#739372",
+					"#9DB69C",
+					"#C5D7C5",
+					"#E7EFE7"
+				]
+			},
+			"slate": {
+				"app": "Notes-Archive",
+				"mapping": "confirmed at the app's gate 5 (Rue, 2026-11-16)",
+				"default": false,
+				"accent": "#626D92",
+				"accent-ink": "#FFFFFF",
+				"accent-text": "#4B5370",
+				"accent-soft": "#DDE5FF",
+				"accent-on-inverse": "#838CAC",
+				"oklch": "oklch(54.0% 0.060 271.5)",
+				"tonalRamp": [
+					"#090B12",
+					"#212635",
+					"#3D445C",
+					"#5A6586",
+					"#7E88A9",
+					"#A5ADC7",
+					"#CBD1E3",
+					"#E9ECF5"
+				]
+			},
+			"heather": {
+				"app": "Creative-Archive",
+				"mapping": "confirmed at the app's gate 5 (Rue, 2026-11-16)",
+				"default": false,
+				"accent": "#7B5890",
+				"accent-ink": "#FFFFFF",
+				"accent-text": "#5D426E",
+				"accent-soft": "#EEE0F8",
+				"accent-on-inverse": "#9F81B1",
+				"oklch": "oklch(51.9% 0.094 312.1)",
+				"tonalRamp": [
+					"#0F0813",
+					"#2E1F37",
+					"#513A5F",
+					"#77578B",
+					"#9A7BAD",
+					"#BBA3CA",
+					"#DACAE5",
+					"#F1E9F6"
+				]
+			},
+			"lagoon": {
+				"app": "Life-Manager",
+				"mapping": "confirmed at the app's gate 5 (Rue, 2026-11-16)",
+				"default": false,
+				"accent": "#007C8E",
+				"accent-ink": "#FFFFFF",
+				"accent-text": "#005C6A",
+				"accent-soft": "#D3EDF0",
+				"accent-on-inverse": "#3899A7",
+				"oklch": "oklch(53.8% 0.094 212.3)",
+				"tonalRamp": [
+					"#000E11",
+					"#012C34",
+					"#044E5A",
+					"#097383",
+					"#4796A6",
+					"#81B8C4",
+					"#B3D9E1",
+					"#DCF3F9"
+				]
+			}
+		},
+		"gradients": [
+			{
+				"name": "surface-field",
+				"value": "linear-gradient(120deg, #D9D1C7, #EFEAE4)",
+				"purpose": "The colour field behind the frame where an app has no photo (Notes)."
+			}
+		],
+		"filters": [
+			{
+				"name": "glass-filter",
+				"value": "blur(var(--glass-blur)) saturate(var(--glass-saturate))",
+				"purpose": "Every glass surface (backdrop-filter). Never animates."
+			},
+			{
+				"name": "backdrop-photo-filter",
+				"value": "blur(26px) saturate(0.35) brightness(0.9)",
+				"purpose": "The photo behind the frame."
+			},
+			{
+				"name": "backdrop-field-filter",
+				"value": "blur(34px) saturate(0.6) brightness(0.95)",
+				"purpose": "The colour field behind the Notes frame."
+			}
+		],
+		"typographyMeta": {
+			"display-xl": {
+				"displayName": "Screen title",
+				"purpose": "The one title per screen, on the photo, with one accent word."
+			},
+			"display-l": {
+				"displayName": "Long title",
+				"purpose": "A long screen title (h1[data-long]), the Notes note title, big counts."
+			},
+			"display-m": {
+				"displayName": "Card head",
+				"purpose": "Card and section titles (h2)."
+			},
+			"display-s": {
+				"displayName": "Small display",
+				"purpose": "Card heads on phones, sheet and empty-state titles, day numbers."
+			},
+			"figure": {
+				"displayName": "Figure",
+				"purpose": "The big number: the typed rating, a time."
+			},
+			"title": {
+				"displayName": "Row title",
+				"purpose": "Row and card item titles."
+			},
+			"body": {
+				"displayName": "Body",
+				"purpose": "Running text and ledes, max 68ch."
+			},
+			"body-s": {
+				"displayName": "UI body",
+				"purpose": "The working UI default."
+			},
+			"label": {
+				"displayName": "Label",
+				"purpose": "Buttons, nav, field labels."
+			},
+			"caption": {
+				"displayName": "Caption",
+				"purpose": "Meta lines, card notes, seg values."
+			},
+			"kicker": {
+				"displayName": "Kicker",
+				"purpose": "Above the title; uppercase via CSS, em-dashes between parts."
+			},
+			"overline": {
+				"displayName": "Overline",
+				"purpose": "Ruled section heads and count lists."
+			},
+			"brand": {
+				"displayName": "Brand",
+				"purpose": "App name beside the round mark."
+			},
+			"mono": {
+				"displayName": "Mono",
+				"purpose": "Code."
+			}
+		},
+		"shadows": [
+			{
+				"name": "shadow-rim",
+				"value": "inset 0 0 0 1px var(--rim)",
+				"purpose": "The glass edge."
+			},
+			{
+				"name": "shadow-lift",
+				"value": "0 24px 60px -28px rgba(24, 20, 16, 0.42)",
+				"purpose": "A card or menu over the frame; the charcoal card alone."
+			},
+			{
+				"name": "shadow-frame",
+				"value": "0 40px 90px -40px rgba(20, 16, 12, 0.55)",
+				"purpose": "The frame over the photo."
+			},
+			{
+				"name": "elevation-card",
+				"value": "var(--shadow-lift), var(--shadow-rim)",
+				"purpose": "Cards and the segmented bar."
+			},
+			{
+				"name": "elevation-menu",
+				"value": "var(--shadow-lift), var(--ring-hairline)",
+				"purpose": "A white menu over a white card."
+			},
+			{
+				"name": "elevation-frame",
+				"value": "var(--shadow-frame), var(--shadow-rim)",
+				"purpose": "The frame."
+			},
+			{
+				"name": "ring-control",
+				"value": "inset 0 0 0 1px var(--edge-control)",
+				"purpose": "3:1 boundary of fields and outlined controls."
+			},
+			{
+				"name": "ring-control-on-inverse",
+				"value": "inset 0 0 0 1px var(--edge-control-on-inverse)",
+				"purpose": "The same on charcoal."
+			},
+			{
+				"name": "ring-selected",
+				"value": "inset 0 0 0 var(--stroke-strong) var(--accent)",
+				"purpose": "A picked toggle: accent ring (with tint and check)."
+			},
+			{
+				"name": "rule-start",
+				"value": "inset var(--stroke-rule) 0 0 var(--ink)",
+				"purpose": "Left rule of count lists and ruled heads."
+			},
+			{
+				"name": "rule-start-on-inverse",
+				"value": "inset var(--stroke-rule) 0 0 var(--ink-on-inverse)",
+				"purpose": "The same on charcoal."
+			},
+			{
+				"name": "rule-beside",
+				"value": "inset 1px 0 0 var(--hairline)",
+				"purpose": "Divider between segmented-bar cells."
+			},
+			{
+				"name": "focus-halo",
+				"value": "0 0 0 5px var(--ink)",
+				"purpose": "Ink halo around the white focus ring on dark controls."
+			}
+		],
+		"motion": [
+			{
+				"name": "motion-quick",
+				"value": "160ms",
+				"purpose": "Press, hover colour, arrow nudge, fade-outs."
+			},
+			{
+				"name": "motion-glide",
+				"value": "260ms",
+				"purpose": "The charcoal pill travelling; the rating line drawing."
+			},
+			{
+				"name": "motion-settle",
+				"value": "420ms",
+				"purpose": "The cards settling once on a full page load."
+			},
+			{
+				"name": "motion-stagger",
+				"value": "60ms",
+				"purpose": "Delay between settling cards."
+			},
+			{
+				"name": "motion-hold",
+				"value": "700ms",
+				"purpose": "How long the rating line holds."
+			},
+			{
+				"name": "ease-out",
+				"value": "cubic-bezier(0.23, 1, 0.32, 1)",
+				"purpose": "Anything entering, pressing or responding."
+			},
+			{
+				"name": "ease-in-out",
+				"value": "cubic-bezier(0.77, 0, 0.175, 1)",
+				"purpose": "The pill crossing the screen."
+			},
+			{
+				"name": "motion-spin",
+				"value": "800ms",
+				"purpose": "Busy spinner turn."
+			},
+			{
+				"name": "press-scale",
+				"value": "0.97",
+				"purpose": "Pills while pressed (data-press)."
+			},
+			{
+				"name": "press-scale-round",
+				"value": "0.95",
+				"purpose": "Round icon buttons while pressed (data-press=\"round\")."
+			},
+			{
+				"name": "nudge",
+				"value": "3px",
+				"purpose": "Arrow nudge inside the white circle (data-nudge)."
+			},
+			{
+				"name": "settle-rise",
+				"value": "12px",
+				"purpose": "Settle distance (data-settle)."
+			}
+		],
+		"motionHooks": [
+			{
+				"hook": "data-press / data-press=\"round\"",
+				"move": "Press"
+			},
+			{
+				"hook": "data-nudge / data-nudge=\"out\"",
+				"move": "Press (arrow nudge)"
+			},
+			{
+				"hook": "data-pill (track)",
+				"move": "The pill glides"
+			},
+			{
+				"hook": "data-settle (parent)",
+				"move": "The cards settle"
+			},
+			{
+				"hook": "data-confirm-line + data-confirmed",
+				"move": "The rating is confirmed"
+			},
+			{
+				"hook": "data-hover",
+				"move": "Colour-only hover"
+			}
+		],
+		"breakpoints": [
+			{
+				"name": "phone",
+				"value": "max-width: 767px"
+			},
+			{
+				"name": "tablet",
+				"value": "768px to 1099px"
+			},
+			{
+				"name": "wide",
+				"value": "min-width: 1100px"
+			},
+			{
+				"name": "sheet-dialog",
+				"value": "min-width: 768px"
+			},
+			{
+				"name": "touch",
+				"value": "pointer: coarse (targets 44px)"
+			}
+		],
+		"worldSets": {
+			"_note": "2.1.0. <.app data-world=\"…\" data-stage=\"night\">: the world night replaces charcoal (--surface-inverse, -raised, -hover) and the glow is --accent-on-inverse in the world; the veil is the night stage scrim. Veil values are alphas of the night. Home (no data-world) stays light.",
+			"music": {
+				"app": "Creative-Archive",
+				"world-night": "#2A191C",
+				"world-night-raised": "#443537",
+				"world-night-hover": "#190F11",
+				"world-glow": "#F2A3AF",
+				"world-veil-strong": "rgba(42, 25, 28, 0.84)",
+				"world-veil": "rgba(42, 25, 28, 0.76)",
+				"world-veil-soft": "rgba(42, 25, 28, 0.34)"
+			},
+			"animanga": {
+				"app": "Creative-Archive",
+				"world-night": "#11142B",
+				"world-night-raised": "#2E3044",
+				"world-night-hover": "#0A0C1A",
+				"world-glow": "#AEB4FF",
+				"world-veil-strong": "rgba(17, 20, 43, 0.9)",
+				"world-veil": "rgba(17, 20, 43, 0.84)",
+				"world-veil-soft": "rgba(17, 20, 43, 0.46)"
+			},
+			"books": {
+				"app": "Creative-Archive",
+				"world-night": "#16252A",
+				"world-night-raised": "#323F44",
+				"world-night-hover": "#0D1619",
+				"world-glow": "#8FD0BD",
+				"world-veil-strong": "rgba(22, 37, 42, 0.84)",
+				"world-veil": "rgba(22, 37, 42, 0.76)",
+				"world-veil-soft": "rgba(22, 37, 42, 0.32)"
+			},
+			"fashion": {
+				"app": "Creative-Archive",
+				"world-night": "#29211D",
+				"world-night-raised": "#433C38",
+				"world-night-hover": "#191411",
+				"world-glow": "#D6C7BC",
+				"world-veil-strong": "rgba(41, 33, 29, 0.84)",
+				"world-veil": "rgba(41, 33, 29, 0.76)",
+				"world-veil-soft": "rgba(41, 33, 29, 0.32)"
+			}
+		}
+	},
+	"components": [
+		{
+			"name": "Dark pill with arrow",
+			"kind": "button",
+			"refersTo": "button-primary-arrow",
+			"description": "The primary action, at most one per view: charcoal pill, the arrow in a white circle that nudges on hover. Markup hooks: .btn.primary.arrow, data-press, data-focus=\"halo\", svg[data-nudge].",
+			"html": "<button class=\"ds-btn-primary\" type=\"button\">Add recipe<span class=\"ds-circle\" aria-hidden=\"true\"><svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M5 12h14M13 6l6 6-6 6\"/></svg></span></button>",
+			"css": ".ds-btn-primary { display: inline-flex; align-items: center; justify-content: center; gap: var(--space-2); min-block-size: max(var(--control-height), var(--target)); border: 0; border-radius: var(--radius-control); font-family: var(--font-ui); font-size: var(--type-label-size); line-height: var(--type-label-line); font-weight: var(--type-label-weight); white-space: nowrap; cursor: pointer; transition: transform var(--motion-quick) var(--ease-out), background-color var(--motion-quick) var(--ease-out); padding: var(--space-1-5) var(--space-1-5) var(--space-1-5) var(--space-5); gap: var(--space-3); background: var(--surface-inverse); color: var(--ink-on-inverse); } .ds-btn-primary .ds-circle { display: grid; place-items: center; inline-size: calc(var(--control-height) - var(--space-3)); block-size: calc(var(--control-height) - var(--space-3)); border-radius: var(--radius-round); background: var(--surface-raised); color: var(--ink); } .ds-btn-primary svg { transition: transform var(--motion-quick) var(--ease-out); } .ds-btn-primary:hover { background: var(--surface-inverse-hover); } .ds-btn-primary:hover svg { transform: translateX(var(--nudge)); } .ds-btn-primary:active { transform: scale(var(--press-scale)); } .ds-btn-primary:focus-visible { outline: var(--focus-width) solid var(--focus-ring-on-inverse); outline-offset: var(--focus-offset); box-shadow: var(--focus-halo); }"
+		},
+		{
+			"name": "Secondary button",
+			"kind": "button",
+			"refersTo": "button-secondary",
+			"description": "The default button: strong glass with a rim, for the frame and the photo. Inside data-surface=\"solid\" it takes --surface-control-solid instead.",
+			"html": "<button class=\"ds-btn\" type=\"button\">This week</button>",
+			"css": ".ds-btn { display: inline-flex; align-items: center; justify-content: center; gap: var(--space-2); min-block-size: max(var(--control-height), var(--target)); border: 0; border-radius: var(--radius-control); font-family: var(--font-ui); font-size: var(--type-label-size); line-height: var(--type-label-line); font-weight: var(--type-label-weight); white-space: nowrap; cursor: pointer; transition: transform var(--motion-quick) var(--ease-out), background-color var(--motion-quick) var(--ease-out); padding: 0 var(--space-4); background: var(--surface-glass-strong); box-shadow: var(--shadow-rim); color: var(--ink); } .ds-btn:hover { background: var(--surface-raised); } .ds-btn:active { transform: scale(var(--press-scale)); } .ds-btn:focus-visible { outline: var(--focus-width) solid var(--focus-ring); outline-offset: var(--focus-offset); }"
+		},
+		{
+			"name": "Danger button",
+			"kind": "button",
+			"refersTo": "button-danger",
+			"description": "Destructive actions (Delete). Never the primary button; in a confirmation it sits beside a focused Cancel.",
+			"html": "<button class=\"ds-btn-danger\" type=\"button\">Delete</button>",
+			"css": ".ds-btn-danger { display: inline-flex; align-items: center; justify-content: center; gap: var(--space-2); min-block-size: max(var(--control-height), var(--target)); border: 0; border-radius: var(--radius-control); font-family: var(--font-ui); font-size: var(--type-label-size); line-height: var(--type-label-line); font-weight: var(--type-label-weight); white-space: nowrap; cursor: pointer; transition: transform var(--motion-quick) var(--ease-out), background-color var(--motion-quick) var(--ease-out); padding: 0 var(--space-4); background: var(--danger-soft); box-shadow: var(--ring-danger); color: var(--danger); } .ds-btn-danger:hover { background: var(--surface-raised); } .ds-btn-danger:active { transform: scale(var(--press-scale)); } .ds-btn-danger:focus-visible { outline: var(--focus-width) solid var(--focus-ring); outline-offset: var(--focus-offset); }"
+		},
+		{
+			"name": "Round icon button",
+			"kind": "button",
+			"refersTo": "button-icon",
+			"description": "Icon-only actions, always with aria-label. Hooks: .btn.icon, data-press=\"round\".",
+			"html": "<button class=\"ds-btn-icon\" type=\"button\" aria-label=\"Search recipes\"><svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M11 4a7 7 0 1 1 0 14 7 7 0 0 1 0-14zM20 20l-4-4\"/></svg></button>",
+			"css": ".ds-btn-icon { display: inline-flex; align-items: center; justify-content: center; gap: var(--space-2); min-block-size: max(var(--control-height), var(--target)); border: 0; border-radius: var(--radius-control); font-family: var(--font-ui); font-size: var(--type-label-size); line-height: var(--type-label-line); font-weight: var(--type-label-weight); white-space: nowrap; cursor: pointer; transition: transform var(--motion-quick) var(--ease-out), background-color var(--motion-quick) var(--ease-out); inline-size: max(var(--control-height), var(--target)); padding: 0; border-radius: var(--radius-round); background: var(--surface-glass-strong); box-shadow: var(--shadow-rim); color: var(--ink); } .ds-btn-icon:hover { background: var(--surface-raised); } .ds-btn-icon:active { transform: scale(var(--press-scale-round)); } .ds-btn-icon:focus-visible { outline: var(--focus-width) solid var(--focus-ring); outline-offset: var(--focus-offset); }"
+		},
+		{
+			"name": "Glass capsule nav",
+			"kind": "nav",
+			"refersTo": "nav-capsule",
+			"description": "The app nav: a glass capsule, the current area a charcoal pill that glides (ul[data-pill], a[aria-current=\"page\"]).",
+			"html": "<nav class=\"ds-nav\" aria-label=\"Main\"><ul><li><a href=\"#\">Home</a></li><li><a href=\"#\">Recipes</a></li><li><a href=\"#\" aria-current=\"page\">Plan</a></li><li><a href=\"#\">List</a></li></ul></nav>",
+			"css": ".ds-nav { display: inline-block; border-radius: var(--radius-pill); background: var(--surface-glass); backdrop-filter: var(--glass-filter); box-shadow: var(--shadow-rim); } .ds-nav ul { display: flex; gap: var(--space-0-5); margin: 0; padding: var(--space-1); list-style: none; } .ds-nav a { display: inline-flex; align-items: center; min-block-size: max(var(--control-height-s), var(--target)); padding: 0 var(--space-4); border-radius: var(--radius-pill); color: var(--ink); font-family: var(--font-ui); font-size: var(--type-label-size); font-weight: var(--type-label-weight); text-decoration: none; transition: background-color var(--motion-quick) var(--ease-out); } .ds-nav a:not([aria-current]):hover { background: var(--surface-hover); } .ds-nav a[aria-current] { background: var(--surface-inverse); color: var(--ink-on-inverse); } .ds-nav a:focus-visible { outline: var(--focus-width) solid var(--focus-ring); outline-offset: var(--focus-offset); }"
+		},
+		{
+			"name": "Segmented glass bar",
+			"kind": "custom",
+			"refersTo": "seg-bar",
+			"description": "Filters, the week stepper, servings + plan: cells split by a hairline, the primary action at the end (.seg-bar > .seg + .seg-actions). Stacks on phones.",
+			"html": "<div class=\"ds-seg-bar\"><div class=\"ds-seg\"><span class=\"ds-seg-text\"><span class=\"ds-seg-label\">Week 46</span><span class=\"ds-seg-value\">9 – 15 November</span></span></div><div class=\"ds-seg\"><span class=\"ds-seg-label\">This week</span></div><div class=\"ds-seg-actions\"><button class=\"ds-seg-primary\" type=\"button\">Copy week<span class=\"ds-circle\" aria-hidden=\"true\"><svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M5 12h14M13 6l6 6-6 6\"/></svg></span></button></div></div>",
+			"css": ".ds-seg-bar { display: inline-flex; flex-wrap: wrap; align-items: center; padding: var(--space-2) var(--space-2) var(--space-2) var(--space-2-5); border-radius: var(--radius-bar); background: var(--surface-glass-strong); backdrop-filter: var(--glass-filter); box-shadow: var(--elevation-card); font-family: var(--font-ui); color: var(--ink); } .ds-seg { display: flex; align-items: center; gap: var(--space-3); min-block-size: 50px; padding: var(--space-1) var(--space-4); } .ds-seg + .ds-seg { box-shadow: var(--rule-beside); } .ds-seg-text { display: grid; gap: var(--space-0-5); } .ds-seg-label { font-size: var(--type-label-size); line-height: var(--type-label-line); font-weight: var(--weight-semibold); } .ds-seg-value { font-size: var(--type-caption-size); line-height: var(--type-caption-line); color: var(--ink-secondary); font-variant-numeric: var(--numeric-figures); } .ds-seg-actions { margin-inline-start: auto; padding-inline-start: var(--space-2-5); } .ds-seg-primary { display: inline-flex; align-items: center; justify-content: center; gap: var(--space-2); min-block-size: max(var(--control-height), var(--target)); border: 0; border-radius: var(--radius-control); font-family: var(--font-ui); font-size: var(--type-label-size); line-height: var(--type-label-line); font-weight: var(--type-label-weight); white-space: nowrap; cursor: pointer; transition: transform var(--motion-quick) var(--ease-out), background-color var(--motion-quick) var(--ease-out); padding: var(--space-1-5) var(--space-1-5) var(--space-1-5) var(--space-5); gap: var(--space-3); background: var(--surface-inverse); color: var(--ink-on-inverse); } .ds-seg-primary .ds-circle { display: grid; place-items: center; inline-size: calc(var(--control-height) - var(--space-3)); block-size: calc(var(--control-height) - var(--space-3)); border-radius: var(--radius-round); background: var(--surface-raised); color: var(--ink); } .ds-seg-primary:hover { background: var(--surface-inverse-hover); } .ds-seg-primary:focus-visible { outline: var(--focus-width) solid var(--focus-ring-on-inverse); outline-offset: var(--focus-offset); box-shadow: var(--focus-halo); }"
+		},
+		{
+			"name": "Pill field",
+			"kind": "input",
+			"refersTo": "field-pill",
+			"description": "Text input: label above, white pill with a 3:1 control ring, hint or error below (aria-invalid + aria-describedby, alert icon).",
+			"html": "<div class=\"ds-field\"><label for=\"ds-find\">Find a recipe</label><div class=\"ds-control\"><svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M11 4a7 7 0 1 1 0 14 7 7 0 0 1 0-14zM20 20l-4-4\"/></svg><input id=\"ds-find\" placeholder=\"Find a recipe\"></div></div>",
+			"css": ".ds-field { display: grid; gap: var(--space-1-5); font-family: var(--font-ui); } .ds-field label { font-size: var(--type-label-size); line-height: var(--type-label-line); font-weight: var(--type-label-weight); color: var(--ink); } .ds-control { display: flex; align-items: center; gap: var(--space-2); min-block-size: max(var(--control-height), var(--target)); padding-inline: var(--space-4); border-radius: var(--radius-control); background: var(--surface-raised); box-shadow: var(--ring-control); color: var(--ink-secondary); } .ds-control input { flex: 1; min-inline-size: 0; border: 0; background: none; font: inherit; font-size: var(--type-body-s-size); color: var(--ink); outline: none; } .ds-control input::placeholder { color: var(--ink-muted); } .ds-control:focus-within { outline: var(--focus-width) solid var(--focus-ring); outline-offset: var(--focus-offset); }"
+		},
+		{
+			"name": "Charcoal key-facts card with the typed rating",
+			"kind": "card",
+			"refersTo": "card-inverse",
+			"description": "The one charcoal card per screen ([data-surface=\"inverse\"]): a ruled overline head and the typed rating as a Gilda figure with \"/ 10\" (Field variant=\"figure\", data-confirm-line).",
+			"html": "<section class=\"ds-card-inverse\"><h2 class=\"ds-ruled\">Rating</h2><div class=\"ds-figure\"><input aria-label=\"Rating\" inputmode=\"decimal\" value=\"8.75\"><span class=\"ds-suffix\">/ 10</span></div><p class=\"ds-hint\">0 to 10, up to two decimals. Leave empty for no rating.</p></section>",
+			"css": ".ds-card-inverse { display: grid; gap: var(--space-4); padding: var(--space-6); border-radius: var(--radius-card); background: var(--surface-inverse); color: var(--ink-on-inverse); box-shadow: var(--shadow-lift); font-family: var(--font-ui); } .ds-ruled { margin: 0; padding-inline-start: var(--space-3); box-shadow: var(--rule-start-on-inverse); font-size: var(--type-overline-size); line-height: var(--type-overline-line); letter-spacing: var(--type-overline-tracking); font-weight: var(--type-overline-weight); text-transform: uppercase; } .ds-figure { display: flex; align-items: baseline; gap: var(--space-3); box-shadow: var(--rule-below-on-inverse); } .ds-figure input { inline-size: 4ch; border: 0; background: none; color: var(--ink-on-inverse); font-family: var(--font-display); font-weight: var(--weight-display); font-size: var(--type-figure-size); line-height: var(--type-figure-line); letter-spacing: var(--type-figure-tracking); font-variant-numeric: var(--numeric-figures); } .ds-figure input:focus-visible { outline: var(--focus-width) solid var(--focus-ring-on-inverse); outline-offset: var(--focus-offset); } .ds-suffix { font-family: var(--font-display); font-size: var(--type-display-s-size); color: var(--ink-on-inverse-secondary); } .ds-hint { margin: 0; font-size: var(--type-caption-size); line-height: var(--type-caption-line); color: var(--ink-on-inverse-secondary); }"
+		},
+		{
+			"name": "Left-ruled count list",
+			"kind": "card",
+			"refersTo": "facts",
+			"description": "The ruled list for counts, top right on the photo (ul.screen-facts > li > span.n). Stops at --facts-max; labels break inside it.",
+			"html": "<ul class=\"ds-facts\" aria-label=\"Meals this week\"><li><span class=\"ds-n\">4</span>Breakfast</li><li><span class=\"ds-n\">5</span>Lunch</li><li><span class=\"ds-n\">7</span>Dinner</li><li><span class=\"ds-n\">2</span>Snacks</li></ul>",
+			"css": ".ds-facts { display: grid; max-inline-size: var(--facts-max); margin: 0; padding: var(--space-3-5) var(--space-5) var(--space-3-5) var(--space-4); list-style: none; border-radius: var(--radius-panel); background: var(--surface-glass-strong); backdrop-filter: var(--glass-filter); box-shadow: var(--shadow-rim); color: var(--ink); font-family: var(--font-ui); } .ds-facts li { padding: var(--space-0-5) 0 var(--space-0-5) var(--space-3-5); box-shadow: var(--rule-start); font-size: var(--type-overline-size); line-height: var(--type-overline-line); letter-spacing: var(--type-overline-tracking); font-weight: var(--weight-medium); text-transform: uppercase; overflow-wrap: anywhere; } .ds-n { display: inline-block; min-inline-size: 2.6em; margin-inline-end: var(--space-1); font-weight: var(--weight-bold); letter-spacing: 0.04em; font-variant-numeric: var(--numeric-figures); }"
+		},
+		{
+			"name": "Kicker and accent title",
+			"kind": "custom",
+			"description": "The head on the photo: a sentence-case kicker whose em-dashes CSS draws (ul.kicker > li), then the one Gilda title with one word in the accent (h1 > em.accent-word).",
+			"html": "<div class=\"ds-lead\"><ul class=\"ds-kicker\"><li>Meal plan</li><li>Week 46</li><li>9 – 15 November</li></ul><h1 class=\"ds-title\">This <em>week</em></h1></div>",
+			"css": ".ds-lead { display: grid; gap: var(--space-4); padding: var(--space-6); background: var(--scrim-text); } .ds-kicker { display: flex; flex-wrap: wrap; column-gap: 0.6em; row-gap: var(--space-1); margin: 0; padding: 0; list-style: none; } .ds-kicker li { display: flex; align-items: baseline; font-family: var(--font-ui); font-size: var(--type-kicker-size); line-height: var(--type-kicker-line); letter-spacing: var(--type-kicker-tracking); font-weight: var(--type-kicker-weight); text-transform: uppercase; color: var(--ink-secondary); } .ds-kicker li + li::before { content: \"\\2014\\2060\"; margin-inline-end: 0.85em; letter-spacing: 0; } .ds-title { margin: 0; font-family: var(--font-display); font-weight: var(--weight-display); font-size: var(--type-display-xl-size); line-height: var(--type-display-xl-line); letter-spacing: var(--type-display-xl-tracking); color: var(--ink); } .ds-title em { font-style: normal; color: var(--accent); }"
+		}
+	],
+	"narrative": {
+		"northStar": "The Frame over the Photo",
+		"overview": "Every app is one rounded glass frame floating over a full-bleed photo that runs on behind it to the screen edge. Type sits on the photo: one thin Gilda Display title per screen with one word in the app's accent, under a tracked uppercase kicker with em-dashes. Chrome is glass; anything you read (lists, running text, forms) sits on a solid or near-opaque card. Charcoal marks the current thing (nav pill, current row, primary action) and the one key-facts card per screen. Colour comes from the photo; the UI is white glass, charcoal and warm greys plus one accent.\n\nThese are working tools (Operate mode). Ambition shows as precision: dense data that survives the worst case, motion that confirms and stays out of the way, contrast checked against the darkest pixel a photo can put under text.",
+		"keyCharacteristics": [
+			"One frame over one photo; Notes swaps the photo for a blurred colour field and puts the editor on a solid white card.",
+			"Glass for chrome, solid for reading.",
+			"One display title per screen, one accent word in it, nowhere else.",
+			"One charcoal key-facts card per screen (Notes is the exception: no key-facts card; its only charcoal surfaces are the current tree item, the primary pill and the code block).",
+			"Pills everywhere: controls, bars, nav. Round icon buttons. Light, quiet DM Sans for everything that isn't a title.",
+			"Light theme (D9), except the night stage: an app with worlds (Creative) shows each world as a dark banner in the world night, its glow on the accent word. Components use roles, never hues."
+		],
+		"rules": [
+			{
+				"name": "The One Accent Rule",
+				"body": "One accent per app, from rosemary, slate, heather or lagoon. No orange, ember or amber app accent (Rue, round 1). The rule covers app accents only: Life's ochre and orange aspect colours are category colours, not accents.",
+				"section": "colors"
+			},
+			{
+				"name": "The Colour from the Photo Rule",
+				"body": "The UI adds no colour of its own beyond the accent. Content palettes are content: they never stand in for the accent and never carry a state alone.",
+				"section": "colors"
+			},
+			{
+				"name": "The Roles not Hues Rule",
+				"body": "Components reference role tokens only (`check-slop` fails on colour literals). A dark theme later is another set of role values.",
+				"section": "colors"
+			},
+			{
+				"name": "The One Weight Rule",
+				"body": "Gilda Display is never bold, never italic, never asked for another weight. `base.css` sets `font-synthesis: none`; `<strong>` inside a Gilda title is a bug.",
+				"section": "typography"
+			},
+			{
+				"name": "The Accent Word Rule",
+				"body": "A title carries one accent word, `<em class=\"accent-word\">`, except count titles, where the accent may cover the whole count phrase (\"This week\", \"16 titles\", \"7 / 18 done\"). No accent on list items, labels, card heads or buttons.",
+				"section": "typography"
+			},
+			{
+				"name": "The Kicker Rule",
+				"body": "Kicker parts are written in sentence case and joined by em-dashes that CSS draws (`li + li::before`), so a wrapped line starts with \"— part\" and never ends on a dash. Uppercase comes from CSS, never from the source text.",
+				"section": "typography"
+			},
+			{
+				"name": "The Glass for Chrome Rule",
+				"body": "Glass holds controls, never running text or lists. Plain `--surface-glass` sits on the frame or a scrim; over bare photo use `--surface-glass-strong`. Reading goes on `--surface-card` or `--surface-raised`.",
+				"section": "elevation"
+			},
+			{
+				"name": "The One Charcoal Card Rule",
+				"body": "One card per screen is `[data-surface=\"inverse\"]`, with `--shadow-lift` and no glass. It holds the key facts, not decoration.",
+				"section": "elevation"
+			},
+			{
+				"name": "The Night Scrim Rule",
+				"body": "On the night stage (`.app[data-world][data-stage=\"night\"]`) every scrim stop becomes the world veil. `--world-veil` is the floor under every line of type, checked over a white pixel; each world sets its own strength so light photos stay bright, not murky.",
+				"section": "colors"
+			}
+		],
+		"dos": [
+			"Do start every screen from the skeleton in `DESIGN-reference.md`: frame over photo, head on the photo, cards overlapping its lower edge.",
+			"Do put running text, lists and forms on `--surface-card` / `--surface-raised`; glass only for chrome.",
+			"Do keep exactly one display title, one accent word and one charcoal key-facts card per screen.",
+			"Do mark every dark surface `data-surface=\"inverse\"` and every solid card that holds secondary buttons `data-surface=\"solid\"`.",
+			"Do use the four motion hooks and nothing else: `data-press`, `data-pill`, `data-settle`, `data-confirm-line`.",
+			"Do check new colour pairs in `contrast-pairs.json` and run `node scripts/check-contrast.mjs` (every accent and every world).",
+			"Do render every screen with the worst-case data in `DESIGN-reference.md` before calling it done."
+		],
+		"donts": [
+			"Don't box the screen's main photo small in a card, or replace a missing image with a gradient.",
+			"Don't put text on plain glass over a busy photo; it needs `--surface-glass-strong` or a solid surface.",
+			"Don't bold, italicise or reweight Gilda Display.",
+			"Don't use orange, ember or amber as an app accent, or use a content palette colour as the accent.",
+			"Don't animate `backdrop-filter`, `filter` or layout properties; don't use `transition: all`.",
+			"Don't remove the focus outline without a replacement ring.",
+			"Don't make Delete the primary button.",
+			"Don't reveal an action or information on hover only."
+		]
+	}
+}

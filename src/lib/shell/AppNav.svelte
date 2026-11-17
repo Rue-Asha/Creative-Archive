@@ -1,132 +1,217 @@
-<script lang="ts">
-	import { DOMAIN_LABEL, DOMAINS } from '#lib/domains.ts';
-	import type { Section } from './nav.ts';
-	import IconButton from '#lib/ui/IconButton.svelte';
-	import PillNav, { type NavItem } from '#lib/ui/PillNav.svelte';
+<script lang="ts" module>
+	// The pill glide (motion.css "2. The pill glides"): an inert charcoal copy of the track is laid over it and clipped to the
+	// current item, so labels change colour exactly under the pill. Keyboard activation, scroll and resize jump.
+	const FADE = 56;
 
-	let { section }: { section: Section } = $props();
+	function pill(track: HTMLElement) {
+		const items = [...track.querySelectorAll<HTMLElement>('a, button')];
+		const host = track.parentElement;
+		if (!items.length || !host) return {};
+		const isOn = (i: HTMLElement) => i.hasAttribute('aria-current');
 
-	const items = $derived<NavItem[]>([
-		{ href: '/', label: 'Home', icon: 'home', active: section === 'home' },
-		...DOMAINS.map((d) => ({ href: `/${d}`, label: DOMAIN_LABEL[d], icon: d, active: section === d })),
-		{ href: '/collections', label: 'Collections', icon: 'collections', active: section === 'collections' }
-	]);
-	const current = $derived(section === 'settings' ? 'page' : undefined);
+		host.setAttribute('data-pill-host', '');
+		track.setAttribute('data-pill-track', '');
+		items.forEach((i) => i.setAttribute('data-pill-item', ''));
+		const ghost = track.cloneNode(true) as HTMLElement;
+		ghost.removeAttribute('data-pill-track');
+		ghost.setAttribute('data-pill-ghost', '');
+		ghost.setAttribute('aria-hidden', 'true');
+		ghost.inert = true;
+		ghost.querySelectorAll('[id], [aria-current], [data-pill-item]').forEach((n) => {
+			for (const a of ['id', 'aria-current']) n.removeAttribute(a);
+			n.setAttribute('tabindex', '-1');
+		});
+		track.after(ghost);
+
+		function edges() {
+			const more = track.scrollWidth - track.clientWidth;
+			const start = more > 1 && track.scrollLeft > 1;
+			const end = more > 1 && track.scrollLeft < more - 1;
+			for (const n of [track, ghost]) {
+				n.toggleAttribute('data-fade-start', start);
+				n.toggleAttribute('data-fade-end', end);
+			}
+			host!.toggleAttribute('data-more-start', start);
+			host!.toggleAttribute('data-more-end', end);
+		}
+
+		function place(instant: boolean) {
+			if (instant) ghost.setAttribute('data-pill-instant', '');
+			ghost.scrollLeft = track.scrollLeft;
+			const h = host!.getBoundingClientRect();
+			const b = track.getBoundingClientRect();
+			Object.assign(ghost.style, { left: `${b.left - h.left}px`, top: `${b.top - h.top}px`, width: `${b.width}px`, height: `${b.height}px` });
+			const cur = items.find(isOn);
+			if (cur) {
+				const t = cur.offsetTop;
+				const l = cur.offsetLeft - track.scrollLeft;
+				ghost.style.setProperty('--pill-clip', `inset(${t}px ${track.offsetWidth - l - cur.offsetWidth}px ${track.offsetHeight - t - cur.offsetHeight}px ${l}px round 999px)`);
+			} else ghost.style.removeProperty('--pill-clip');
+			if (instant) {
+				void getComputedStyle(ghost).clipPath;
+				ghost.removeAttribute('data-pill-instant');
+			}
+		}
+
+		const cur = items.find(isOn);
+		if (cur && track.scrollWidth > track.clientWidth) {
+			const over = cur.offsetLeft + cur.offsetWidth + FADE - track.clientWidth;
+			if (over > 0) track.scrollLeft = Math.min(over, cur.offsetLeft - FADE);
+		}
+		const sync = () => {
+			edges();
+			place(true);
+		};
+		const observer = new ResizeObserver(sync);
+		observer.observe(track);
+		track.addEventListener('scroll', sync, { passive: true });
+		sync();
+
+		// the section changes with the route, not with the click: glide to the new current item once it is marked
+		const marks = new MutationObserver(() => place(false));
+		marks.observe(track, { attributes: true, attributeFilter: ['aria-current'], subtree: true });
+
+		return {
+			destroy() {
+				observer.disconnect();
+				marks.disconnect();
+				track.removeEventListener('scroll', sync);
+				ghost.remove();
+				host.removeAttribute('data-pill-host');
+				track.removeAttribute('data-pill-track');
+				items.forEach((i) => i.removeAttribute('data-pill-item'));
+			}
+		};
+	}
 </script>
 
-<header class="topbar">
-	<div class="column bar">
-		<a class="brand" href="/">
-			<span class="mark" aria-hidden="true">ca</span>
-			<span class="word">Creative <em>Archive</em></span>
-		</a>
-		<PillNav {items} variant="top" />
-		<div class="actions">
-			<IconButton icon="settings" label="Settings" href="/settings" aria-current={current} />
+<script lang="ts">
+	import { DOMAIN_LABEL, DOMAINS } from '#lib/domains.ts';
+	import { hideOnType, scrolled } from '#lib/components/scroll-cue/cue.ts';
+	import Button from '#lib/components/button/Button.svelte';
+	import Icon, { type IconName } from '#lib/ui/Icon.svelte';
+	import { POSTURE_SWITCH, type Section } from './nav.ts';
+
+	// the bar sits inside the frame, the dock after it, so one component renders each in its place
+	type Props = { part: 'bar' | 'dock'; section: Section; plus?: 'shown' | 'inert'; expanded?: boolean; onplus?: () => void };
+	let { part, section, plus = 'shown', expanded = false, onplus }: Props = $props();
+
+	const tabs = [
+		{ id: 'home', href: '/', label: 'Home' },
+		...DOMAINS.map((d) => ({ id: d, href: `/${d}`, label: DOMAIN_LABEL[d] }))
+	];
+	const sections = [...tabs, { id: 'collections', href: '/collections', label: 'Collections' }];
+	// Collections and Settings are reached from Home, so Home is the marked tab on the phone
+	const marked = $derived(section === 'collections' || section === 'settings' ? 'home' : section);
+	const current = $derived(section === 'settings' ? 'page' : undefined);
+
+	let bar = $state<HTMLElement>();
+	let dock = $state<HTMLElement>();
+
+	// The capsule (layout.css, 1100px up) sticks at --space-3; whatever sticks below it starts at --sticky-block-start.
+	$effect(() => {
+		if (part !== 'bar' || !bar) return;
+		const el = bar;
+		const wide = matchMedia(`(min-width: ${POSTURE_SWITCH}px)`);
+		const root = document.documentElement;
+		const set = () => {
+			if (!wide.matches) return root.style.removeProperty('--sticky-block-start');
+			const top = parseFloat(getComputedStyle(el).insetBlockStart) || 0;
+			const sticky = getComputedStyle(el).position === 'sticky';
+			root.style.setProperty('--sticky-block-start', `${sticky ? top + el.getBoundingClientRect().height + 8 : 12}px`);
+		};
+		const resize = new ResizeObserver(set);
+		resize.observe(el);
+		const marks = new MutationObserver(set);
+		marks.observe(el, { attributes: true, attributeFilter: ['data-scrolled'] });
+		wide.addEventListener('change', set);
+		set();
+		return () => {
+			resize.disconnect();
+			marks.disconnect();
+			wide.removeEventListener('change', set);
+			root.style.removeProperty('--sticky-block-start');
+		};
+	});
+
+	// base.css turns these two into scroll-padding, so a focused control never scrolls under the capsule or the dock
+	$effect(() => {
+		if (part !== 'dock' || !dock) return;
+		const el = dock;
+		const root = document.documentElement;
+		const set = () => {
+			const shown = getComputedStyle(el).display !== 'none';
+			if (shown) root.style.setProperty('--sticky-block-end', `${el.getBoundingClientRect().height + 24}px`);
+			else root.style.removeProperty('--sticky-block-end');
+		};
+		const resize = new ResizeObserver(set);
+		resize.observe(el);
+		set();
+		return () => {
+			resize.disconnect();
+			root.style.removeProperty('--sticky-block-end');
+		};
+	});
+</script>
+
+{#if part === 'bar'}
+	<header class="app-bar" bind:this={bar} use:scrolled>
+		<a class="brand" href="/"><span class="brand-mark" aria-hidden="true">C</span><span class="brand-name">Creative Archive</span></a>
+		<nav class="app-nav" aria-label="Main">
+			<ul data-pill use:pill>
+				{#each sections as s (s.id)}
+					<li><a href={s.href} aria-current={s.id === section ? 'page' : undefined}>{s.label}</a></li>
+				{/each}
+			</ul>
+		</nav>
+		<div class="app-actions">
+			<Button variant="glass" icon href="/settings" label="Settings" aria-current={current} data-press="round"><Icon name="settings" size={20} /></Button>
 		</div>
-	</div>
-</header>
-
-<div class="tabbar">
-	<PillNav {items} variant="bar" />
-</div>
-
-<span class="settings-phone">
-	<IconButton icon="settings" label="Settings" href="/settings" aria-current={current} />
-</span>
+	</header>
+{:else}
+	<nav class="dock" aria-label="Main" bind:this={dock} use:hideOnType>
+		<ul class="dock-tabs" data-pill use:pill>
+			{#each tabs as t (t.id)}
+				<li>
+					<a href={t.href} aria-current={marked === t.id ? 'page' : undefined} data-press>
+						<Icon name={t.id as IconName} size={20} /><span>{t.label}</span>
+					</a>
+				</li>
+			{/each}
+		</ul>
+		<button
+			type="button"
+			class="dock-add"
+			aria-label="Add"
+			aria-haspopup="dialog"
+			aria-expanded={plus === 'inert' ? undefined : expanded}
+			aria-disabled={plus === 'inert' ? 'true' : undefined}
+			data-press="round"
+			onclick={() => plus !== 'inert' && onplus?.()}
+		>
+			<Icon name="plus" size={24} />
+		</button>
+	</nav>
+{/if}
 
 <style>
-	.topbar {
-		position: fixed;
-		inset-block-start: 22px;
-		inset-inline: 0;
-		z-index: 40;
-		pointer-events: none;
-	}
-
-	.bar {
-		display: grid;
-		grid-template-columns: 1fr auto 1fr;
-		align-items: center;
-	}
-
-	.bar > :global(*) {
-		pointer-events: auto;
-	}
-
+	/* with the name hidden on the phone the mark alone is the link: keep it a full touch target wide */
 	.brand {
-		display: inline-flex;
-		align-items: center;
-		gap: 10px;
-		justify-self: start;
-		min-block-size: 48px;
-		padding: 4px 18px 4px 4px;
-		border-radius: var(--r-pill);
-		background: var(--glass-strong);
-		backdrop-filter: var(--glass-filter);
-		border: 1px solid var(--glass-border);
-		box-shadow: var(--shadow-card);
-		color: var(--ink);
+		min-inline-size: var(--target-touch);
+	}
+	/* the current Settings button reads like the current pill */
+	:global(.btn.icon[aria-current]) {
+		background: var(--surface-inverse);
+		color: var(--ink-on-inverse);
+		box-shadow: none;
 	}
 
-	.mark {
-		display: grid;
-		place-items: center;
-		inline-size: 40px;
-		block-size: 40px;
-		border-radius: var(--r-pill);
-		background: var(--accent);
-		color: var(--accent-ink);
-		font-family: var(--font-display);
-		font-style: var(--accent-style);
-		font-size: var(--t-display-3);
-		line-height: 1;
-		padding-block-end: 3px;
+	:global(.btn.icon[aria-current]:focus-visible) {
+		box-shadow: var(--focus-halo);
 	}
 
-	.word {
-		font-family: var(--font-display);
-		font-size: var(--t-display-3);
-		font-weight: 500;
-		letter-spacing: -0.01em;
-	}
-
-	.word em {
-		font-style: var(--accent-style);
-		color: var(--accent);
-	}
-
-	.actions {
-		justify-self: end;
-	}
-
-	.tabbar,
-	.settings-phone {
-		display: none;
-	}
-
-	/* tablet and phone: the pill nav moves to the bottom, Settings floats top right and scrolls away with the page */
-	@media (max-width: 1023px) {
-		.topbar {
-			display: none;
-		}
-
-		.tabbar {
-			display: block;
-			position: fixed;
-			inset-inline: 10px;
-			inset-block-end: max(12px, env(safe-area-inset-bottom));
-			max-inline-size: 520px;
-			margin-inline: auto;
-			z-index: 40;
-		}
-
-		.settings-phone {
-			display: inline-flex;
-			position: absolute;
-			inset-block-start: var(--s-4);
-			inset-inline-end: var(--gutter);
-			z-index: 30;
-		}
+	/* the "+" floats over whatever scrolls under it; the glass rim keeps its edge on a charcoal card too */
+	.dock-add:not(:focus-visible):not([aria-disabled='true']) {
+		outline: var(--stroke-strong) solid var(--rim);
 	}
 </style>

@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import { calm, counts, open, photo, reset, seed } from './helpers.ts';
 
@@ -65,8 +66,13 @@ test('Scenario: Unsupported hero file shows an inline error', async ({ page, req
 
 	await expect(books.getByText('Unsupported image type')).toBeVisible();
 	await expect(shot(books)).toHaveAttribute('src', before);
-	expect(posts).toEqual([]);
 	await expect(slot(page, 'Music').getByText('Unsupported image type')).toHaveCount(0);
+	expect(posts).toEqual([]);
+
+	await books.getByLabel(/photo file$/).setInputFiles(photo('../heic/sample.heic'));
+
+	await expect(books.getByText('Unsupported image type')).toBeVisible();
+	await expect(shot(books)).toHaveAttribute('src', before);
 });
 
 test('Scenario: Oversize hero file shows an inline error', async ({ page, request }) => {
@@ -85,14 +91,18 @@ test('Scenario: Oversize hero file shows an inline error', async ({ page, reques
 	await expect(shot(animanga)).toHaveCount(0);
 });
 
-test('the five slots sit in one row on desktop and stack on phone', async ({ page }, info) => {
+test('Scenario: Slots sit three to a row on desktop', async ({ page }, info) => {
 	await open(page, '/settings');
 	const boxes = await Promise.all(
 		['Home', 'Music', 'Animanga', 'Books', 'Fashion'].map((n) => slot(page, n).boundingBox())
 	);
 	const tops = boxes.map((b) => Math.round(b!.y));
-	if (info.project.name === 'desktop') expect(new Set(tops).size).toBe(1);
-	else expect(new Set(tops).size).toBe(5);
+	if (info.project.name === 'desktop') {
+		expect(tops.slice(1, 3), 'Music and Animanga beside Home').toEqual([tops[0], tops[0]]);
+		expect(tops[4], 'Fashion beside Books').toBe(tops[3]);
+		expect(tops[3], 'Books on the next row').toBeGreaterThan(tops[0]);
+		expect(Math.round(boxes[3]!.x), 'Books under Home').toBe(Math.round(boxes[0]!.x));
+	} else expect(new Set(tops).size).toBe(5);
 	for (const b of boxes) expect(b!.x + b!.width).toBeLessThanOrEqual(page.viewportSize()!.width);
 });
 
@@ -109,23 +119,54 @@ test('a failed upload leaves the empty slot usable and a later upload clears the
 	await expect(books.getByText('Unsupported image type')).toHaveCount(0);
 });
 
-test('Scenario: Replace and Remove sit side by side in one style', async ({ page, request }) => {
-	await seed(request, { heroes: ['music'] });
+test('Scenario: Slots come in world order', async ({ page }) => {
 	await open(page, '/settings');
-	const music = slot(page, 'Music');
 
-	const look = (name: string) =>
-		music.getByRole('button', { name }).evaluate((el) => {
-			const s = getComputedStyle(el);
-			const box = el.getBoundingClientRect();
-			return { x: box.x, y: box.y, height: box.height, background: s.backgroundColor, border: s.border };
-		});
-	const replace = await look('Replace');
-	const remove = await look('Remove');
+	const slots = page.getByRole('main').getByRole('region');
+	await expect(slots.getByRole('heading', { level: 2 })).toHaveText(['Home', 'Music', 'Animanga', 'Books', 'Fashion']);
+	for (const name of ['Home', 'Music', 'Animanga', 'Books', 'Fashion']) {
+		await expect(slot(page, name).getByText('No photo yet')).toBeVisible();
+		await expect(slot(page, name).getByRole('button', { name: 'Upload' })).toBeVisible();
+	}
+});
 
-	expect(Math.abs(replace.y - remove.y)).toBeLessThanOrEqual(2);
-	expect(remove.x).toBeGreaterThan(replace.x);
-	expect(remove.background).toBe(replace.background);
-	expect(remove.border).toBe(replace.border);
-	expect(remove.height).toBe(replace.height);
+test('Scenario: Replace and Remove are equal choices', async ({ page, request }) => {
+	await seed(request, { heroes: ['music'] });
+	for (const width of [390, 1280]) {
+		await page.setViewportSize({ width, height: 844 });
+		await open(page, '/settings');
+		const music = slot(page, 'Music');
+		const look = (name: string) =>
+			music.getByRole('button', { name }).evaluate((el) => {
+				const s = getComputedStyle(el);
+				return {
+					background: s.backgroundColor,
+					border: s.border,
+					height: el.getBoundingClientRect().height,
+					focused: el === document.activeElement,
+					arrow: !!el.querySelector('.circle'),
+					primary: el.classList.contains('primary')
+				};
+			});
+		const replace = await look('Replace');
+		const remove = await look('Remove');
+
+		expect(remove.background, `${width}`).toBe(replace.background);
+		expect(remove.border, `${width}`).toBe(replace.border);
+		expect(remove.height, `${width}`).toBe(replace.height);
+		for (const b of [replace, remove]) expect([b.focused, b.arrow, b.primary], `${width}`).toEqual([false, false, false]);
+	}
+});
+
+test('Scenario: Settings explanation matches the contract', async ({ page }) => {
+	const text =
+		'Each world can have one photo, shown behind its title. Without one, the page shows a soft colour field. JPEG, PNG, WebP, GIF or AVIF, up to 16 MB.';
+	await open(page, '/settings');
+
+	await expect(page.getByRole('main').getByText(text, { exact: true })).toBeVisible();
+	await expect(page.getByRole('main')).not.toContainText('theme gradient');
+	const contract = readFileSync('docs/functional-contract.md', 'utf8');
+	const section = contract.slice(contract.indexOf('### 4.9 `/settings`'), contract.indexOf('### 4.10'));
+	expect(section).toContain(text);
+	expect(section).not.toContain('theme gradient');
 });

@@ -110,32 +110,31 @@ test('the status action refuses a status the type does not have', async ({ page,
 	await expect(pill(page, 'Wishlist')).toBeVisible();
 });
 
-test('Scenario: Status pill animates on change', async ({ page, request }) => {
+test('Scenario: Status changes at once', async ({ page, request }) => {
 	await page.emulateMedia({ reducedMotion: 'no-preference' });
 	await recordAnimations(page);
 	const {
 		entries: [id]
 	} = await seed(request, { entries: [{ type: 'anime', title: 'Frieren', status: 'want' }] });
 	await open(page, `/entries/${id}`);
-	expect(await labelAnimations(page, 'Plan to watch')).toBe(0);
 	await pill(page, 'Plan to watch').click();
-	await page.getByRole('menuitemradio', { name: 'Watching' }).click();
-
-	await expect.poll(() => labelAnimations(page, 'Watching')).toBeGreaterThan(0);
-	await expect(pill(page, 'Watching')).toBeVisible();
-});
-
-test('Scenario: Reduced motion changes status instantly', async ({ page, request }) => {
-	await recordAnimations(page);
-	const {
-		entries: [id]
-	} = await seed(request, { entries: [{ type: 'anime', title: 'Frieren', status: 'want' }] });
-	await open(page, `/entries/${id}`);
-	await pill(page, 'Plan to watch').click();
+	await expect(page.getByRole('menuitemradio', { name: 'Watching' })).toBeVisible();
+	// CSS transitions and animations count too: anything that starts on the control once a status is picked
+	await page.waitForTimeout(400);
+	await pill(page, 'Plan to watch').evaluate((control) => {
+		const seen: string[] = [];
+		(window as unknown as { __css: string[] }).__css = seen;
+		for (const type of ['transitionrun', 'animationstart'])
+			document.addEventListener(type, (e) => control.contains(e.target as Node) && seen.push(`${type} ${(e as TransitionEvent).propertyName ?? (e as AnimationEvent).animationName}`), true);
+	});
 	await page.getByRole('menuitemradio', { name: 'Watching' }).click();
 
 	await expect(pill(page, 'Watching')).toBeVisible();
 	expect(await labelAnimations(page, 'Watching')).toBe(0);
+	expect(await labelAnimations(page, 'Status: Watching')).toBe(0);
+	await page.waitForTimeout(400);
+	expect(await page.evaluate(() => (window as unknown as { __css: string[] }).__css)).toEqual([]);
+	expect(await pill(page, 'Watching').evaluate((el) => el.getAnimations({ subtree: true }).length)).toBe(0);
 });
 
 test('Scenario: Failed save on the detail page shows a toast and reverts', async ({ page, request }) => {
@@ -147,12 +146,12 @@ test('Scenario: Failed save on the detail page shows a toast and reverts', async
 	await open(page, `/entries/${id}`);
 	await pill(page, 'Want to listen').click();
 	await page.getByRole('menuitemradio', { name: 'Listened' }).click();
-	await page.getByRole('slider', { name: 'Rating', exact: true }).focus();
-	for (let i = 0; i < 8; i++) await page.keyboard.press('ArrowRight');
+	await page.getByRole('spinbutton', { name: 'Rating', exact: true }).focus();
+	for (let i = 0; i < 8; i++) await page.keyboard.press('ArrowUp');
 
 	await expect(page.getByRole('status').filter({ hasText: "Couldn't save — try again" })).toBeVisible();
 	await expect(pill(page, 'Want to listen')).toBeVisible();
 	await saved(8);
 	await page.reload();
-	await expect(page.getByRole('slider', { name: 'Rating', exact: true })).toHaveAttribute('aria-valuenow', '4');
+	await expect(page.getByRole('spinbutton', { name: 'Rating', exact: true })).toHaveAttribute('aria-valuenow', '2');
 });

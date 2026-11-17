@@ -1,7 +1,5 @@
 import { expect, test, type APIRequestContext, type Page } from '@playwright/test';
-import { calm, cardOf, cardTitles, cards, countSaves, cover, editProgress, expectWorld, open, photo, rate, reset, seed } from './helpers.ts';
-import { schemes } from '../src/lib/styles/tokens.ts';
-import { WORLDS } from '../src/lib/styles/worlds.ts';
+import { calm, cardOf, cardTitles, cards, countSaves, cover, editProgress, expectWorld, open, photo, reset, seed } from './helpers.ts';
 
 declare global {
 	interface Window {
@@ -11,10 +9,6 @@ declare global {
 
 const group = (page: Page, label: string) => page.getByRole('group', { name: label, exact: true });
 const statusPill = (page: Page) => page.getByRole('button', { name: /^Status:/ });
-const rgb = (hex: string) => {
-	const n = parseInt(hex.slice(1), 16);
-	return `rgb(${n >> 16}, ${(n >> 8) & 255}, ${n & 255})`;
-};
 
 async function addByPick(page: Page, path: string, query: string, name: RegExp) {
 	await open(page, path);
@@ -33,13 +27,14 @@ async function album(page: Page) {
 	await statusPill(page).click();
 	await page.getByRole('menuitemradio', { name: 'Listened' }).click();
 	await expect(page.getByRole('button', { name: 'Status: Listened', exact: true })).toBeVisible();
-	await rate(page.getByRole('slider', { name: 'Rating', exact: true }), 5, 'left');
-	await expect(page.getByRole('slider', { name: 'Rating', exact: true })).toHaveAttribute('aria-valuenow', '4.5');
+	await page.getByRole('spinbutton', { name: 'Rating', exact: true }).fill('8.75');
+	await page.getByRole('spinbutton', { name: 'Rating', exact: true }).press('Enter');
+	await expect(page.getByRole('spinbutton', { name: 'Rating', exact: true })).toHaveAttribute('aria-valuenow', '8.75');
 	await saved(2);
 
 	await page.reload();
 	await expect(page.getByRole('button', { name: 'Status: Listened', exact: true })).toBeVisible();
-	await expect(page.getByRole('slider', { name: 'Rating', exact: true })).toHaveAttribute('aria-valuenow', '4.5');
+	await expect(page.getByRole('spinbutton', { name: 'Rating', exact: true })).toHaveAttribute('aria-valuenow', '8.75');
 }
 
 async function animanga(page: Page) {
@@ -112,9 +107,12 @@ async function organise(page: Page, request: APIRequestContext) {
 
 	const menu = page.getByRole('menu', { name: 'Add to collection' });
 	await page.getByRole('button', { name: 'Add to collection' }).click();
-	await menu.getByRole('button', { name: 'New collection' }).click();
-	await menu.getByLabel('Name').fill('Late Night');
-	await menu.getByRole('button', { name: 'Create' }).click();
+	await menu.getByRole('menuitem', { name: 'New collection' }).click();
+	const created = page.getByRole('dialog', { name: 'New collection' });
+	await created.getByLabel('Name').fill('Late Night');
+	await created.getByRole('button', { name: 'Create' }).click();
+	await expect(created).toHaveCount(0);
+	await page.getByRole('button', { name: 'Add to collection' }).click();
 	await expect(menu.getByRole('menuitemcheckbox', { name: 'Late Night' })).toHaveAttribute('aria-checked', 'true');
 
 	await open(page, `/entries/${second}`);
@@ -128,7 +126,7 @@ async function organise(page: Page, request: APIRequestContext) {
 	await expect(card.getByRole('presentation')).toHaveCount(2);
 	await card.getByRole('link').first().click();
 	await expect(page.getByRole('heading', { level: 1, name: 'Late Night' })).toBeVisible();
-	await expect(cardTitles(page)).toHaveText(['Blonde', 'Piranesi']);
+	await expect(page.getByRole('region', { name: 'In order' }).getByRole('listitem').getByRole('link')).toHaveText(['Blonde', 'Piranesi']);
 }
 
 async function homeAndWorlds(page: Page, request: APIRequestContext) {
@@ -141,16 +139,14 @@ async function homeAndWorlds(page: Page, request: APIRequestContext) {
 		]
 	});
 	await open(page, '/');
-	await expect(page.locator('[data-hero-image]')).toHaveAttribute('src', /^\/images\/\d+$/);
-	await expect(page.getByRole('group', { name: 'Latest entries' }).getByRole('article')).toHaveCount(3);
+	await expect(page.locator('.stage-photo')).toHaveAttribute('src', /^\/images\/\d+$/);
+	await expect(page.getByRole('region', { name: 'Domains', exact: true }).getByRole('link')).toHaveCount(4);
 	await expect(page.getByRole('region', { name: 'In progress', exact: true })).toBeVisible();
 	await expect(page.getByRole('region', { name: /^Recently added/ })).not.toHaveCount(0);
 
 	for (const domain of ['music', 'animanga', 'books', 'fashion'] as const) {
 		await open(page, `/${domain}`);
-		const { scheme } = WORLDS[domain];
 		await expectWorld(page, domain);
-		expect(await page.evaluate(() => getComputedStyle(document.body).backgroundColor), domain).toBe(rgb(schemes[scheme].ground));
 	}
 }
 
@@ -175,17 +171,17 @@ async function morphAndReveal(page: Page, request: APIRequestContext) {
 	});
 	await open(page, '/music/albums');
 	await expect(cells(page)).toHaveCount(30);
+	// scroll reveal is retired (motion "Scroll motion"): every card is shown from the start
 	const last = cells(page).last();
-	await expect.poll(() => opacity(last)).toBeLessThan(1);
 	await last.scrollIntoViewIfNeeded();
 	await expect.poll(() => opacity(last)).toBe(1);
 
 	await page.evaluate(() => scrollTo(0, 0));
 	await cardOf(page, 'Album 01').getByRole('link', { name: 'Album 01' }).click();
 	await expect(page).toHaveURL(`/entries/${id}`);
-	await expect(page.getByRole('region', { name: 'Album 01', exact: true })).toBeVisible();
+	await expect(page.getByRole('region', { name: 'Album', exact: true })).toBeVisible();
 	await expect(page.getByRole('main').getByRole('img', { name: 'Album 01', exact: true })).toHaveCount(1);
-	expect(await page.evaluate(() => window.__journeyMorphs)).toBe(1);
+	expect(await page.evaluate(() => window.__journeyMorphs)).toBe(0);
 
 	await page.emulateMedia({ reducedMotion: 'reduce' });
 	await open(page, '/music/albums');
@@ -223,7 +219,7 @@ test('Done: Home shows hero, coverflow and shelves, domain pages show their worl
 	await homeAndWorlds(page, request);
 });
 
-test('Done: cover morphs, scrolling reveals, everything is still at reduced motion', async ({ page, request }) => {
+test('Done: navigation starts no view transition, scrolling reveals, everything is still at reduced motion', async ({ page, request }) => {
 	await morphAndReveal(page, request);
 });
 

@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { DOMAINS } from '../src/lib/domains.ts';
 import { calm, open, reset, seed } from './helpers.ts';
 
 test.beforeEach(async ({ page, request }) => {
@@ -6,7 +7,7 @@ test.beforeEach(async ({ page, request }) => {
 	await reset(request);
 });
 
-test('Scenario: Pages load no external resources', async ({ page, request, baseURL }) => {
+test('Scenario: App pages load nothing from other origins', async ({ page, request, baseURL }) => {
 	const { entries, collections } = await seed(request, {
 		entries: [{ type: 'album', title: 'Blonde', status: 'done', rating: 4, image: true }],
 		heroes: ['home', 'music'],
@@ -17,7 +18,18 @@ test('Scenario: Pages load no external resources', async ({ page, request, baseU
 		if (!req.url().startsWith('data:')) origins.add(new URL(req.url()).origin);
 	});
 
-	for (const path of ['/', '/music', '/music/albums', `/entries/${entries[0]}`, '/add/album', '/collections', `/collections/${collections[0]}`, '/settings']) {
+	const paths = [
+		'/',
+		...DOMAINS.map((d) => `/${d}`),
+		'/music/albums',
+		`/entries/${entries[0]}`,
+		`/entries/${entries[0]}/edit`,
+		'/add/album',
+		'/collections',
+		`/collections/${collections[0]}`,
+		'/settings'
+	];
+	for (const path of paths) {
 		await open(page, path);
 		await page.waitForLoadState('networkidle');
 	}
@@ -25,22 +37,24 @@ test('Scenario: Pages load no external resources', async ({ page, request, baseU
 	expect([...origins]).toEqual([new URL(baseURL!).origin]);
 });
 
-test('Scenario: Fonts load from the app', async ({ page, request, baseURL }) => {
+test('Scenario: Display and text fonts load from the app', async ({ page, request, baseURL }) => {
 	await seed(request, { entries: [{ type: 'album', title: 'Blonde' }] });
 	const fontRequests: string[] = [];
 	page.on('request', (req) => {
 		if (req.resourceType() === 'font') fontRequests.push(req.url());
 	});
-	await open(page, '/music/albums');
+	await open(page, '/');
+	await page.waitForLoadState('networkidle');
 	const loaded = await page.evaluate(async () => {
 		await document.fonts.ready;
-		return [...document.fonts].filter((f) => f.status === 'loaded').map((f) => f.family);
+		return [...document.fonts].filter((f) => f.status === 'loaded').map((f) => f.family.replaceAll('"', ''));
 	});
 
-	expect(loaded.length).toBeGreaterThan(0);
+	expect(loaded).toContain('Gilda Display');
+	expect(loaded).toContain('DM Sans');
 	expect(fontRequests.length).toBeGreaterThan(0);
 	for (const url of fontRequests) {
 		expect(new URL(url).origin).toBe(new URL(baseURL!).origin);
-		expect(new URL(url).pathname).toMatch(/^\/fonts\/.+\.woff2$/);
+		expect(new URL(url).pathname).toMatch(/^\/fonts\/fingerprint\/.+\.woff2$/);
 	}
 });

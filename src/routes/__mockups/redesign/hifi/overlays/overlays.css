@@ -1,0 +1,139 @@
+/* Shared by the gate 5 overlay specimens and the collection pages: the drawn-in focus ring, a dialog or toast drawn open in place,
+   and the parts the shell's primitives.css leaves to the app (menu hints and icons, chips, the ruled quote). Fingerprint tokens only. */
+
+/* a drawn copy of :focus-visible, so a specimen shows the focused control without moving focus */
+[data-drawn-focus] {
+	outline: var(--focus-width) solid var(--focus-ring);
+	outline-offset: var(--focus-offset);
+}
+.menu-item[data-drawn-focus] { outline-offset: calc(-1 * var(--focus-width)); }
+.btn.primary[data-drawn-focus],
+.menu-item[aria-checked="true"][data-drawn-focus] {
+	outline-color: var(--focus-ring-on-inverse);
+	box-shadow: var(--focus-halo);
+}
+
+/* a sheet or dialog drawn open in place instead of in the top layer */
+dialog[data-sheet].inline {
+	position: relative;
+	inset: auto;
+	display: flex;
+	inline-size: 100%;
+	max-inline-size: 32rem;
+	max-block-size: none;
+	margin: 0;
+	border-radius: var(--radius-card);
+	animation: none;
+}
+dialog[data-sheet].inline.dialog { max-inline-size: calc(var(--measure) * 0.75); }
+@media (max-width: 767px) {
+	dialog[data-sheet].inline {
+		max-inline-size: none;
+		border-end-start-radius: 0;
+		border-end-end-radius: 0;
+	}
+}
+
+/* menu items with a lead icon or a trailing hint; a bare svg child is the check slot of primitives.css */
+.menu-item .lead { display: inline-flex; flex: none; color: var(--ink-secondary); }
+.menu-item[aria-checked="true"] .lead,
+.menu-item.on-inverse .lead { color: inherit; }
+.menu-item .text { flex: 1; min-inline-size: 0; overflow-wrap: anywhere; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; }
+.menu-item .hint { flex: none; color: var(--ink-secondary); font-size: var(--type-caption-size); font-variant-numeric: var(--numeric-figures); }
+.menu-item[aria-checked="true"] .hint { color: var(--ink-on-inverse-secondary); }
+.menu-item.create > svg { visibility: visible; }
+.menu-item.danger { color: var(--danger); font-weight: var(--weight-semibold); }
+.menu-item.danger .lead { color: inherit; }
+.menu-item:disabled { color: var(--ink-muted); opacity: var(--disabled-opacity); }
+.menu.end { left: auto; right: anchor(right); }
+
+/* a menu drawn open in place */
+.static-menu {
+	display: grid;
+	align-content: start;
+	gap: var(--space-0-5);
+	inline-size: min(100%, 18rem);
+	padding: var(--space-1-5);
+	border-radius: var(--radius-panel);
+	background: var(--surface-raised);
+	box-shadow: var(--elevation-menu);
+	color: var(--ink);
+	overflow-y: auto;
+	min-inline-size: 0;
+}
+
+/* the entry or collection a dialog names */
+.quote {
+	padding-inline-start: var(--space-3);
+	box-shadow: var(--rule-start);
+	font-weight: var(--weight-semibold);
+	overflow-wrap: anywhere;
+	display: -webkit-box;
+	-webkit-box-orient: vertical;
+	-webkit-line-clamp: 4;
+	line-clamp: 4;
+	overflow: hidden;
+}
+.sheet-text { color: var(--ink-secondary); overflow-wrap: anywhere; }
+
+/* tag chips in the picker */
+.chips { display: flex; flex-wrap: wrap; gap: var(--space-2); margin: 0; padding: 0; list-style: none; }
+.chips li { max-inline-size: 100%; min-inline-size: 0; }
+.chip {
+	display: flex;
+	align-items: center;
+	gap: var(--space-2);
+	max-inline-size: 100%;
+	min-block-size: max(var(--control-height-s), var(--target));
+	padding-inline: var(--space-3-5);
+	border: 0;
+	border-radius: var(--radius-pill);
+	background: var(--surface-raised);
+	box-shadow: var(--ring-control);
+	color: var(--ink);
+	font-size: var(--type-label-size);
+	line-height: var(--type-label-line);
+	font-weight: var(--type-label-weight);
+}
+.chip .t { min-inline-size: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.chip .c { flex: none; color: var(--ink-secondary); font-weight: var(--weight-regular); font-size: var(--type-caption-size); font-variant-numeric: var(--numeric-figures); }
+@media (hover: hover) {
+	.chip:hover { background: var(--surface-sunken); }
+}
+
+/* a toast region drawn open in place (the real one is fixed to the viewport and portalled to <body>) */
+.toaster.inline {
+	position: relative;
+	inset: auto;
+	z-index: auto;
+	inline-size: 100%;
+	padding-block-start: var(--space-2);
+}
+.toaster.inline .list > .toast { inline-size: min(100%, calc(var(--measure) * 0.75)); animation: none; }
+[data-drawn-focus].dismiss { outline-color: var(--focus-ring-on-inverse); }
+.toast .message { overflow-wrap: anywhere; }
+
+/* a multi-line field in the field primitive's pill language */
+.field .control.area {
+	align-items: stretch;
+	padding-block: var(--space-3);
+	border-radius: var(--radius-panel);
+}
+.field .control.area textarea {
+	flex: 1;
+	inline-size: 100%;
+	min-inline-size: 0;
+	min-block-size: calc(3 * var(--type-body-line));
+	padding: 0;
+	border: 0;
+	background: none;
+	color: inherit;
+	font: inherit;
+	font-size: var(--type-body-size);
+	line-height: var(--type-body-line);
+	resize: none;
+}
+.field .control.area:has(textarea:focus-visible) {
+	outline: var(--focus-width) solid var(--focus-ring);
+	outline-offset: var(--focus-offset);
+}

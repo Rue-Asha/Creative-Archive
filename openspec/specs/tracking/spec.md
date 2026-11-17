@@ -71,7 +71,7 @@ existing save queue and return to the button; Escape SHALL return without saving
 above-a-known-total input SHALL revert to the old value without a save. Inside a card, activating the value SHALL NOT
 open the detail page. In a card narrower than 210 px the total SHALL be hidden visually (it stays in the button's
 name) so that −, value and + are each at least 44 × 44 px and none is clipped by the card; wider cards and the detail
-page SHALL show the total.
+page SHALL show the total. A card too narrow to show the total beside its steps (a shelf card, a phone grid card) SHALL read "n / total unit" ("12 / 28 episodes", "5 / ? chapters") on a line above them (signed hi-fi, Rue gate 7); a wider card shows the total inside the control.
 
 #### Scenario: Step episodes with plus and minus
 - **WHEN** + is pressed three times and − once on a seeded anime at 0 / 28
@@ -135,7 +135,7 @@ page SHALL show the total.
 
 #### Scenario: Progress control fits a phone shelf card
 - **WHEN** Home's "In progress" shelf shows an anime at 12 / 28 on phone
-- **THEN** in that card −, the value button and + are each at least 44 × 44 px, each lies inside the card's box, the "/ 28" text is not visible and the value button is named "Episodes 12 of 28"
+- **THEN** in that card −, the value button and + are each at least 44 × 44 px, each lies inside the card's box, the "/ 28" text inside the control is not visible, the line "12 / 28 episodes" shows above the steps and the value button is named "Episodes 12 of 28"
 - **proof:** e2e
 
 #### Scenario: Three-digit progress fits a phone shelf card
@@ -214,13 +214,7 @@ server's value, and later changes SHALL still be saved.
 - **proof:** e2e
 
 ### Requirement: Rating
-Media entries (albums, artists, songs, anime, manga, books) SHALL be ratable with a number from 0 to 10 inclusive with
-at most two decimal places (stored as whole hundredths), or unrated, clearable, shown on cards and on the detail page;
-unrated entries SHALL show no rating on cards. A rating of 0 is a rating, distinct from unrated. Values outside 0 to
-10, with more than two decimals or not finite SHALL be rejected with "Rating must be between 0 and 10 with up to two
-decimals" and leave the stored value unchanged. Fashion entries SHALL have no rating. Until the redesign the existing
-star control SHALL keep working as an adapter: it shows the value as stars (value / 2, in half steps) and writes
-star value times 2.
+Media entries (albums, artists, songs, anime, manga, books) SHALL be ratable with a number from 0 to 10 inclusive with at most two decimal places (stored as whole hundredths), or unrated, clearable, shown on cards and on the entry page; unrated entries SHALL show no rating on cards. A rating of 0 is a rating, distinct from unrated. Values outside 0 to 10, with more than two decimals or not finite SHALL be rejected with "Rating must be between 0 and 10 with up to two decimals" and leave the stored value unchanged. Fashion entries SHALL have no rating. On the entry page the rating SHALL be one typed text field named "Rating" (decimal keypad hint, never `type="number"`, no slider) with spin-button semantics (`role="spinbutton"`, `aria-valuemin` 0, `aria-valuemax` 10, `aria-valuenow`, `aria-valuetext` "<n> of 10"), round step buttons "Rating: one less" and "Rating: one more" beside the typed figure (step 0.25, clamped to 0 and 10, from unrated the first step-up gives 0.25; disabled at 0 and 10) and "Clear rating" when rated — a deliberate exception to the fingerprint's "no stepper arrows" rule, filed with Design-System (gate 4); typing any valid value such as 8.75 stays possible; ArrowUp/ArrowDown step by 0.25, Home and End move the text cursor; a valid value saves when committed (Enter or leaving the field) through the ordered write queue; an invalid value shows the message inline and saves nothing. Cards SHALL show the value as "<n> / 10" with the accessible text "<n> of 10". No star display or star adapter SHALL remain.
 
 #### Scenario: Rating accepts 0 to 10 with two decimals
 - **WHEN** `setRating` is called with 8.75, then with 0, 10, 8.755, -0.01, 10.01 and NaN
@@ -247,28 +241,48 @@ star value times 2.
 - **THEN** `getEntry` returns 0 first and null after
 - **proof:** unit
 
-#### Scenario: Rate in half stars through the adapter
-- **WHEN** the left half of the fifth star is chosen on a seeded album's detail page
-- **THEN** the control reads 4.5 stars, the stored rating is 9, and after a reload it still reads 4.5 stars
+#### Scenario: Type a rating with two decimals
+- **WHEN** "8.75" is typed into the Rating field of a seeded album's entry page and Enter is pressed, the saves are awaited and the page reloaded
+- **THEN** the field shows 8.75, its `aria-valuenow` is 8.75 and its `aria-valuetext` is "8.75 of 10"
+- **proof:** e2e
+
+#### Scenario: Steps and arrow keys change the rating
+- **WHEN** on a book rated 7 "Rating: one more" is pressed twice, then the field is focused, ArrowDown is pressed once and the field is left, and on an unrated book "Rating: one more" is pressed once
+- **THEN** the first book shows 7.5 and then 7.25 and is stored as 7.25 after a reload, the second shows and stores 0.25, and every committed value was sent as one save
+- **proof:** e2e
+
+#### Scenario: Step buttons stop at the ends
+- **WHEN** the entry page of an album rated 10 and of an album rated 0 is opened
+- **THEN** "Rating: one more" is disabled on the first and "Rating: one less" on the second, and each button is at least 44×44 px at 390×844
+- **proof:** e2e
+
+#### Scenario: Too many decimals are rejected inline
+- **WHEN** "8.755" is typed into the Rating field of an album rated 7 and Enter is pressed
+- **THEN** "Rating must be between 0 and 10 with up to two decimals" shows next to the field, no save is sent, and after a reload the rating is still 7
 - **proof:** e2e
 
 #### Scenario: Clear the rating
 - **WHEN** "Clear rating" is chosen on a rated album
-- **THEN** no star is filled and after a reload the album is unrated
+- **THEN** the field is empty and after a reload the album is unrated
 - **proof:** e2e
 
-#### Scenario: Keyboard rates with arrow keys through the adapter
-- **WHEN** the rating control of an unrated book is focused and ArrowRight is pressed three times, then ArrowLeft once
-- **THEN** the control reads 1 star and `aria-valuenow` is 1
+#### Scenario: Zero is a rating
+- **WHEN** "0" is typed into the Rating field of an unrated album and committed, and the album's list is opened
+- **THEN** after a reload the field shows 0 and the album's card shows "0 / 10"
 - **proof:** e2e
 
 #### Scenario: Rated entries show their rating on cards
-- **WHEN** a list holds an album whose stored rating is 7
-- **THEN** its card shows the star display with accessible name "3.5 of 5"
+- **WHEN** a list holds an album whose stored rating is 7.5
+- **THEN** its card shows "7.5 / 10" with the accessible text "7.5 of 10"
 - **proof:** e2e
 
-#### Scenario: Unrated entries show no stars on cards
+#### Scenario: Unrated entries show no rating on cards
 - **WHEN** a list holds an unrated album
-- **THEN** its card has no star display
+- **THEN** its card shows no rating value
 - **proof:** e2e
+
+#### Scenario: No star adapter is left
+- **WHEN** `src/` is searched after the build
+- **THEN** no file is named `StarRating.svelte` and no code imports or defines `starsFromRating`
+- **proof:** unit
 

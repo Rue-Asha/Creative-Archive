@@ -1,0 +1,267 @@
+## ADDED Requirements
+
+### Requirement: Vendored fingerprint
+The app SHALL carry Design-System fingerprint 2.1.0 (checkpoint A's 2.0.0 plus the worlds and the night stage of gate 7) as vendored by `scripts/sync.sh`: `src/lib/styles/fingerprint/`, `scripts/fingerprint/`, `static/fonts/fingerprint/`, `DESIGN.md`, `DESIGN.json`, `DESIGN-reference.md`, `.gitleaks.toml` and `fingerprint.lock`, never edited here. Every app page SHALL load the fingerprint CSS, set `lang="en"` and `data-accent` on `<html>` (heather, Rue's pick of 2026-11-16, fingerprint 2.0.0), use the light theme except a domain world's night stage (layout "Worlds per screen"; Source: Rue, gate 7, 2026-11-17, direction B; fingerprint 2.1.0.) and style with fingerprint roles only, as `check-slop` enforces.
+
+#### Scenario: Vendored files match the lock
+- **WHEN** `node scripts/fingerprint/check-drift.mjs` runs
+- **THEN** it exits 0 and `fingerprint.lock` names the synced version, 2.1.0
+- **proof:** unit
+
+#### Scenario: App renders with the accent
+- **WHEN** `/`, `/music/albums` and `/collections` are opened
+- **THEN** `<html>` carries `data-accent` with the gate-5 accent and the computed `--accent` equals that accent's value from the vendored `tokens.css`, the same on every page
+- **proof:** e2e
+
+#### Scenario: App pages load nothing from other origins
+- **WHEN** every contract page route is opened with seeded data
+- **THEN** every request the page makes goes to the app's own origin
+- **proof:** e2e
+
+### Requirement: Redesign mockups
+Gate 4 wireframes and gate 5 hi-fi SHALL exist as pages under `/__mockups/redesign/` (`wire/<screen>/`, `hifi/<screen>/`; 404 unless `CREATIVE_ARCHIVE_TEST=1`), loading only the fingerprint CSS, with a normal and a worst-case data set (`?data=worst`), and `e2e/redesign-shots.test.ts` SHALL shoot every page at 375, 768 and 1280 px wide in both data sets. Mockups SHALL use one mood photo per world from `fixtures/mockups/` through `/__mockups/photo/[name]`. No build unit (gate 6) SHALL start before Rue signed off gate 5 and checkpoint A has re-synced the fingerprint.
+
+#### Scenario: Redesign mockups are hidden without the test flag
+- **WHEN** `/__mockups/redesign/` and one `wire/` page are requested without `CREATIVE_ARCHIVE_TEST=1`
+- **THEN** both answer 404
+- **proof:** unit
+
+#### Scenario: Mockup routes are hidden without the test flag
+- **WHEN** the mockup layout's load runs without `CREATIVE_ARCHIVE_TEST=1`
+- **THEN** it throws a 404
+- **proof:** unit
+
+#### Scenario: Every mockup screen is shot at three widths
+- **WHEN** `e2e/redesign-shots.test.ts` runs
+- **THEN** every page directory under `/__mockups/redesign/` has a screenshot at 375, 768 and 1280 px wide for the normal and the worst-case set in `test-results/shots/redesign/`
+- **proof:** e2e
+
+#### Scenario: Worst-case data switches the fixtures
+- **WHEN** a mockup page is opened with and without `?data=worst`
+- **THEN** the worst-case page shows the 180-character title and the 500-entry list where the normal page shows the normal fixtures
+- **proof:** e2e
+
+#### Scenario: Every world has a mood photo
+- **WHEN** `fixtures/mockups/` is listed
+- **THEN** `world-home.jpg`, `world-music.jpg`, `world-animanga.jpg`, `world-books.jpg` and `world-fashion.jpg` exist, each at least 1920 px wide, each credited in `CREDITS.txt`
+- **proof:** unit
+
+#### Scenario: Rue signs off wireframes and hi-fi
+- **WHEN** the gate 4 wireframes and then the gate 5 hi-fi with the master icon and the mood photos are presented
+- **THEN** Rue signs each off, recorded with date and picks in design.md → Gate log
+- **proof:** manual (human gate)
+
+### Requirement: App icon
+The app SHALL ship the master icon designed at gate 5 (Design-System `icons/Creative-Archive/icon.svg`, from the app's main jobs, in the family sheet) as the built icon set in `static/`, with link tags in `app.html`, a `theme-color` meta set per screen by the app layout (layout "Worlds per screen"; Rue, gate 7 re-verify, 2026-11-17) and a `static/manifest.webmanifest` that references only existing icon files and takes the page colour (`#E7E2DC`) as its theme and background colour. There SHALL be no service worker.
+
+#### Scenario: Icon files are served
+- **WHEN** every icon path in `app.html` and the manifest is requested
+- **THEN** each answers 200 with an image content type, and the manifest's `name` and `short_name` are "Creative Archive"
+- **proof:** e2e
+
+#### Scenario: Head carries the icon links
+- **WHEN** `/` is opened
+- **THEN** the head holds the icon, apple-touch-icon and manifest links and a `theme-color` meta
+- **proof:** e2e
+
+#### Scenario: Icon reads at small sizes
+- **WHEN** the icon sheet at 16, 32, 180 and 512 px is shown next to the sibling apps' icons
+- **THEN** Rue and the fresh-context reviewer read it as Creative Archive and as part of the family
+- **proof:** manual (visual judgement at gate 5)
+
+### Requirement: Contract states and English copy
+Every route SHALL render the required states its contract section lists (empty, loading, error, single, many, overlong as applicable), every user-facing string SHALL be English and come from the contract copy list (new strings fixed at gate 5 are added to the list and to `src/lib/copy.ts` in the wave that ships them), and only the allow-listed `data-*` attributes (§7: `data-hydrated`, `data-world`, `data-stage` (the night stage, gate 7, fingerprint 2.1.0), `data-backdrop` and `data-hero-image` on the stage photo; `data-hero-gradient`, `data-column` and `data-page-header` leave with the old hero and layout "One alignment rule and desktop width", task 24.5) SHALL carry behaviour.
+
+#### Scenario: Contract strings stay
+- **WHEN** `src/lib/copy.ts` is compared with the contract copy list
+- **THEN** every key's string appears verbatim in the copy list
+- **proof:** unit
+
+#### Scenario: New strings are in the contract
+- **WHEN** the strings added at gate 5 (selection bar labels and toasts, the "+" sheet title and groups, the Settings explanation, the domain tile labels) are read from `src/lib/copy.ts`
+- **THEN** each appears in the contract copy list
+- **proof:** unit
+
+#### Scenario: Every route renders its contract states
+- **WHEN** the verifier walks every route with the empty, single, many and overlong seeds and the error states the contract lists
+- **THEN** each state renders as the contract describes, with no missing state
+- **proof:** manual (state walk at gate 7, from the verifier's screenshots)
+
+### Requirement: Shared dialogs, menus, selection bar and toasts
+Every dialog and menu (G5: Delete entry, Delete collection, Add to collection, the status menu, the tag picker, the domain Add menu, the "+" type sheet, Discard changes?) SHALL be built on the copied-in fingerprint primitives with fingerprint roles only and keep the contract's behaviour: modal dialogs move focus in on open and back to the trigger on close; Escape and an outside click close them (the discard dialog is an alert dialog and Escape keeps editing; the two delete confirmations are alert dialogs too, and like it a bottom sheet with square bottom corners below 768 px and centred from 768 px, as the signed hi-fi `hifi/overlays` and `hifi/collection/delete`); menus keep ArrowUp/ArrowDown/Home/End, Escape and Tab. The selection bar (G4) SHALL show the count, its actions and Done in one style for lists and collections: sticky above the list in the desktop posture, docked at the bottom with one main action and a "More" menu in the phone posture; menus opened from inside the frame SHALL be portalled to `body` (the frame's `backdrop-filter` makes `position: fixed` follow the frame). Toasts (G6) SHALL be announced as status messages without taking focus and survive a redirect.
+
+#### Scenario: Every dialog traps focus and returns it
+- **WHEN** at 390×844 and 1280×800 Delete entry, Delete collection, Add to collection and Discard changes? are opened from their triggers, Tab is pressed through each twice, and each is closed with Escape
+- **THEN** focus never leaves the dialog while open and returns to the trigger after closing (Discard changes? keeps editing)
+- **proof:** e2e
+
+#### Scenario: Delete confirmations are alert sheets
+- **WHEN** Delete entry (from the "Entry menu") and Delete collection are opened at 390×844 and at 1280×800
+- **THEN** each is an `alertdialog` named "Delete this album?" / "Delete this collection?"; at 390 it spans the viewport's width, its bottom edge is the viewport's and its bottom corners are square; at 1280 it is centred horizontally with every corner rounded
+- **proof:** e2e
+
+#### Scenario: Menus keep the keyboard model
+- **WHEN** the status menu, the Add to collection menu and the domain Add menu are opened with the keyboard
+- **THEN** focus starts on the first (or checked) item, ArrowDown/ArrowUp/Home/End move, Escape closes and returns focus to the button, and Tab closes
+- **proof:** e2e
+
+#### Scenario: Selection bar announces the count
+- **WHEN** Select mode is entered on `/music/albums` and two albums are picked
+- **THEN** the selection bar shows "2 selected" inside an element with `role="status"` or `aria-live="polite"`, and focus stays on the picked album (the collection page renders the same `SelectionBar` component)
+- **proof:** e2e
+
+#### Scenario: Toasts are announced without taking focus
+- **WHEN** an entry is saved, a bulk status is applied and an entry is deleted
+- **THEN** each toast text appears inside an element with `role="status"`, focus stays where it was, and the "Saved" toast shows on the entry page after the redirect
+- **proof:** e2e
+
+### Requirement: Accessibility floor
+Every route and dialog SHALL meet WCAG 2.2 AA: no horizontal page scroll from 320 to 1920 px, pointer targets at least 24×24 px everywhere and at least 44×44 px for phone controls, visible focus never hidden by the navigation or a dialog, every drag with a Move up / Move down alternative, the desktop using its width (one content column of at most 1200 px, multi-column where the hi-fi has it), and reduced motion removing non-essential movement.
+
+#### Scenario: No horizontal page scroll from 320 to 1920
+- **WHEN** Home, a domain page, a list, an entry page, the add and edit forms, `/collections`, a collection and `/settings` are opened with the worst-case seed at 320, 375, 390, 768, 1024, 1280 and 1920 px wide
+- **THEN** on each the document's `scrollWidth` is at most its `clientWidth`
+- **proof:** e2e
+
+#### Scenario: Controls meet the target sizes
+- **WHEN** the same pages are opened at 390×844 and 1280×800
+- **THEN** every visible button, link and form control is at least 24×24 px, and at 390×844 every navigation pill, the "+", every Move control, every selection toggle, every progress and rating step, every sub-type and breadcrumb link, the artist link, the typed rating field and the brand mark are at least 44×44 px tall and wide (text links at least 44 px tall)
+- **proof:** e2e
+
+#### Scenario: Desktop uses its width
+- **WHEN** a list of 10 albums, Home and `/collections` are opened at 1280×800
+- **THEN** the content column is at most 1200 px wide and centred, the list shows at least 4 cards in its first row, and the collections index at least 3 cards per row
+- **proof:** e2e
+
+#### Scenario: Focus is visible and not obscured
+- **WHEN** each of those pages is walked with Tab at 390×844 and 1280×800
+- **THEN** every focused element has a visible focus indicator and is not covered by the navigation or a dialog
+- **proof:** e2e
+
+#### Scenario: Reduced motion removes movement
+- **WHEN** reduced motion is emulated and Home, a list's view switch, a rating change and a collection move are used
+- **THEN** no element changes `transform` over time and no view transition is started
+- **proof:** e2e
+
+#### Scenario: WCAG 2.2 AA review passes
+- **WHEN** the a11y reviewer checks every route and dialog at gate 7
+- **THEN** no AA failure remains open
+- **proof:** manual (review at gate 7)
+
+### Requirement: No old styling
+After the build the old style system SHALL be gone: `src/lib/styles/tokens.css`, `tokens.ts`, `worlds.ts`, `global.css`, their tests, the old `static/fonts/*` outside `fingerprint/`, the old `/__mockups/components` and `/__mockups/[world]/[scheme]` pages and `src/lib/mockups/fixtures.ts`, and the old atoms in `src/lib/ui/` no code imports; `proof` SHALL run `check-slop` with no baseline.
+
+#### Scenario: Old style files are gone
+- **WHEN** the repo is listed after the cleanup
+- **THEN** none of `src/lib/styles/tokens.css`, `src/lib/styles/tokens.ts`, `src/lib/styles/worlds.ts`, `src/lib/styles/global.css`, `static/fonts/bricolage-grotesque-latin-opsz-normal.woff2`, `src/routes/__mockups/components/`, `src/routes/__mockups/[world]/` exists
+- **proof:** unit
+
+#### Scenario: Proof runs check-slop without a baseline
+- **WHEN** `package.json` is read
+- **THEN** `proof` calls `scripts/fingerprint/check-slop.mjs` and `scripts/fingerprint/check-drift.mjs` directly and no `scripts/slop-baseline.*` file exists
+- **proof:** unit
+
+## MODIFIED Requirements
+
+### Requirement: Mockup photos
+The repo SHALL keep its CC0 mockup photos in `fixtures/mockups/` — today's set (downloaded once from the Openverse catalogue, `license=cc0`) plus one mood photo per world (`world-<world>.jpg`) downloaded from Wikimedia Commons (CC0 1.0) — each listed in `fixtures/mockups/CREDITS.txt` as `file | source URL | author: … | licence: …`; a needed shape that wasn't found SHALL be generated by `scripts/synthetic-photo.mjs` and credited as generated. The photos SHALL be used only by `/__mockups/*` and e2e fixtures and SHALL NOT ship in the build or the tarball (a world without a hero photo shows the colour field, Gate 1).
+
+#### Scenario: Every mockup photo is credited
+- **WHEN** the image files in `fixtures/mockups/` are compared with `CREDITS.txt`
+- **THEN** there are at least 16 images, each has a line with a source URL or `generated`, an author and a licence matching `CC0`, `Public Domain` or `generated (scripts/synthetic-photo.mjs)`
+- **proof:** unit
+
+#### Scenario: Missing photo shape is generated
+- **WHEN** `node scripts/synthetic-photo.mjs <name> <width> <height>` runs
+- **THEN** it writes `fixtures/mockups/<name>.jpg` with exactly that size, and sharp reads it as JPEG
+- **proof:** unit
+
+#### Scenario: Mockup photos stay out of the product
+- **WHEN** `static/` and `build/client` are listed after `npm run build`
+- **THEN** neither contains a `.jpg`, `.jpeg`, `.png`, `.webp` or `.avif` file other than the app icon set (`icon-192.png`, `icon-512.png`, `icon-maskable-512.png` and `apple-touch-icon.png`, at any size: Design-System's `build-icons` generates them and `icon-512.png` is 16 KB) and other icons under 10 KB, and the tarball's top level holds no `fixtures/` (harness: "Package produces a verifiable tarball")
+- **proof:** unit
+
+### Requirement: Fonts
+The app SHALL use the fingerprint's fonts (Gilda Display for display, DM Sans for UI, the fingerprint mono for code), stored as woff2 under `static/fonts/fingerprint/` with their licence files, declared by the vendored `fonts.css` and preloaded in `app.html`. No page SHALL request a resource from another origin.
+
+#### Scenario: Pages load no external resources
+- **WHEN** each redesign mockup page is opened
+- **THEN** every request the page makes goes to the app's own origin
+- **proof:** e2e
+
+#### Scenario: Display and text fonts load from the app
+- **WHEN** `/` has finished loading
+- **THEN** `document.fonts` reports Gilda Display and DM Sans as loaded from `/fonts/fingerprint/`
+- **proof:** e2e
+
+### Requirement: Type scale
+Every font size SHALL come from the fingerprint's type roles (the `--type-*` tokens, used through `layout.css`, `base.css`, the primitives or an app rule that names them; `check-slop` flags raw sizes); the app SHALL keep no type scale of its own. Every input, select and textarea SHALL render at 16 px or more so iOS does not zoom on focus.
+
+#### Scenario: Inputs do not zoom on phone
+- **WHEN** at 390×844 the add form, the edit form, a list's filter bar, the "New collection" form on `/collections`, a collection's Rename form, the "New collection" dialog from "Add to collection" and an anime's rating field and progress input are shown
+- **THEN** every visible `input`, `select` and `textarea` has a computed font size of at least 16 px
+- **proof:** e2e
+
+### Requirement: Chrome cursor and focus rings
+Chrome text — navigation labels, kicker items, chips, counts, key facts, card meta lines and button labels — SHALL show the default cursor, except inside a link or button, where it shows that control's pointer (fingerprint `base.css`), and inside a drag-scroll shelf row, where it shows the row's grab cursor — never the I-beam. Only editable text (inputs, textareas, contenteditable) SHALL show the text cursor (Rue, gate 7). Prose (an entry's note and a collection's description) SHALL show the default cursor and stay selectable. Everything but the fields and the prose is chrome and SHALL NOT be selectable — headings, kickers, ledes, shelf heads, card meta lines, field labels, links, buttons, menu items, tabs, navigation, toolbars and the key-facts card (`user-select: none` and `-webkit-touch-callout: none`, set once on the page and on dialogs in the app's shell styles, the rule Notes has; Rue, gate 7) — so a double-click, a long press or a drag across them never highlights them; only fields and the prose (an entry's note, a collection's description) SHALL stay selectable, and no style SHALL set `user-select: none` on them. Keyboard focus SHALL show the fingerprint ring: a `--focus-width` outline at `--focus-offset` that follows the focused element's own border radius (no forced pill shape), white on the charcoal surface (`--focus-ring-on-inverse`) and with the ink halo on dark controls (`data-focus="halo"`).
+
+#### Scenario: Chrome text shows the default cursor
+- **WHEN** Home and a domain list (grid) with seeded entries are opened at 1280×800
+- **THEN** on both a section heading and a key-facts figure have computed cursor `default` and a Main navigation label its link's `pointer`; a card's meta line inside a Home shelf row has the row's `grab`, on the list grid `default` — none of them `text`
+- **proof:** e2e
+
+#### Scenario: Links and buttons keep the pointer
+- **WHEN** the same pages are opened
+- **THEN** a Main navigation link, a card's title link and a shelf step button have computed cursor `pointer`
+- **proof:** e2e
+
+#### Scenario: Prose stays selectable without the text cursor
+- **WHEN** the detail page of an entry with a note and a collection page with a description are opened
+- **THEN** the note and the description (found by their text; `data-prose` is not on the contract §7 allow-list) have computed cursor `default`, and computed `user-select` is not `none`
+- **proof:** e2e
+
+#### Scenario: Chrome is not selectable, fields are
+- **WHEN** the detail page of an entry with a note is opened at 1280×800, its heading and then its note are double-clicked, and its edit form is opened after it
+- **THEN** a Main navigation link, the "Entry menu" button, the status button, a breadcrumb kicker link, the page heading and the "In collections" heading are computed `user-select: none`; the double-click on the heading leaves the selection empty and the one on the note selects text; on the edit form the "Title" label is computed `user-select: none`, the Title input is not and has computed cursor `auto` or `text`, and typing into it changes its value
+- **proof:** e2e
+
+#### Scenario: Focus ring follows the element's own radius
+- **WHEN** the rating field on a detail page (inside the charcoal rating card), a sub-type kicker link on a list and a Main navigation link are focused with the keyboard
+- **THEN** each has a solid outline of `--focus-width` with a positive offset and the same computed `border-radius` as before it was focused, and the rating field's outline is white
+- **proof:** e2e
+
+### Requirement: Consistent control styles
+Every select — in the list's filter bar and in the add and edit forms — SHALL be the copied-in fingerprint `select` primitive (a native `select` with the primitive's one chevron), and the artist token and the tag tokens in the entry form SHALL share one chip style. A field beside a taller one in a form row SHALL keep its own height, its control right under its label (Rue, gate 7 re-verify, 2026-11-17).
+
+#### Scenario: Form selects match the filter select
+- **WHEN** the add form for a piece and a list's filter bar are opened
+- **THEN** the piece form's status select and the filter bar's sort select are native `select` elements inside the `select` primitive's wrapper, both have computed `appearance: none`, and both wrappers draw the same chevron
+- **proof:** e2e
+
+#### Scenario: Artist and tag tokens share one tone
+- **WHEN** an album form shows a picked artist and an added tag
+- **THEN** the artist token and the tag token have the same computed background colour, text colour and border radius
+- **proof:** e2e
+
+#### Scenario: Fields in a row keep their own height
+- **WHEN** the add form for a book is opened at 1280 px
+- **THEN** the Year field sits beside the taller Authors box, and its input is as tall as the Title input and as far below its label
+- **proof:** e2e
+
+## REMOVED Requirements
+
+### Requirement: Smooth fades and glows
+**Reason**: The fingerprint frame replaces heroes, scrims, glows and the ambient: the world's photo is the frame's stage and is never masked into a gradient, a world without a photo shows the colour field (layout "Worlds per screen"), the entry cover sits on the stage without a backdrop, cards are solid without glows, and placeholders are the fingerprint's initials plate (DESIGN.md: never replace a missing image with a gradient). Signed off in the gate-5 hi-fi.
+**Migration**: Retired, each named in the retiring unit's report: "Hero photo fades through the eased mask", "Framed Home hero fades the same way", "Hero without photo blends in oklab", "Shelf glow comes from one cover", "Shelf glow is centred", "Shelf glow has room to fade vertically", "No glow without covers" and "Bento and list glows match the shelf glow" (`e2e/surfaces.test.ts`, deleted by U17 together with layout's "Sticky shelf head keeps the heading on the column edge"); "Placeholders have no rim" (`e2e/placeholders.test.ts`, U17; "HeroSlot error uses the error token" stays); "Detail backdrop fades out without a crease" (`e2e/detail.test.ts`, U21 with the entry rebuild); "Ambient is a fixed layer" already retires with "Tokens and worlds" (U24); "Fades and glows look smooth" (manual, superseded by the gate-5 sign-off and the gate-7 screenshots).
+
+### Requirement: Tokens and worlds
+**Reason**: Replaced by "Vendored fingerprint" and layout "Worlds per screen": colours, radii, shadows, blur, spacing and motion tokens come from the fingerprint, one accent per app, light theme only; a world now selects its photo, not a scheme and accent.
+**Migration**: `src/lib/styles/tokens.css`, `tokens.ts`, `tokens.test.ts` and `worlds.ts` are deleted in the cleanup unit (U24); their contrast checks are covered by the Design-System's `check-contrast`. Retired with them: the unit scenarios in `src/lib/styles/tokens.test.ts` and the e2e scenarios on schemes, accents, ambient and gradients in `e2e/worlds.test.ts` and `e2e/globals.test.ts` ("Ambient is a fixed layer") — each named in U24's report; the world assertions themselves move to layout "Worlds per screen" (U15).
+
+### Requirement: Shared components
+**Reason**: Replaced by the fingerprint's copied-in primitives, "Shared dialogs, menus, selection bar and toasts" and the app components rebuilt per route; the 44 px phone target rule moves to "Accessibility floor".
+**Migration**: Old atoms in `src/lib/ui/` are deleted by the unit that replaces their last importer, the rest in U24. Retired: "Card follows the Swap layout", "Star rating shows half stars", "Status split-pill opens its choices" and "Controls are at least 44px on phone" (`e2e/design.test.ts`, deleted in U24); "Placeholder shows a tint and initials" keeps its unit test (`src/lib/ui/initials.test.ts`) as long as `initials.ts` exists, covered by images "Placeholder for entries without image".
+
+### Requirement: Mockups and the world checkpoint
+**Reason**: Replaced by "Redesign mockups" (gate 4/5 under `/__mockups/redesign/*`); the world checkpoint's pick (dark scheme, one accent per world) is superseded by the fingerprint.
+**Migration**: The old `/__mockups/components` and `/__mockups/[world]/[scheme]` pages, `src/lib/mockups/fixtures.ts`, `e2e/mockups.test.ts` ("Mockups render every world in light and dark", "Mockup screenshots are produced for both viewports", "Mockups share one alignment rule") and the `shots:mockups` script are deleted in U24; "Mockup routes are hidden without the test flag" moves to "Redesign mockups" with its test (`src/routes/__mockups/mockups-guard.test.ts`, kept); `/__mockups/photo/[name]`, `fixtures/mockups/` and `CREDITS.txt` stay; `src/lib/mockups/credits.test.ts` moves next to the redesign mockups.

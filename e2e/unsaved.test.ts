@@ -7,12 +7,17 @@ test.beforeEach(async ({ page, request }) => {
 });
 
 const nav = (page: Page, name: string) => page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name });
+// the phone bar fades out while a text field has focus, so leaving the field comes first
+async function leave(page: Page, name: string) {
+	await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+	await nav(page, name).click();
+}
 const dialog = (page: Page) => page.getByRole('alertdialog', { name: 'Discard changes?' });
 
 test('Scenario: Leaving a changed form asks first', async ({ page }) => {
 	await open(page, '/add/book?manual=1');
 	await page.getByLabel('Title', { exact: true }).fill('Half written');
-	await nav(page, 'Music').click();
+	await leave(page, 'Music');
 
 	await expect(dialog(page)).toBeVisible();
 	await dialog(page).getByRole('button', { name: 'Keep editing' }).click();
@@ -24,7 +29,7 @@ test('Scenario: Leaving a changed form asks first', async ({ page }) => {
 test('Scenario: Discarding leaves the form', async ({ page }) => {
 	await open(page, '/add/book?manual=1');
 	await page.getByLabel('Title', { exact: true }).fill('Half written');
-	await nav(page, 'Music').click();
+	await leave(page, 'Music');
 	await dialog(page).getByRole('button', { name: 'Discard' }).click();
 
 	await expect(page).toHaveURL(/\/music$/);
@@ -43,7 +48,7 @@ test('Scenario: Changed edit form asks before leaving', async ({ page, request }
 	const { entries } = await seed(request, { entries: [{ type: 'album', title: 'Blonde' }] });
 	await open(page, `/entries/${entries[0]}/edit`);
 	await page.getByLabel('Note').fill('on repeat');
-	await nav(page, 'Collections').click();
+	await leave(page, 'Music');
 
 	await expect(dialog(page)).toBeVisible();
 });
@@ -96,12 +101,12 @@ test('Escape in the dialog keeps editing, and typing back to the start is not a 
 	const title = page.getByLabel('Title', { exact: true });
 	await title.fill('x');
 	await title.fill('');
-	await nav(page, 'Music').click();
+	await leave(page, 'Music');
 	await expect(page).toHaveURL(/\/music$/);
 
 	await open(page, '/add/look');
 	await title.fill('Draft');
-	await nav(page, 'Music').click();
+	await leave(page, 'Music');
 	await expect(dialog(page)).toBeVisible();
 	await page.keyboard.press('Escape');
 
@@ -122,7 +127,7 @@ test('a failed save keeps the guard on', async ({ page }) => {
 	await page.getByLabel('Note').fill('something');
 	await page.getByRole('button', { name: 'Save' }).click();
 	await expect(page.getByText('Title is required')).toBeVisible();
-	await nav(page, 'Music').click();
+	await leave(page, 'Music');
 
 	await expect(dialog(page)).toBeVisible();
 });
@@ -131,7 +136,7 @@ test('the dialog leaves the accessibility tree while it fades out', async ({ pag
 	await page.emulateMedia({ reducedMotion: 'no-preference' });
 	await open(page, '/add/look');
 	await page.getByLabel('Title', { exact: true }).fill('Draft');
-	await nav(page, 'Music').click();
+	await leave(page, 'Music');
 	await expect(dialog(page)).toBeVisible();
 	await dialog(page).getByRole('button', { name: 'Keep editing' }).click();
 

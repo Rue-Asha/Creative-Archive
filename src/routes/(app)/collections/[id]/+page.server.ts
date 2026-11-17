@@ -1,13 +1,19 @@
 import { error, fail, redirect } from '@sveltejs/kit';
 import { TYPES } from '#lib/entries/config.ts';
 import { ValidationError } from '#lib/errors.ts';
-import { deleteCollection, getCollection, removeFromCollection, renameCollection, reorderCollection } from '#lib/server/collections.ts';
+import { deleteCollection, getCollection, removeFromCollection, removeManyFromCollection, renameCollection, reorderCollection } from '#lib/server/collections.ts';
 import type { Actions, PageServerLoad } from './$types';
 
 function find(id: string) {
 	const collection = /^\d+$/.test(id) ? getCollection(Number(id)) : null;
 	if (!collection) error(404, 'Collection not found');
 	return collection;
+}
+
+function parseIds(raw: string): number[] | null {
+	if (raw === '') return [];
+	const parts = raw.split(',');
+	return parts.every((p) => /^\d+$/.test(p)) ? parts.map(Number) : null;
 }
 
 export const load: PageServerLoad = ({ params }) => {
@@ -33,9 +39,21 @@ export const actions: Actions = {
 	},
 	reorder: async ({ params, request }) => {
 		const collection = find(params.id);
-		const raw = String((await request.formData()).get('ids') ?? '');
+		const ids = parseIds(String((await request.formData()).get('ids') ?? ''));
+		if (!ids || new Set(ids).size !== ids.length) return fail(400, { errors: { ids: 'Order must list each entry once' } as Record<string, string> });
 		try {
-			reorderCollection(collection.id, raw === '' ? [] : raw.split(',').map(Number));
+			reorderCollection(collection.id, ids);
+		} catch (e) {
+			if (e instanceof ValidationError) return fail(409, { errors: e.fields });
+			throw e;
+		}
+	},
+	removeMany: async ({ params, request }) => {
+		const collection = find(params.id);
+		const ids = parseIds(String((await request.formData()).get('ids') ?? ''));
+		if (!ids) return fail(400, { errors: { ids: 'Ids must be numbers' } as Record<string, string> });
+		try {
+			return { removed: removeManyFromCollection(collection.id, ids) };
 		} catch (e) {
 			if (e instanceof ValidationError) return fail(400, { errors: e.fields });
 			throw e;

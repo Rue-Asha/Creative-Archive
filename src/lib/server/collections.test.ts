@@ -12,6 +12,7 @@ import {
 	getCollection,
 	listCollections,
 	removeFromCollection,
+	removeManyFromCollection,
 	renameCollection,
 	reorderCollection
 } from './collections.ts';
@@ -172,5 +173,22 @@ describe('collection membership', () => {
 		expect(getCollection(first)!.description).toBe('kept');
 		expect(listCollections().map((c) => c.id)).toEqual([second, first]);
 		expect(() => renameCollection(first, ' ')).toThrow(ValidationError);
+	});
+});
+
+describe('removeManyFromCollection', () => {
+	it('Scenario: Remove several keeps the rest in order', () => {
+		const [a, b, c, d, e] = ['A', 'B', 'C', 'D', 'E'].map((title) => insertEntryRow({ type: 'album', title }));
+		const id = createCollection('Many');
+		for (const entry of [a, b, c, d, e]) addToCollection(id, entry);
+		const order = () => getCollection(id)!.entries.map((x) => x.id);
+
+		expect(removeManyFromCollection(id, [b, d])).toBe(2);
+		expect(order()).toEqual([a, c, e]);
+		expect(getEntry(b)).not.toBeNull();
+		expect(getEntry(d)).not.toBeNull();
+
+		expect(() => removeManyFromCollection(id, [a, 999999])).toThrow(ValidationError);
+		expect(order()).toEqual([a, c, e]);
 	});
 });

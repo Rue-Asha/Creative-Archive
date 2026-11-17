@@ -7,10 +7,9 @@
 	import { enhance, type SubmitFunction } from '$app/forms';
 	import { COPY } from '#lib/copy.ts';
 	import type { World } from '#lib/domains.ts';
-	import { worldAttrs } from '#lib/styles/worlds.ts';
 	import type { Id } from '#lib/types.ts';
-	import Button from '#lib/ui/Button.svelte';
-	import GlassPanel from '#lib/ui/GlassPanel.svelte';
+	import Button from '#lib/components/button/Button.svelte';
+	import Icon from '#lib/ui/Icon.svelte';
 
 	let { world, label, image, error = '' }: { world: World; label: string; image: Id | null; error?: string } = $props();
 
@@ -44,115 +43,103 @@
 	}
 </script>
 
-<GlassPanel as="section" class="slot" aria-labelledby="hero-{world}" data-slot={world} {...worldAttrs(world)}>
+<section class="card slot" data-surface="solid" aria-labelledby="hero-{world}" data-slot={world}>
 	<h2 id="hero-{world}">{label}</h2>
-	<div class="frame">
+	<div class="preview">
 		{#if image !== null}
 			<img src="/images/{image}" alt="" />
 		{:else}
-			<span class="tint" data-tint aria-hidden="true"></span>
-			<p class="empty">No photo yet</p>
+			<p>No photo yet</p>
 		{/if}
 	</div>
+	{#if pending}<p class="status" role="status">Uploading…</p>{/if}
+	{#if message}<p class="error" role="alert">{message}</p>{/if}
 
 	<div class="actions">
-		<form
-			bind:this={form}
-			method="POST"
-			action="?/upload"
-			enctype="multipart/form-data"
-			use:enhance={submit}
-		>
+		<form bind:this={form} method="POST" action="?/upload" enctype="multipart/form-data" use:enhance={submit}>
 			<input type="hidden" name="world" value={world} />
 			<input
 				bind:this={input}
-				class="visually-hidden"
+				class="sr-only"
 				type="file"
 				name="image"
-				accept="image/*"
+				accept="image/jpeg,image/png,image/webp,image/gif,image/avif"
 				tabindex="-1"
 				aria-label="{label} photo file"
 				onchange={onFile}
 			/>
-			<Button variant="secondary" arrow={false} icon={image === null ? 'image' : undefined} disabled={pending} onclick={() => input.click()}>
-				{image !== null ? 'Replace' : 'Upload'}
+			<Button variant="secondary" disabled={pending} label="{image !== null ? 'Replace' : 'Upload'} {label} photo" onclick={() => input.click()}>
+				{#if image === null}<Icon name="upload" size={18} />{/if}{image !== null ? 'Replace' : 'Upload'}
 			</Button>
 		</form>
 		{#if image !== null}
 			<form method="POST" action="?/remove" use:enhance={submit}>
 				<input type="hidden" name="world" value={world} />
-				<Button variant="secondary" arrow={false} type="submit" disabled={pending}>Remove</Button>
+				<Button variant="secondary" type="submit" disabled={pending} label="Remove {label} photo">Remove</Button>
 			</form>
 		{/if}
 	</div>
-	{#if message}<p class="error" role="alert">{message}</p>{/if}
-</GlassPanel>
+</section>
 
 <style>
-	:global(.slot) {
+	.slot {
 		display: grid;
 		align-content: start;
-		gap: var(--s-4);
-		padding: var(--s-4);
+		gap: var(--space-3);
+		padding: var(--space-4);
+		min-inline-size: 0;
+		block-size: 100%;
 	}
 
 	h2 {
-		margin: 0;
-		padding-inline: var(--s-2);
-		font-family: var(--font-display);
-		font-weight: var(--display-weight);
-		letter-spacing: var(--display-tracking);
-		font-size: var(--t-display-3);
-		line-height: var(--display-leading);
+		font-size: var(--type-display-s-size);
+		line-height: var(--type-display-s-line);
+		letter-spacing: var(--type-display-s-tracking);
 	}
 
-	.frame {
+	.preview {
 		display: grid;
 		place-items: center;
-		aspect-ratio: 4 / 3;
-		border-radius: var(--r-md);
+		aspect-ratio: 16 / 9;
 		overflow: hidden;
-		position: relative;
-		background:
-			var(--grain),
-			linear-gradient(160deg, var(--accent-soft), var(--surface-2));
+		border-radius: var(--radius-panel);
+		background: var(--surface-field);
+		box-shadow: var(--ring-hairline);
 	}
 
-	.tint {
-		position: absolute;
-		inset: -30% -40% 20% 10%;
-		background: var(--accent-glow);
-		mask-image: var(--glow-mask);
-	}
-
-	.frame img {
+	.preview img {
 		inline-size: 100%;
 		block-size: 100%;
 		object-fit: cover;
 	}
 
-	.empty {
-		position: relative;
-		font-size: var(--t-small);
-		font-weight: 500;
-		color: var(--ink-2);
+	.preview p {
+		font-size: var(--type-body-s-size);
+		color: var(--ink-secondary);
 	}
 
-	.actions {
-		display: flex;
-		flex-wrap: wrap;
-		gap: var(--s-2);
-	}
-
-	.actions :global(.btn) {
-		padding-inline: var(--s-3);
+	.status {
+		font-size: var(--type-caption-size);
+		color: var(--ink-secondary);
 	}
 
 	.error {
-		margin: 0;
-		padding-inline: var(--s-2);
-		font-size: var(--t-small);
-		font-weight: 600;
-		color: var(--error);
+		font-size: var(--type-body-s-size);
+		font-weight: var(--weight-semibold);
+		color: var(--danger);
+		overflow-wrap: anywhere;
+	}
+
+	/* Replace and Remove are equal quiet buttons sharing the row */
+	.actions {
+		display: grid;
+		grid-auto-columns: minmax(0, 1fr);
+		grid-auto-flow: column;
+		gap: var(--space-2);
+	}
+
+	.actions :global(.btn) {
+		inline-size: 100%;
+		padding-inline: var(--space-3);
 	}
 </style>

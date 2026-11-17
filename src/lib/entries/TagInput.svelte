@@ -1,10 +1,7 @@
 <script lang="ts">
-	import { flip } from 'svelte/animate';
-	import { fade } from 'svelte/transition';
-	import { pop, reducedMotion } from '#lib/motion.ts';
+	import { glide, rise } from '#lib/motion.ts';
 	import { fold } from '#lib/text.ts';
 	import type { Tag } from '#lib/types.ts';
-	import Chip from '#lib/ui/Chip.svelte';
 	import Icon from '#lib/ui/Icon.svelte';
 
 	// `selected` holds names; the typed-but-unconfirmed text is posted too (it is the `tag` input itself)
@@ -52,9 +49,6 @@
 			selected.pop();
 		}
 	}
-
-	const leave = () => ({ duration: reducedMotion() ? 0 : 140 });
-	const move = () => ({ duration: reducedMotion() ? 0 : 200 });
 </script>
 
 <div class="field">
@@ -64,10 +58,10 @@
 	{/each}
 	<ul class="box" aria-label="Selected tags">
 		{#each selected as name (fold(name))}
-			<li class="tag token" animate:flip={move()} in:pop out:fade={leave()}>
+			<li class="chip" in:rise animate:glide>
 				<span>{name}</span>
 				{#if isNew(name)}<span class="badge">new</span>{/if}
-				<button type="button" aria-label="Remove {name}" onclick={() => remove(name)}><Icon name="x" size={14} /></button>
+				<button type="button" class="x" aria-label="Remove {name}" onclick={() => remove(name)}><Icon name="x" size={14} /></button>
 			</li>
 		{/each}
 		<li class="entry">
@@ -87,84 +81,87 @@
 	{#if suggestions.length > 0}
 		<div class="suggest" role="group" aria-label="Tag suggestions">
 			{#each suggestions as tag (tag.id)}
-				<span animate:flip={move()} in:pop out:fade={leave()}>
-					<Chip
-						label={tag.name}
-						icon="plus"
-						size="sm"
-						onclick={() => {
-							add(tag.name);
-							pending = '';
-						}}
-					/>
-				</span>
+				<button
+					type="button"
+					class="chip add"
+					in:rise
+					animate:glide
+					onclick={() => {
+						add(tag.name);
+						pending = '';
+					}}
+				>
+					<Icon name="plus" size={14} /><span>{tag.name}</span>
+				</button>
 			{/each}
 		</div>
 	{/if}
 </div>
 
 <style>
+	.field {
+		display: grid;
+		gap: var(--space-1-5);
+		min-inline-size: 0;
+	}
+
+	label {
+		font-size: var(--type-label-size);
+		line-height: var(--type-label-line);
+		font-weight: var(--type-label-weight);
+	}
+
 	.box {
 		display: flex;
 		flex-wrap: wrap;
 		align-items: center;
-		gap: var(--s-2);
-		padding: 6px;
-		border-radius: var(--r-sm);
-		border: 1px solid var(--line);
-		background: var(--glass-thin);
-		transition: border-color var(--d-fast) var(--ease-out);
+		gap: var(--space-1-5);
+		min-block-size: max(var(--control-height), var(--target));
+		padding: var(--space-1) var(--space-2);
+		border-radius: var(--radius-panel);
+		background: var(--surface-raised);
+		box-shadow: var(--ring-control);
 	}
 
-	.box:focus-within {
-		border-color: var(--accent);
+	.box:has(input:focus-visible) {
+		outline: var(--focus-width) solid var(--focus-ring);
+		outline-offset: var(--focus-offset);
 	}
 
 	.badge {
-		font-size: var(--t-eyebrow);
-		font-weight: 600;
-		letter-spacing: var(--tracking-eyebrow);
+		font-size: var(--type-overline-size);
+		font-weight: var(--weight-semibold);
+		letter-spacing: var(--type-kicker-tracking);
 		text-transform: uppercase;
-		color: var(--accent);
-	}
-
-	.tag button {
-		display: grid;
-		place-items: center;
-		inline-size: 44px;
-		block-size: 44px;
-		border: 0;
-		border-radius: var(--r-pill);
-		background: transparent;
-		opacity: 0.75;
-		transition: opacity var(--d-fast) var(--ease-out);
-	}
-
-	.tag button:hover {
-		opacity: 1;
+		color: var(--ink-secondary);
 	}
 
 	.entry {
 		flex: 1;
-		min-inline-size: 110px;
+		min-inline-size: 7rem;
 	}
 
 	.entry input {
 		inline-size: 100%;
-		min-block-size: 44px;
-		padding: 0 8px;
+		min-block-size: max(var(--control-height-s), var(--target));
+		padding: 0 var(--space-2);
 		border: 0;
 		background: none;
-		font-size: var(--t-body);
+		font-size: var(--type-body-size);
 	}
 
 	.entry input:focus-visible {
-		box-shadow: none;
+		outline: none;
+	}
+
+	.entry input::placeholder {
+		color: var(--ink-muted);
+		opacity: 1;
 	}
 
 	.suggest {
 		display: flex;
 		flex-wrap: wrap;
-		gap: var(--s-2);
+		gap: var(--space-1-5);
 	}
 </style>

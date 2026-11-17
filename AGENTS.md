@@ -51,3 +51,12 @@ viewport or only uses `request` runs in one project (`test.skip(info.project.nam
 - **New component or style** → no raw colours and no clip-path transitions (motion.test.ts bans both), and pair static style guards (raw font-size/colour scans) with a computed-style e2e; use the error token for failures, never a hex or ink fallback. (weil: U13 went red on a hex error colour and U12 on a clip-path transition; FilterBar select at --t-small = 13px passed the guard, the inputs >= 16px e2e caught it) [2026-11-01 · build-creative-archive] [2026-11-02 · ui-polish]
 - **Bare `playwright test` in a fresh worktree, or after a throwaway `node build` server** → run `npm run build` once first and check `ss -ltn | rg :<port>`, killing that pid; for screenshots from `node build` build first and switch scheme via the app setting, not emulated prefers-color-scheme. (weil: "Cannot find module build", and a leftover server blocked the unit port; the app ignores emulated prefers-color-scheme and a stale build showed the old UI) [2026-11-01 · build-creative-archive] [2026-11-02 · ui-polish]
 - **Navigation type in SvelteKit 3** → import `NavigationType` from `$app/navigation`, not `@sveltejs/kit`. (weil: U3 cost an attempt on the old import path) [2026-11-02 · ui-polish]
+- **Popover/menu whose geometry depends on the resolved position-try (transform-origin of a flipped menu)** → compute it in a ResizeObserver, not the `toggle` handler. (weil: `toggle` fires 1-2 frames after paint, so the origin was read before the flip resolved; ResizeObserver runs after layout, before paint) [2026-11-17 · redesign]
+- **e2e whose next `page.goto` follows a sheet that closed via `history.back()`** → wait for popstate first. (weil: the async navigation is still in flight and the goto aborts with ERR_ABORTED) [2026-11-17 · redesign]
+
+## Design fingerprint
+
+- `DESIGN.md`, `DESIGN-reference.md`, `src/lib/styles/fingerprint/` and `scripts/fingerprint/` are vendored from Design-System and never edited here. `check-drift` in `proof` fails on any edit.
+- Fingerprint changes go to `Design-System/requests.md`, not into this repo.
+- Primitives are copied in with `Design-System/scripts/sync.sh <app-path> --primitive <name>`; the app owns them afterwards.
+- Styling uses fingerprint tokens only; `check-slop` enforces it and lists banned patterns in `scripts/fingerprint/banned.md`.

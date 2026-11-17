@@ -1,42 +1,24 @@
 <script lang="ts" module>
-	import { cubicOut } from 'svelte/easing';
-	import type { TransitionConfig } from 'svelte/transition';
-	import { reducedMotion } from '#lib/motion.ts';
-
 	// mirrors MAX_UPLOAD_BYTES in the server's images.ts, which pulls in sharp and cannot ship to the browser
 	const MAX_BYTES = 16 * 1024 * 1024;
-
-	// the new picture settles in from slightly zoomed while the old one fades behind it
-	function swap(_node: Element, { leaving = false }: { leaving?: boolean } = {}): TransitionConfig {
-		if (reducedMotion()) return { duration: 0 };
-		return {
-			duration: leaving ? 220 : 400,
-			easing: cubicOut,
-			css: (t, u) => (leaving ? `opacity: ${t}` : `opacity: ${t}; transform: scale(${(1 + u * 0.05).toFixed(3)})`)
-		};
-	}
 </script>
 
 <script lang="ts">
 	import { onDestroy } from 'svelte';
 	import { COPY } from '#lib/copy.ts';
 	import { isAcceptedImageFile } from './imageFormats.ts';
-	import { hideOnOutro } from '#lib/motion.ts';
+	import Button from '#lib/components/button/Button.svelte';
 	import type { Id } from '#lib/types.ts';
-	import Button from '#lib/ui/Button.svelte';
-	import IconButton from '#lib/ui/IconButton.svelte';
-	import ImagePlaceholder from '#lib/ui/ImagePlaceholder.svelte';
+	import Icon from '#lib/ui/Icon.svelte';
 
 	// `removed` and `picked` (the chosen file's name) are posted with the form and also drive its unsaved check
 	let {
-		title,
 		imageId = null,
 		removed = $bindable(false),
 		picked = $bindable(''),
 		error = '',
 		ondirty
 	}: {
-		title: string;
 		imageId?: Id | null;
 		removed: boolean;
 		picked: string;
@@ -92,27 +74,25 @@
 	onDestroy(forget);
 </script>
 
-<div class="image-field">
+<div class="image-field" data-invalid={message ? '' : undefined}>
 	<span class="label" id="image-label">Image</span>
-	<div class="frame" role="group" aria-labelledby="image-label">
-		{#key src ?? 'none'}
-			<div class="layer" in:swap out:swap={{ leaving: true }} use:hideOnOutro>
-				{#if src}
-					<img {src} alt="Preview" />
-				{:else}
-					<ImagePlaceholder {title} tint={null} />
-				{/if}
-			</div>
-		{/key}
-		<div class="actions">
-			<Button variant="glass" icon="image" onclick={() => fileInput.click()}>{src ? 'Replace' : 'Add image'}</Button>
-			{#if src}<IconButton icon="x" label="Remove image" onclick={remove} />{/if}
-		</div>
+	<div class="picture" role="group" aria-labelledby="image-label" aria-describedby={message ? 'e-image' : undefined}>
+		{#if src}
+			<img {src} alt="Preview" />
+		{:else}
+			<span class="empty"><Icon name="image" size={28} />No image yet</span>
+		{/if}
+	</div>
+	<div class="actions">
+		<Button variant="secondary" size="s" onclick={() => fileInput.click()}>
+			<Icon name={src ? 'upload' : 'plus'} size={16} />{src ? 'Replace' : 'Add image'}
+		</Button>
+		{#if src}<Button variant="quiet" size="s" onclick={remove}>Remove image</Button>{/if}
 	</div>
 
 	<input
 		bind:this={fileInput}
-		class="visually-hidden"
+		class="sr-only"
 		type="file"
 		name="image"
 		accept="image/*"
@@ -121,52 +101,83 @@
 		onchange={onFile}
 	/>
 	<input type="hidden" name="removeImage" value={removed ? '1' : ''} />
-	{#if message}<p class="error" id="e-image" role="alert">{message}</p>{/if}
+	{#if message}
+		<p class="error" id="e-image" role="alert">
+			<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M12 7.5v5M12 16.5h.01" /></svg>
+			{message}
+		</p>
+	{/if}
 </div>
 
 <style>
 	.image-field {
-		display: flex;
-		flex-direction: column;
-		gap: 6px;
+		display: grid;
+		align-content: start;
+		gap: var(--space-2);
 		min-inline-size: 0;
 	}
 
 	.label {
-		font-size: var(--t-small);
-		font-weight: 600;
+		font-size: var(--type-label-size);
+		line-height: var(--type-label-line);
+		font-weight: var(--type-label-weight);
 	}
 
-	.frame {
-		position: relative;
+	.picture {
 		display: grid;
+		place-items: center;
+		justify-self: start;
+		inline-size: min(100%, 15rem);
 		aspect-ratio: 1;
-		border-radius: var(--r-card);
 		overflow: hidden;
-		isolation: isolate;
-		background: var(--surface-2);
+		border-radius: var(--radius-panel);
+		background: var(--surface-sunken);
+		box-shadow: var(--ring-hairline);
+		color: var(--ink-secondary);
 	}
 
-	.layer {
-		grid-area: 1 / 1;
-		min-inline-size: 0;
-		min-block-size: 0;
+	[data-invalid] .picture {
+		box-shadow: var(--ring-danger);
 	}
 
-	.layer img {
+	.picture img {
+		align-self: stretch;
+		justify-self: stretch;
 		inline-size: 100%;
 		block-size: 100%;
 		object-fit: cover;
 	}
 
+	.empty {
+		display: grid;
+		justify-items: center;
+		gap: var(--space-2);
+		font-size: var(--type-caption-size);
+	}
+
+	@media (min-width: 768px) {
+		.picture {
+			justify-self: stretch;
+			inline-size: 100%;
+		}
+	}
+
 	.actions {
-		position: absolute;
-		inset-inline: var(--s-3);
-		inset-block-end: var(--s-3);
 		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		gap: var(--s-2);
-		z-index: 1;
+		flex-wrap: wrap;
+		gap: var(--space-2);
+	}
+
+	.error {
+		font-size: var(--type-caption-size);
+		line-height: var(--type-caption-line);
+		font-weight: var(--weight-semibold);
+		color: var(--danger);
+	}
+
+	.error svg {
+		display: inline;
+		vertical-align: -0.15em;
+		margin-inline-end: var(--space-1);
 	}
 </style>

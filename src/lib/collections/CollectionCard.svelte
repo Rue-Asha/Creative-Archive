@@ -5,11 +5,11 @@
 	let { collection }: { collection: Collection } = $props();
 </script>
 
-<article class="card" data-collection-card>
-	<div class="art"><Collage images={collection.collage} label="{collection.name} collage" /></div>
+<article class="card" data-surface="solid" data-collection-card data-press>
+	<div class="art"><Collage images={collection.collage} name={collection.name} label="{collection.name} collage" /></div>
 	<div class="foot">
 		<h3><a href="/collections/{collection.id}">{collection.name}</a></h3>
-		<span class="count tnum" data-count aria-label="{collection.count} {collection.count === 1 ? 'entry' : 'entries'}">{collection.count}</span>
+		<span class="count" data-count aria-label="{collection.count} {collection.count === 1 ? 'entry' : 'entries'}">{collection.count}</span>
 	</div>
 </article>
 
@@ -17,60 +17,69 @@
 	.card {
 		position: relative;
 		display: grid;
-		gap: var(--s-3);
-		transition: transform var(--d-base) var(--ease-out);
+		gap: var(--space-3);
+		align-content: start;
+		min-inline-size: 0;
+		padding: var(--space-3);
 	}
 
 	.art {
 		aspect-ratio: 4 / 3;
-		border-radius: var(--r-card);
-		overflow: hidden;
-		box-shadow: var(--shadow-card);
-		transition: box-shadow var(--d-base) var(--ease-out);
 	}
 
 	.foot {
 		display: flex;
 		align-items: baseline;
 		justify-content: space-between;
-		gap: var(--s-3);
-		padding-inline: var(--s-1);
+		gap: var(--space-3);
+		padding-inline: var(--space-1);
 	}
 
 	h3 {
-		font-size: var(--t-body);
-		font-weight: 600;
-		line-height: 1.25;
+		min-inline-size: 0;
+		font-size: var(--type-title-size);
+		line-height: var(--type-title-line);
+		font-weight: var(--type-title-weight);
 		overflow-wrap: anywhere;
+		display: -webkit-box;
+		-webkit-box-orient: vertical;
+		-webkit-line-clamp: 3;
+		line-clamp: 3;
+		overflow: hidden;
+	}
+
+	h3 a {
+		color: var(--ink);
+		text-decoration: none;
 	}
 
 	h3 a::after {
 		content: '';
 		position: absolute;
 		inset: 0;
+		border-radius: var(--radius-card);
+	}
+
+	h3 a:focus-visible {
+		outline: 0;
+	}
+
+	h3 a:focus-visible::after {
+		outline: var(--focus-width) solid var(--focus-ring);
+		outline-offset: var(--focus-offset);
 	}
 
 	.count {
 		flex: none;
-		font-size: var(--t-small);
-		font-weight: 600;
-		color: var(--ink-2);
-		padding: 2px 10px;
-		border-radius: var(--r-pill);
-		background: var(--accent-wash);
-	}
-
-	.card:has(a:focus-visible) .art {
-		box-shadow: var(--focus-ring);
+		font-size: var(--type-caption-size);
+		line-height: var(--type-caption-line);
+		color: var(--ink-secondary);
+		font-variant-numeric: var(--numeric-figures);
 	}
 
 	@media (hover: hover) and (pointer: fine) {
-		.card:hover {
-			transform: translateY(-4px);
-		}
-
-		.card:hover .art {
-			box-shadow: var(--shadow-float);
+		.card:has(h3 a:hover) {
+			background: var(--surface-raised);
 		}
 	}
 </style>

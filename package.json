@@ -1,6 +1,6 @@
 {
 	"name": "creative-archive",
-	"version": "0.2.0",
+	"version": "0.3.0",
 	"private": true,
 	"type": "module",
 	"engines": {
@@ -14,10 +14,9 @@
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --fail-on-warnings",
 		"test:unit": "vitest run --reporter=verbose",
 		"test:e2e": "playwright test --reporter=list",
-		"proof": "npm run check && npm run build && npm run test:unit",
+		"proof": "node scripts/fingerprint/check-slop.mjs && node scripts/fingerprint/check-drift.mjs && npm run check && npm run build && npm run test:unit",
 		"proof:full": "npm run proof && npm run test:e2e",
-		"package": "npm run build && node scripts/package.mjs",
-		"shots:mockups": "npm run build && playwright test e2e/mockups.test.ts --reporter=list"
+		"package": "npm run build && node scripts/package.mjs"
 	},
 	"devDependencies": {
 		"@playwright/test": "^1.64.0",
